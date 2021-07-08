@@ -90,13 +90,24 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
         if not source_query:
             continue
         readline.append_history_file(1, INTERACTIVE_HIST_PATH)
-        if source_query[0] in ('\\', '.'):
+        if source_query[0] in ('\\', '.', '/'):
             if source_query[1:] in ('schema', 'dt', 'd', 'd+', 'describe', 'show'):
                 # TODO: This is a huge hack. This is loading the *entire table into ram* just so we can look at what
                 # columns are in it.
                 table = load_url(source)
                 print('Table `data`:')
-                print(textwrap.indent('\n'.join(sorted(table.df.columns)), '  '))
+                for column, column_data in table.get_json_schema()['properties'].items():
+                    if 'type' in column_data:
+                        if isinstance(column_data["type"], str):
+                            types = [column_data["type"]]
+                        elif isinstance(column_data["type"], list):
+                            types = column_data["type"]
+                        else:
+                            raise AssertionError
+                    else:
+                        assert('anyOf' in column_data)
+                        types = [i['type'] for i in column_data['anyOf']]
+                    print(f'  {column}: {", ".join(types)}')
                 continue
         try:
             # Read source
@@ -187,8 +198,8 @@ def main():
             # Default to outputting to console, in same format as input
             dest = f'{source_scheme}:-'
         else:
-            # Otherwise, default to asciibox output to console
-            dest = 'asciibox:-'
+            # Otherwise, default to ascii output to console
+            dest = 'ascii:-'
         logger.debug(f'No output destination specificied, defaulting to {parse_uri(dest).scheme} output to stdout')
 
     # Execute interactive

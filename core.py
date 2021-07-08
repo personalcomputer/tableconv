@@ -50,6 +50,21 @@ class IntermediateExchangeTable:
         logger.debug(f'Exporting data out via {write_adapter.__qualname__} on {url}')
         return write_adapter.dump(self.df, url)
 
+    def get_json_schema(self):
+        """
+        This is undocumented for a reason: It's recommended to not use this.
+        """
+        from genson import SchemaBuilder
+        builder = SchemaBuilder()
+        builder.add_schema({'type': 'object', 'properties': {}})
+        for row in self.df.to_dict(orient='records'):
+            builder.add_object(row)
+        return builder.to_schema()
+
+    def query_in_memory(self):
+        # TODO refactor to use this
+        pass
+
 
 FSSPEC_SCHEMES = {'https', 'http', 'ftp', 's3', 'gcs', 'sftp', 'scp', 'abfs'}
 
@@ -117,7 +132,7 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         df = query_in_memory(df, filter_sql)
 
     if df.empty:
-        raise SuppliedDataError(f'No rows returned by intermediate filter sql query')
+        raise SuppliedDataError('No rows returned by intermediate filter sql query')
 
     table = IntermediateExchangeTable(df)
     table.source_scheme = source_scheme

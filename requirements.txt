@@ -3,3 +3,4 @@ xlwt
 xlrd
 duckdb
 sqlalchemy
+tabulate
