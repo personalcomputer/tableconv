@@ -4,6 +4,8 @@
 
 Its primary usecase is as a quick and dirty CLI ETL tool for converting tabular data from any of 50+ tabular input formats into 50+ tabular output formats (such as CSV, Postgres, XLS, Google Sheets, etc).
 
+The tableconv prototype software is slow, it is not suitable for tables over 1 million rows.
+
 # Prior Art
 
 - odo http://odo.pydata.org/en/latest/
