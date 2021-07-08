@@ -8,7 +8,7 @@ It also supports basic in-line data transformation using SQL and has an interact
 
 The tableconv vision of computing is that all software fundamentally interfaces with data tables, that all APIs can be interpretted as data tables, and that this world needs a generic operating system level client for users to interact with the tables. tableconv is that tool. It is meant to have adapters written to support any/all service and extract or upload data to them to/from generic and portable tabular format.
 
-The tableconv prototype software is slow and memory intensive. It has no streaming support and processes all data locally. It is not suitable for tables over 1 million rows. It also has experimental features that will not work reliably, such as schema management, and special array (1 dimensional table) support. Lastly, as experimental prototype software, all parts of the user interface are expected to be overhauled at some piont.
+The tableconv prototype software is slow and memory intensive. It has no streaming support and processes all data locally. It is not suitable for tables over 1 million rows. It also has experimental features that will not work reliably, such as schema management, and special array (1 dimensional table) support. Lastly, as experimental prototype software, all parts of the user interface are expected to be overhauled at some point, and currently no documentation has been written to document the standard options available for each adapter, nor any adapter-specific options.
 
 ## Usage
 
