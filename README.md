@@ -86,7 +86,17 @@ supported url schemes:
 
 ## Prior Art
 
+Most influential:
 - odo http://odo.pydata.org/en/latest/
 - Singer https://www.singer.io/
-- Hive SerDes https://cwiki.apache.org/confluence/display/Hive/SerDe
-- ODBC
+- ODBC https://en.wikipedia.org/wiki/Open_Database_Connectivity
+- osquery https://github.com/osquery/osquery
+
+Less influential, but notable:
+- Hive SerDes
+- JDBC
+- SQLAlchemy
+- pandas io
+- https://github.com/betodealmeida/shillelagh
+- https://github.com/kellyjonbrazil/jc
+- https://github.com/personalcomputer/sql_api_framework_poc
