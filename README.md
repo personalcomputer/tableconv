@@ -1,6 +1,6 @@
 # tableconv
 
-"tableconv" is a prototype of a core data plumbing tool that enables complete data portability across 50+ tabular formats. It is similar in concept to the "pandoc" tool, except for data tables.
+"tableconv" is a prototype of a core data plumbing tool that enables complete data portability across 50+ tabular formats. It is conceptually similar to [pandoc](https://pandoc.org/), except for data tables instead of documents.
 
 Its primary usecase is as a quick and dirty CLI ETL tool for converting tabular data from any of 50+ input formats into 50+ output formats (such as CSV, Postgres, XLS, Google Sheets, JSON, etc).
 
