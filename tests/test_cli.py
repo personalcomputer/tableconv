@@ -79,7 +79,7 @@ def test_inferred_numbers_from_ascii_format():
 def test_interactive(tmp_path):
     with open(f'{tmp_path}/test.tsv', 'w') as f:
         f.write(EXAMPLE_TSV_RAW)
-    cmd = ['tableconv'] + [f'{tmp_path}/test.tsv', '-i', '-o', 'asciibox:-']
+    cmd = ['tableconv'] + [f'{tmp_path}/test.tsv', '-i', '-o', 'asciipretty:-']
     logging.warning(f'Running cmd `{shlex.join(cmd)}`')
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 
@@ -88,7 +88,7 @@ def test_interactive(tmp_path):
     assert stdout_lines.pop(0) == '/privat[...]teractive0/test.tsv=> ' + \
                                   '+------+'
     assert stdout_lines.pop(0) == '| date |'
-    assert stdout_lines.pop(0) == '|------|'
+    assert stdout_lines.pop(0) == '+------+'
     assert stdout_lines.pop(0) == '| 2023 |'
 
     # NOTE: this test is weak because it is not using a real TTY. The interactive mode only needs to work correctly on a
@@ -116,7 +116,7 @@ def test_interactive(tmp_path):
 #     stdout_lines = stdout.splitlines()
 #     assert stdout_lines.pop(0) == '+------+'
 #     assert stdout_lines.pop(0) == '| date |'
-#     assert stdout_lines.pop(0) == '|------|'
+#     assert stdout_lines.pop(0) == '+------+'
 #     assert stdout_lines.pop(0) == '| 2023 |'
 #     assert stdout_lines.pop(0) == '+------+'
 
@@ -127,7 +127,7 @@ def test_interactive(tmp_path):
 #     stdout_lines = stdout.splitlines()
 #     assert stdout_lines.pop(0) == '+----+'
 #     assert stdout_lines.pop(0) == '| id |'
-#     assert stdout_lines.pop(0) == '|----|'
+#     assert stdout_lines.pop(0) == '+----+'
 #     assert stdout_lines.pop(0) == '|  1 |'
 #     assert stdout_lines.pop(0) == '|  2 |'
 #     assert stdout_lines.pop(0) == '|  3 |'
@@ -140,13 +140,10 @@ def test_interactive(tmp_path):
 
 def test_help():
     stdout = invoke_cli(['-h'])
-    SUPPORTED_SCHEMES = [
-        'csv ', 'json ', 'jsonl ', 'py ', 'python ', 'tsv ', 'xls ', 'xlsx ', 'yaml ', 'asciiborderless', 'asciibox',
-        'asciilite', 'awsathena', 'csa', 'example', 'firebird', 'gsheets', 'jiracloud', 'jsonarray', 'list', 'markdown',
-        'md', 'mssql', 'mysql', 'oracle', 'postgis', 'postgres', 'postgresql', 'pylist', 'smartsheet', 'sqlite3',
-        'sqlite', 'sumologic', 'sybase', 'unicodebox', 'yamlsequence', 'parquet',
+    CORE_SUPPORTED_SCHEMES = [
+        'csv ', 'json ', 'jsonl ', 'python ', 'tsv ', 'xls ', 'ascii', 'gsheets'
     ]
-    for scheme in SUPPORTED_SCHEMES:
+    for scheme in CORE_SUPPORTED_SCHEMES:
         assert scheme in stdout.lower()
     assert 'usage' in stdout.lower()
     assert '-o' in stdout.lower()
