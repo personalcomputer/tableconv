@@ -4,7 +4,7 @@
 
 Its primary usecase is as a quick and dirty CLI ETL tool for converting tabular data from any of 50+ input formats into 50+ output formats (such as CSV, Postgres, XLS, Google Sheets, JSON, etc).
 
-It also supports basic in-line data transformation using SQL and has an interactive mode enabling DB-shell-like interactions with e.g. CSV files.
+It also supports basic in-line data transformation using SQL and has an interactive mode enabling DB-shell-like interactions even if the underlying data format has no native DB shell client, such as, e.g., CSV files.
 
 The tableconv vision of computing is that all software fundamentally interfaces with data tables, that all APIs can be interpretted as data tables, and that this world needs a generic operating system level client for users to interact with the tables. tableconv is that tool. It is meant to have adapters written to support any/all service and extract or upload data to them to/from generic and portable tabular format.
 
