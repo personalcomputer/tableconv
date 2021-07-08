@@ -1,14 +1,10 @@
 # tableconv
 
-"tableconv" is a prototype of a core data plumbing tool that enables complete data portability across 50+ tabular formats. It is conceptually similar to [pandoc](https://pandoc.org/), except for data tables instead of documents.
+"tableconv" is a prototype of a core data plumbing tool that enables complete data portability across 50+ tabular formats (such as CSV, Postgres, XLS, Google Sheets, JSON, etc). It is conceptually similar to [pandoc](https://pandoc.org/), except for data tables instead of documents. As a prototype, it is useable as a quick and dirty CLI ETL tool for converting tabular data between any of the formats, or useable for performing basic bulk data transformations and joins defined in a unified language (SQL) but operating across disparate data in wildly different formmats.
 
-Its primary usecase is as a quick and dirty CLI ETL tool for converting tabular data from any of 50+ input formats into 50+ output formats (such as CSV, Postgres, XLS, Google Sheets, JSON, etc).
+The tableconv vision of computing is that all software fundamentally interfaces via data tables, that all APIs can be interpretted as data tables. This world needs a highly interoperable operating system level client for powerusers to directly interact with, join, and manipulate the tables. Tableconv is that tool. It is meant to have adapters written to support any/all service and extract or upload data to them to/from generic and portable tabular format.
 
-It also supports basic in-line data transformation using SQL and has an interactive mode enabling DB-shell-like interactions even if the underlying data format has no native DB shell client, such as, e.g., CSV files.
-
-The tableconv vision of computing is that all software fundamentally interfaces via data tables, that all APIs can be interpretted as data tables. This world needs a highly interoperable operating system level client for powerusers to directly interact with and manipulate the tables. Tableconv is that tool. It is meant to have adapters written to support any/all service and extract or upload data to them to/from generic and portable tabular format.
-
-However, it is just a prototype. The tableconv prototype software is slow and memory intensive. It has no streaming support and processes all data locally. It is not suitable for tables over 1 million rows. It also has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support.As experimental prototype software, all parts of the user interface are also expected to be overhauled at some point. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor any adapter-specific options.
+However, it is just a prototype. The tableconv prototype software is slow and memory intensive. It has no streaming support and it processes all data locally. It is not suitable for tables over 1 million rows. It probably has security issues. It also has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are also expected to be overhauled at some point. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor any adapter-specific options.
 
 ## Usage
 
