@@ -28,45 +28,6 @@ def render_asciilite(ordered_fields, rows):
     return '\n'.join(output_lines)
 
 
-def render_asciiborderless(ordered_fields, rows):
-    """ Text table rendering inspired by psql. """
-    serialized_rows = _get_serialized_rows(rows)
-    max_lengths = _get_column_max_lengths(serialized_rows, ordered_fields)
-
-    output_lines = []
-    output_lines.append(' ' + ' | '.join([field.center(max_lengths[field]) for field in ordered_fields]) + ' ')
-    output_lines.append('-' + '-+-'.join(['-'*max_lengths[field] for field in ordered_fields]) + '-')
-    for row in serialized_rows:
-        rendered_values_list = []
-        for field in ordered_fields:
-            rendered_values_list.append(row[field].ljust(max_lengths[field]))
-        output_lines.append(' ' + ' | '.join(rendered_values_list) + ' ')
-    # Fully imitate psql by adding row count
-    # if len(rows) == 1:
-    #     output_lines.append(f'({len(rows)} row)')
-    # else:
-    #     output_lines.append(f'({len(rows)} rows)')
-    return '\n'.join(output_lines)
-
-
-def render_asciibox(ordered_fields, rows):
-    """ Text table rendering inspired by SQLLine or pgcli. """
-    serialized_rows = _get_serialized_rows(rows)
-    max_lengths = _get_column_max_lengths(serialized_rows, ordered_fields)
-
-    output_lines = []
-    output_lines.append('+-' + '-+-'.join(['-'*max_lengths[field] for field in ordered_fields]) + '-+')
-    output_lines.append('| ' + ' | '.join([field.center(max_lengths[field]) for field in ordered_fields]) + ' |')
-    output_lines.append('|-' + '-+-'.join(['-'*max_lengths[field] for field in ordered_fields]) + '-|')
-    for row in serialized_rows:
-        rendered_values_list = []
-        for field in ordered_fields:
-            rendered_values_list.append(row[field].ljust(max_lengths[field]))
-        output_lines.append('| ' + ' | '.join(rendered_values_list) + ' |')
-    output_lines.append('+-' + '-+-'.join(['-'*max_lengths[field] for field in ordered_fields]) + '-+')
-    return '\n'.join(output_lines)
-
-
 def render_unicodebox(ordered_fields, rows):
     """ Text table rendering inspired by ClickHouse. """
     serialized_rows = _get_serialized_rows(rows)
@@ -83,26 +44,32 @@ def render_unicodebox(ordered_fields, rows):
     return '\n'.join(output_lines)
 
 
-def render_markdown(ordered_fields, rows):
-    """ Text table rendering compatible with Github-Flavored Markdown. """
-    serialized_rows = _get_serialized_rows(rows)
-    max_lengths = _get_column_max_lengths(serialized_rows, ordered_fields)
-
-    output_lines = []
-    output_lines.append('| ' + ' | '.join([field.center(max_lengths[field]) for field in ordered_fields]) + ' |')
-    output_lines.append('| ' + ' | '.join(['-'*max_lengths[field] for field in ordered_fields]) + ' |')
-    for row in serialized_rows:
-        rendered_values_list = []
-        for field in ordered_fields:
-            rendered_values_list.append(row[field].ljust(max_lengths[field]))
-        output_lines.append('| ' + ' | '.join(rendered_values_list) + ' |')
-    return '\n'.join(output_lines)
-
-
-@register_adapter(['asciilite', 'asciiborderless', 'asciibox', 'unicodebox', 'markdown', 'md'], write_only=True)
+@register_adapter(
+    [
+        'ascii',
+        'asciiplain',
+        'asciisimple',
+        'asciigrid',
+        'asciifancygrid',
+        'asciipipe',
+        'asciipresto',
+        'asciipretty',
+        'asciipsql',
+        'asciilite',
+        'asciibox',
+        'mediawikiformat',
+        'moinmoinformat',
+        'markdown',
+        'md',
+        'rst',
+        'html',
+        'latex',
+        'tex',
+    ], write_only=True
+)
 class ASCIIAdapter(FileAdapterMixin, Adapter):
     """
-    Adapter focused on ascii art style table renderings, such as those found in database CLIs.
+    Adapter focused on outputting ascii art style table renderings, such as those found in database CLIs.
     """
     text_based = True
 
@@ -126,19 +93,31 @@ class ASCIIAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_text_data(df, scheme, kwargs):
-        ordered_fields = list(df.columns)
-        rows = df.to_dict('records')
-
-        if scheme == 'asciilite':
-            out_text = render_asciilite(ordered_fields, rows)
-        elif scheme == 'asciiborderless':
-            out_text = render_asciiborderless(ordered_fields, rows)
+        TABULATE_TABLEFMT = {
+            'ascii': 'simple',
+            'asciiplain': 'plain',
+            'asciisimple': 'simple',
+            'md': 'github',
+            'markdown': 'github',
+            'asciigrid': 'grid',
+            'asciifancygrid': 'fancy_grid',
+            'asciipipe': 'pipe',
+            'asciipresto': 'presto',
+            'asciipretty': 'pretty',
+            'asciipsql': 'psql',
+            'mediawikiformat': 'mediawiki',
+            'moinmoinformat': 'moinmoin',
+            'rst': 'rst',
+            'html': 'html',
+            'latex': 'latex',
+            'tex': 'latex',
+        }
+        if scheme in TABULATE_TABLEFMT:
+            from tabulate import tabulate
+            return tabulate(df.values.tolist(), list(df.columns), tablefmt=TABULATE_TABLEFMT[scheme])
+        elif scheme == 'asciilite':
+            return render_asciilite(list(df.columns), df.to_dict('records'))
         elif scheme == 'asciibox':
-            out_text = render_asciibox(ordered_fields, rows)
-        elif scheme == 'unicodebox':
-            out_text = render_unicodebox(ordered_fields, rows)
-        elif scheme in ('markdown', 'md'):
-            out_text = render_markdown(ordered_fields, rows)
+            return render_unicodebox(list(df.columns), df.to_dict('records'))
         else:
             raise AssertionError()
-        return out_text
