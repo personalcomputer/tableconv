@@ -23,7 +23,7 @@ def resolve_pgcli_uri_alias(dsn):
     return None
 
 
-@register_adapter(['postgres', 'postgis', 'postgresql', 'sqlite', 'sqlite3', 'mysql', 'mssql', 'oracle', 'sybase', 'firebird'])
+@register_adapter(['postgres', 'postgis', 'postgresql', 'sqlite', 'sqlite3', 'mysql', 'mssql', 'oracle'])
 class SQLAdapter(Adapter):
 
     @staticmethod
@@ -87,12 +87,12 @@ class SQLAdapter(Adapter):
         engine, table = SQLAdapter._get_engine_and_table_from_uri(parsed_uri)
         if not table:
             raise ValueError('Please pass table name, in format <engine>://<host>:<post>/<db>/<table> or <engine>://<host>:<post>/<db>?table=<table>')
-        append = 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false'
-        overwrite = 'overwrite' in parsed_uri.query and parsed_uri.query['overwrite'].lower() != 'false'
-        if append:
-            df.to_sql(table, engine, index=False, if_exists='append')  # , method='multi')
-        elif overwrite:
-            df.to_sql(table, engine, index=False, if_exists='replace')  # , method='multi')
+        if 'if_exists' in parsed_uri.query:
+            if_exists = parsed_uri.query['if_exists']
+        elif 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false':
+            if_exists = 'append'
+        elif 'overwrite' in parsed_uri.query and parsed_uri.query['overwrite'].lower() != 'false':
+            if_exists = 'replace'
         else:
-            df.to_sql(table, engine, index=False, if_exists='fail')  # , method='multi')
-
+            if_exists = 'fail'
+        df.to_sql(table, engine, index=False, if_exists=if_exists)
