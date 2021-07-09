@@ -9,7 +9,7 @@ However, right now this is just a prototype. The software is slow and memory int
 ## Usage
 
 ```
-usage: __main__.py SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]
+usage: tableconv SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]
 
 positional arguments:
   SOURCE_URL            Specify the data source URL.
