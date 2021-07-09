@@ -94,7 +94,7 @@ Most influential:
 
 Less influential, but notable:
 - Hive SerDes
-- JDBC
+- JDBC or Python DBAPI
 - SQLAlchemy
 - pandas io
 - https://github.com/betodealmeida/shillelagh
