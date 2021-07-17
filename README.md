@@ -91,9 +91,9 @@ Most influential:
 - Singer https://www.singer.io/
 - ODBC https://en.wikipedia.org/wiki/Open_Database_Connectivity
 - osquery https://github.com/osquery/osquery
+- Spark http://spark.apache.org/docs/latest/sql-data-sources.html
 
 Less influential, but notable:
-- Hive SerDes
 - JDBC or Python DBAPI
 - SQLAlchemy
 - pandas io
