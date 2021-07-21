@@ -1,19 +1,15 @@
 # tableconv
 
-"tableconv" is a prototype of a core data plumbing tool that enables complete data portability across 50+ tabular formats. It is conceptually similar to [pandoc](https://pandoc.org/), except for data tables instead of documents.
+"tableconv" is a prototype of a core data plumbing tool that enables data portability across 50+ data formats (such as CSV, Postgres, XLS, Google Sheets, JSON, etc). It is conceptually similar to [pandoc](https://pandoc.org/), except it operates on data formats instead of text formats. 
 
-Its primary usecase is as a quick and dirty CLI ETL tool for converting tabular data from any of 50+ input formats into 50+ output formats (such as CSV, Postgres, XLS, Google Sheets, JSON, etc).
+As a prototype, it is usable as a quick and dirty CLI ETL tool for converting data between any of the formats, or usable for performing basic bulk data transformations and joins defined in a unified language (SQL) but operating across disparate data in wildly different formats. That is the immediate value proposition of tableconv, but it was created within the mental framework of a larger vision: The tableconv vision of computing is that all software fundamentally interfaces via data tables; that all UIs and APIs can be interpreted as data frames or data tables. Instead of requiring power users to learn interface after interface and build their own bespoke tooling to extract and manipulate the data at scale in each interface, the world needs a highly interoperable operating system level client for power users to directly interact with, join, and manipulate the data with SQL (or similar) using the universal "table" abstraction provided in a consistent UI across each service. Tableconv is that tool. It is meant to have adapters written to support any/all services and data formats.
 
-It also supports basic in-line data transformation using SQL and has an interactive mode enabling DB-shell-like interactions even if the underlying data format has no native DB shell client, such as, e.g., CSV files.
-
-The tableconv vision of computing is that all software fundamentally interfaces via data tables, that all APIs can be interpretted as data tables. This world needs a highly interoperable operating system level client for powerusers to directly interact with and manipulate the tables. Tableconv is that tool. It is meant to have adapters written to support any/all service and extract or upload data to them to/from generic and portable tabular format.
-
-However, it is just a prototype. The tableconv prototype software is slow and memory intensive. It has no streaming support and processes all data locally. It is not suitable for tables over 1 million rows. It also has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support.As experimental prototype software, all parts of the user interface are also expected to be overhauled at some point. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor any adapter-specific options.
+However, right now this is just a prototype. The software is slow and memory intensive. It has no streaming support and loads all data into memory before converting it. It is not suitable for tables over 1 million rows. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre and inconsistent. Most obscure adapter options are untested. It has an incomplete story on how to use it outside the CLI in other software, as a library. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor any adapter-specific options.
 
 ## Usage
 
 ```
-usage: __main__.py SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]
+usage: tableconv SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]
 
 positional arguments:
   SOURCE_URL            Specify the data source URL.
@@ -90,7 +86,17 @@ supported url schemes:
 
 ## Prior Art
 
+Most influential:
 - odo http://odo.pydata.org/en/latest/
 - Singer https://www.singer.io/
-- Hive SerDes https://cwiki.apache.org/confluence/display/Hive/SerDe
-- ODBC
+- ODBC https://en.wikipedia.org/wiki/Open_Database_Connectivity
+- osquery https://github.com/osquery/osquery
+- Spark http://spark.apache.org/docs/latest/sql-data-sources.html
+
+Less influential, but notable:
+- JDBC or Python DBAPI
+- SQLAlchemy
+- pandas io
+- https://github.com/betodealmeida/shillelagh
+- https://github.com/kellyjonbrazil/jc
+- https://github.com/personalcomputer/sql_api_framework_poc
