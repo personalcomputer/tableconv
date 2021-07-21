@@ -70,7 +70,7 @@ class AWSAthenaAdapter(Adapter):
         output_s3_bucket = f'aws-athena-query-results-{aws_account_id}-{aws_region}'
 
 
-        logger.debug(f'Querying.. {aws_region=}, {catalog=}, {output_s3_bucket=}')
+        logger.debug(f'Querying.. aws_region={aws_region}, catalog={catalog}, output_s3_bucket={output_s3_bucket}')
         query_execution_context = {'Catalog': catalog}
         if database:
             query_execution_context['Database'] = database
@@ -279,7 +279,7 @@ class AWSAthenaAdapter(Adapter):
             else:
                 raise AssertionError
         if not table_exists:
-            logger.info(f'Creating new table {table_name}')
+            logger.info(f'Creating new table {database}.{table_name} in {aws_region}')
             logger.debug('\n' + textwrap.indent(schema_ddl, '  '))
             AWSAthenaAdapter._run_athena_query(
                 query=schema_ddl, return_results_raw=True,
