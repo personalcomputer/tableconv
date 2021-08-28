@@ -10,6 +10,17 @@ from ...uri import parse_uri
 from .base import Adapter, register_adapter
 
 
+def list_ljust(l, n, fill_value=None):
+    return l + [fill_value] * (n - len(l))
+
+
+def get_sheet_properties(spreadsheet_data, sheet_name):
+    for sheet in spreadsheet_data['sheets']:
+        if sheet['properties']['title'] == sheet_name:
+            return sheet['properties']
+    raise KeyError(f'Sheet {sheet_name} not found')
+
+
 @register_adapter(['gsheets'])
 class GoogleSheetsAdapter(Adapter):
 
@@ -41,9 +52,12 @@ class GoogleSheetsAdapter(Adapter):
         import googleapiclient.discovery
         import httplib2
 
-        uri = parse_uri(uri)
-        spreadsheet_id = uri.authority
-        sheet_name = uri.path.strip('/')
+        parsed_uri = parse_uri(uri)
+        spreadsheet_id = parsed_uri.authority
+        sheet_name = parsed_uri.path.strip('/')
+
+        if not sheet_name:
+            raise ValueError('Must specify sheet_name')
 
         googlesheets = googleapiclient.discovery.build(
             'sheets', 'v4', http=GoogleSheetsAdapter._get_credentials().authorize(httplib2.Http())
@@ -56,7 +70,9 @@ class GoogleSheetsAdapter(Adapter):
         ).execute()
 
         header = raw_data['values'][0]
-        return pd.DataFrame(raw_data['values'][1:], columns=header)
+        num_columns = len(header)
+        values = [list_ljust(row, num_columns) for row in raw_data['values'][1:]]
+        return pd.DataFrame(values, columns=header)
 
     @staticmethod
     def _create_spreadsheet(googlesheets, spreadsheet_name, first_sheet_name, columns, rows):
@@ -84,23 +100,37 @@ class GoogleSheetsAdapter(Adapter):
 
     @staticmethod
     def _add_sheet(googlesheets, spreadsheet_id, sheet_name, columns, rows):
-        requests = [
-            {
-                'addSheet': {
-                    'properties': {
-                        'gridProperties': {'columnCount': columns, 'rowCount': rows},
-                        'index': 0,
-                        'sheetType': 'GRID',
-                        'title': sheet_name,
-                    }
+        request = {
+            'addSheet': {
+                'properties': {
+                    'gridProperties': {'columnCount': columns, 'rowCount': rows},
+                    'index': 0,
+                    'sheetType': 'GRID',
+                    'title': sheet_name,
                 }
-            },
-        ]
+            }
+        }
         response = googlesheets.spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id,
-            body={'requests': requests}
+            body={'requests': [request]}
         ).execute()
         return response['replies'][0]['addSheet']['properties']['sheetId']
+
+    @staticmethod
+    def _extend_sheet(googlesheets, spreadsheet_id, sheet_id, new_total_rows):
+        request = {
+            'updateSheetProperties': {
+                'properties': {
+                    'gridProperties': {'rowCount': new_total_rows},
+                    'sheetId': sheet_id,
+                },
+                'fields': 'gridProperties.rowCount',  # ,sheetId',
+            }
+        }
+        googlesheets.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={'requests': [request]}
+        ).execute()
 
     @staticmethod
     def _serialize_df(df):
@@ -120,23 +150,33 @@ class GoogleSheetsAdapter(Adapter):
                     serialized_records[i][j] = obj.item()
                 if isinstance(serialized_records[i][j], float) and math.isnan(serialized_records[i][j]):
                     serialized_records[i][j] = None
-        return [list(df.columns)] + serialized_records
+        return serialized_records
 
     @staticmethod
     def dump(df, uri):
         import googleapiclient.discovery
         import httplib2
 
-        uri = parse_uri(uri)
-        if uri.authority is None:
+        parsed_uri = parse_uri(uri)
+        if parsed_uri.authority is None:
             raise ValueError('Please specify spreadsheet id or :new: in gsheets uri')
 
-        if uri.path.strip('/') is not None:
-            sheet_name = uri.path.strip('/')
+        if 'if_exists' in parsed_uri.query:
+            if_exists = parsed_uri.query['if_exists']
+        elif 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false':
+            if_exists = 'append'
+        elif 'overwrite' in parsed_uri.query and parsed_uri.query['overwrite'].lower() != 'false':
+            if_exists = 'replace'
+        else:
+            if_exists = 'fail'
+
+        if parsed_uri.path.strip('/') is not None:
+            sheet_name = parsed_uri.path.strip('/')
         else:
             sheet_name = 'Sheet1'
 
         serialized_records = GoogleSheetsAdapter._serialize_df(df)
+        serialized_header = [list(df.columns)]
         http_client = GoogleSheetsAdapter._get_credentials().authorize(httplib2.Http())
         googlesheets = googleapiclient.discovery.build(
             'sheets', 'v4', http=http_client
@@ -145,8 +185,12 @@ class GoogleSheetsAdapter(Adapter):
         # Create new spreadsheet, if specified.
         columns = len(df.columns)
         rows = len(df.values)
-        if uri.authority == ':new:':
-            spreadsheet_name = uri.query.get('name', f'Untitled {datetime.datetime.utcnow().isoformat()[:-7]}')
+        new_sheet = None
+        start_row = 1
+        if parsed_uri.authority == ':new:':
+            if if_exists != 'fail':
+                raise ValueError('only if_exists=fail supported for new spreadsheets')
+            spreadsheet_name = parsed_uri.query.get('name', f'Untitled {datetime.datetime.utcnow().isoformat()[:-7]}')
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
                 googlesheets, spreadsheet_name, sheet_name, columns, rows)
             sheet_id = 0
@@ -160,41 +204,71 @@ class GoogleSheetsAdapter(Adapter):
                     fileId=spreadsheet_id,
                     body={'type': 'domain', 'role': 'writer', 'domain': permission_domain},
                 ).execute()
+            new_sheet = True
         else:
-            spreadsheet_id = uri.authority
-            sheet_id = GoogleSheetsAdapter._add_sheet(
-                googlesheets, spreadsheet_id, sheet_name, columns, rows)
+            spreadsheet_id = parsed_uri.authority
+            try:
+                sheet_id = GoogleSheetsAdapter._add_sheet(
+                    googlesheets, spreadsheet_id, sheet_name, columns, rows)
+                new_sheet = True
+            except googleapiclient.errors.HttpError as exc:
+                if not f'A sheet with the name "{sheet_name}" already exists' in str(exc):
+                    raise
+                if if_exists == 'fail':
+                    raise
+                new_sheet = False
+            if not new_sheet:
+                if if_exists == 'replace':
+                    # delete it..
+                    raise NotImplementedError('Sheet if_exists=replace not implemented yet')
+                elif if_exists == 'append':
+                    spreadsheet_data = googlesheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+                    sheet = get_sheet_properties(spreadsheet_data, sheet_name=sheet_name)
+                    existing_rows = sheet['gridProperties']['rowCount']
+                    existing_columns = sheet['gridProperties']['columnCount']
+                    if existing_columns != columns:
+                        raise ValueError(f'Cannot append to {sheet_name} - columns don\'t match')
+                    sheet_id = sheet['sheetId']
+                    total_rows = existing_rows + columns
+                    GoogleSheetsAdapter._extend_sheet(googlesheets, spreadsheet_id, sheet_id, new_total_rows=total_rows)
+                    start_row = existing_rows + 1
+                else:
+                    raise AssertionError
 
         # Insert data
+        serialized_cells = serialized_records
+        if new_sheet:
+            serialized_cells = serialized_header + serialized_records
         googlesheets.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range=f'{sheet_name}!A1',
+            range=f'{sheet_name}!A{start_row}',
             valueInputOption='RAW',
-            body={'values': serialized_records},
+            body={'values': serialized_cells},
         ).execute()
 
         # Format
-        googlesheets.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={'requests': [
-            {'updateSheetProperties': {
-                'properties': {
-                    'sheetId': sheet_id,
-                    'gridProperties': {'frozenRowCount': 1}
-                },
-                'fields': 'gridProperties.frozenRowCount',
-            }},
-            {'repeatCell': {
-                'range': {
-                    'sheetId': sheet_id,
-                    'endRowIndex': 1
-                },
-                'cell': {'userEnteredFormat': {'textFormat': {'bold': True}}},
-                'fields': 'userEnteredFormat.textFormat.bold',
-            }},
-            {'autoResizeDimensions': {
-                'dimensions': {
-                    'sheetId': sheet_id,
-                    'dimension': 'COLUMNS',
-                }
-            }},
-        ]}).execute()
-        return f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit#gid=0'
+        if new_sheet:
+            googlesheets.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={'requests': [
+                {'updateSheetProperties': {
+                    'properties': {
+                        'sheetId': sheet_id,
+                        'gridProperties': {'frozenRowCount': 1}
+                    },
+                    'fields': 'gridProperties.frozenRowCount',
+                }},
+                {'repeatCell': {
+                    'range': {
+                        'sheetId': sheet_id,
+                        'endRowIndex': 1
+                    },
+                    'cell': {'userEnteredFormat': {'textFormat': {'bold': True}}},
+                    'fields': 'userEnteredFormat.textFormat.bold',
+                }},
+                {'autoResizeDimensions': {
+                    'dimensions': {
+                        'sheetId': sheet_id,
+                        'dimension': 'COLUMNS',
+                    }
+                }},
+            ]}).execute()
+        return f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit#gid={sheet_id}'
