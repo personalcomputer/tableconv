@@ -6,8 +6,6 @@ import logging
 import os
 import time
 
-import botocore.exceptions
-
 from ...uri import parse_uri
 from .base import Adapter, register_adapter
 from .pandas_io import CSVAdapter, ParquetAdapter

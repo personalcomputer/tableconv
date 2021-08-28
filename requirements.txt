@@ -2,6 +2,15 @@ pandas
 xlwt
 xlrd
 duckdb
-sqlalchemy
 tabulate
 PyYAML
+python-dateutil
+genson
+duckdb
+sqlalchemy
+boto3
+fsspec
+google-api-python-client
+httplib2
+oauth2client
+sumologic
