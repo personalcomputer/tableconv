@@ -61,7 +61,7 @@ def get_supported_schemes_list_str() -> str:
             disclaimer = '(dest only)'
         example = adapter.get_example_url(scheme)
         descriptions.append(f'{example} {disclaimer}')
-    return textwrap.indent('\n'.join(sorted(descriptions)), '- ')
+    return textwrap.indent('\n'.join(sorted(descriptions)), '  ')
 
 
 def run_interactive_shell(original_source: str, source: str, dest: str, intermediate_filter_sql: str, open_dest: bool
@@ -95,7 +95,7 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
                 # TODO: This is a huge hack. This is loading the *entire table into ram* just so we can look at what
                 # columns are in it.
                 table = load_url(source)
-                print('Table `data`:')
+                print('Table "data":')
                 for column, column_data in table.get_json_schema()['properties'].items():
                     if 'type' in column_data:
                         if isinstance(column_data["type"], str):
@@ -107,7 +107,7 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
                     else:
                         assert('anyOf' in column_data)
                         types = [i['type'] for i in column_data['anyOf']]
-                    print(f'  {column}: {", ".join(types)}')
+                    print(f'  "{column}" {", ".join(types)}')
                 continue
         try:
             # Read source

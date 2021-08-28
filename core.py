@@ -24,11 +24,16 @@ def resolve_query_arg(query: str) -> str:
         if query.startswith('file://'):
             query = query[len('file://'):]
 
+    potential_snippet_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'snippets', query)
+    if os.path.exists(potential_snippet_path):
+        with open(potential_snippet_path) as f:
+            return f.read().strip()
+
     if os.path.exists(query):
         with open(query) as f:
             return f.read().strip()
-    else:
-        return query
+
+    return query
 
 
 class SuppliedDataError(RuntimeError):
@@ -54,6 +59,7 @@ class IntermediateExchangeTable:
         """
         This is undocumented for a reason: It's recommended to not use this.
         """
+        # Consider instead using https://github.com/pandas-dev/pandas/blob/v1.3.2/pandas/io/json/_table_schema.py
         from genson import SchemaBuilder
         builder = SchemaBuilder()
         builder.add_schema({'type': 'object', 'properties': {}})
