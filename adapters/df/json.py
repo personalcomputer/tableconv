@@ -1,3 +1,4 @@
+import os
 import json
 import sys
 
@@ -69,7 +70,15 @@ class JSONAdapter(FileAdapterMixin, Adapter):
             if not isinstance(raw_array, list):
                 raise ValueError('Input must be a JSON array')
         elif scheme == 'jsonl':
-            raw_array = [json.loads(line) for line in raw_json.splitlines()]
+            raw_array = []
+            for line_number, line in enumerate(raw_json.splitlines()):
+                try:
+                    raw_array.append(json.loads(line))
+                except json.JSONDecodeError as exc:
+                    # Edit the exception to have a better error message that references the real line number.
+                    exc.args = (exc.args[0].replace(': line 1 column', f': line {line_number + 1} column'),)
+                    exc.lineno = line_number + 1
+                    raise exc
         for i, item in enumerate(raw_array):
             if not isinstance(item, dict):
                 if isinstance(item, (int, float)):
@@ -87,6 +96,15 @@ class JSONAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_file(df, scheme, path, kwargs):
+        if 'if_exists' in kwargs:
+            if_exists = kwargs['if_exists']
+        elif 'append' in kwargs and kwargs['append'].lower() != 'false':
+            if_exists = 'append'
+        elif 'overwrite' in kwargs and kwargs['overwrite'].lower() != 'false':
+            if_exists = 'replace'
+        else:
+            if_exists = 'fail'
+
         unnest = kwargs.get('unnest', 'false').lower() == 'true'
         format_mode = kwargs.get('format_mode', kwargs.get('orient', kwargs.get('mode', 'records')))
         # `format_mode` Options are
@@ -104,6 +122,17 @@ class JSONAdapter(FileAdapterMixin, Adapter):
             # for column in df.columns:
             #     if nesting_sep in column:
             #         raise NotImplementedError
-        df.to_json(path, lines=(scheme == 'jsonl'), orient=format_mode)
+        path_or_buf = path
+        if os.path.exists(path):
+            if if_exists == 'error':
+                raise RuntimeError(f'{path} already exists')
+            elif if_exists == 'append':
+                path_or_buf = open(path, 'a')
+
+        df.to_json(path_or_buf, lines=(scheme == 'jsonl'), orient=format_mode)
+
+        if not isinstance(path_or_buf, str):
+            path_or_buf.close()
+
         if scheme == 'json' and path == '/dev/fd/1' and sys.stdout.isatty():
             print()
