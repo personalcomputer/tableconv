@@ -49,10 +49,10 @@ class SQLAdapter(Adapter):
             # Resolve scheme aliases
             if parsed_uri.scheme == 'sqlite3':
                 parsed_uri.scheme = 'sqlite'
-            if parsed_uri.scheme in ('postgresql', 'postgis'):
-                parsed_uri.scheme = 'postgres'
+            if parsed_uri.scheme in ('postgres', 'postgis'):
+                parsed_uri.scheme = 'postgresql'
 
-            if parsed_uri.scheme == 'postgres' and resolve_pgcli_uri_alias(parsed_uri.authority):
+            if parsed_uri.scheme == 'postgresql' and resolve_pgcli_uri_alias(parsed_uri.authority):
                 alchemy_uri = resolve_pgcli_uri_alias(parsed_uri.authority)
             else:
                 if database_is_filename:
