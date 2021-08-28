@@ -56,6 +56,7 @@ class HDF5Adapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_file(df, scheme, path, query_args):
+        query_args['format'] = query_args.get('format', 'table')
         df.to_hdf(path, **query_args)
 
 

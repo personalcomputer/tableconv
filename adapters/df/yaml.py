@@ -5,7 +5,7 @@ from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
 
-@register_adapter(['yaml'])
+@register_adapter(['yaml', 'yml'])
 class YAMLAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
