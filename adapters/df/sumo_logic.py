@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 SUMO_API_MAX_RESULTS_PER_API_CALL = 10000
 SUMO_API_TS_FORMAT = '%Y-%m-%dT%H:%M:%S'
 SUMO_API_RESULTS_POLLING_INTERVAL = datetime.timedelta(seconds=5)
+CREDENTIALS_FILE_PATH = os.path.expanduser('~/.sumologiccredentials.yaml')
 
 
 def utcnow():
@@ -36,7 +37,7 @@ def get_sumo_data(search_query: str,
     if search_to is None:
         search_to = utcnow() + datetime.timedelta(days=1)
 
-    SUMO_CREDS = yaml.safe_load(open(os.path.expanduser('~/.sumologiccredentials.yaml')))
+    SUMO_CREDS = yaml.safe_load(open(CREDENTIALS_FILE_PATH))
 
     from sumologic import \
         SumoLogic  # TODO: This is a low quality library by an inexperienced developer. Replace with a home-spun version
@@ -98,6 +99,21 @@ def parse_input_time(val: str) -> Union[datetime.timedelta, datetime.datetime]:
 
 @register_adapter(['sumologic'], read_only=True)
 class SumoLogicAdapter(Adapter):
+
+    @staticmethod
+    def get_configuration_options_description():
+        return {
+            'access_id': 'SumoLogic Access Key ID (https://service.sumologic.com/ui/#/preferences)',
+            'access_key': 'SumoLogic Access Key Key (https://service.sumologic.com/ui/#/preferences)',
+        }
+
+    @staticmethod
+    def set_configuration_options(args):
+        assert set(args.keys()) == set(SumoLogicAdapter.get_configuration_options_description().keys())
+        with open(CREDENTIALS_FILE_PATH, 'w') as f:
+            f.write(yaml.dump(args))
+        logger.info(f'Wrote configuration to "{CREDENTIALS_FILE_PATH}"')
+
     @staticmethod
     def get_example_url(scheme):
         return f'{scheme}://?from=2021-03-01T00:00:00Z&to=2021-05-03T00:00:00Z'

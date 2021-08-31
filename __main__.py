@@ -154,6 +154,28 @@ def main():
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including all API calls.')
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
 
+    if sys.argv[1] == 'configure':
+        # Special parser mode for this. Each adapter can specify its own "configure" args, so we cannot use the main
+        # argparse parser.
+        try:
+            if len(sys.argv) < 3 or sys.argv[2].startswith('--'):
+                raise argparse.ArgumentError('Must specify adapter')
+            adapter = adapters[sys.argv[2]]
+            args_list = adapter.get_configuration_options_description()
+            adapter_config_parser = NoExitArgParser(exit_on_error=False)
+            adapter_config_parser.add_argument('CONFIGURE')
+            adapter_config_parser.add_argument('ADAPTER')
+            for arg, description in args_list.items():
+                adapter_config_parser.add_argument(f'--{arg}', help=description)
+            args = vars(adapter_config_parser.parse_args())
+            args = {name: value  for name, value in args.items() if value != None and name in args_list}
+            adapter.set_configuration_options(args)
+        except argparse.ArgumentError as exc:
+            print(f'usage: {sys.argv[0]} configure ADAPTER [options]', file=sys.stderr)
+            print(f'error: {exc}', file=sys.stderr)
+            sys.exit(1)
+        return
+
     try:
         args = parser.parse_args()
         if args.quiet and args.verbose:

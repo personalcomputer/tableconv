@@ -1,3 +1,4 @@
+import logging
 import datetime
 import math
 import os
@@ -8,6 +9,9 @@ import numpy as np
 
 from ...uri import parse_uri
 from .base import Adapter, register_adapter
+
+
+logger = logging.getLogger(__name__)
 
 
 def list_ljust(l, n, fill_value=None):
@@ -21,12 +25,31 @@ def get_sheet_properties(spreadsheet_data, sheet_name):
     raise KeyError(f'Sheet {sheet_name} not found')
 
 
+GSHEETS_OAUTH_SECRETS_FILE_PATH = os.path.expanduser('~/.tableconv-gsheets-client-secrets')
+
+
 @register_adapter(['gsheets'])
 class GoogleSheetsAdapter(Adapter):
 
     @staticmethod
     def get_example_url(scheme):
-        return f'gsheets://:new:'
+        return 'gsheets://:new:'
+
+    @staticmethod
+    def get_configuration_options_description():
+        return {
+            'secrets_file': 'Path to JSON file containing Google Sheets OAuth secrets. Generate this file via '
+                            'https://console.cloud.google.com/apis/credentials.',
+        }
+
+    @staticmethod
+    def set_configuration_options(args):
+        assert set(args.keys()) == set(GoogleSheetsAdapter.get_configuration_options_description().keys())
+        with open(GSHEETS_OAUTH_SECRETS_FILE_PATH, 'w') as f:
+            with open(args['secrets_file']) as in_file:
+                f.write(in_file.read())
+        logger.info(f'Wrote configuration to {GSHEETS_OAUTH_SECRETS_FILE_PATH}')
+        GoogleSheetsAdapter._get_credentials()  # Trigger OAuth flow prompt
 
     @staticmethod
     def _get_credentials():
@@ -37,12 +60,11 @@ class GoogleSheetsAdapter(Adapter):
         credentials = store.get()
         sys.argv = ['']
         if not credentials or credentials.invalid:
-            CLIENT_SECRET_FILE = os.path.expanduser('~/.tableconv-gsheets-client-secrets')
             SCOPES = [
                 'https://www.googleapis.com/auth/spreadsheets',
                 'https://www.googleapis.com/auth/drive',
             ]
-            flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+            flow = client.flow_from_clientsecrets(GSHEETS_OAUTH_SECRETS_FILE_PATH, SCOPES)
             flow.user_agent = 'tableconv'
             credentials = tools.run_flow(flow, store)
         return credentials

@@ -1,3 +1,4 @@
+import argparse
 from typing import List, Optional
 
 import pandas as pd
@@ -7,6 +8,14 @@ from ...in_memory_query import query_in_memory
 
 class Adapter:
     text_based = False
+
+    @classmethod
+    def get_configuration_options_description(cls):
+        raise argparse.ArgumentError(f'{cls} has no configuration options')
+
+    @classmethod
+    def set_configuration_options(cls, args):
+        raise argparse.ArgumentError(f'{cls} has no configuration options')
 
     @classmethod
     def _query_in_memory(cls, df, query):
