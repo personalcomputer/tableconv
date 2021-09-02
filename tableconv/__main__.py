@@ -171,7 +171,7 @@ def main():
             args = {name: value  for name, value in args.items() if value != None and name in args_list}
             adapter.set_configuration_options(args)
         except argparse.ArgumentError as exc:
-            print(f'usage: {sys.argv[0]} configure ADAPTER [options]', file=sys.stderr)
+            print(f'usage: {os.path.basename(sys.argv[0])} configure ADAPTER [options]', file=sys.stderr)
             print(f'error: {exc}', file=sys.stderr)
             sys.exit(1)
         return
@@ -187,7 +187,7 @@ def main():
         if not args.SOURCE_URL:
             raise argparse.ArgumentError(None, 'SOURCE_URL empty')
     except argparse.ArgumentError as exc:
-        print(f'usage: {parser.usage % dict(prog=sys.argv[0])}', file=sys.stderr)
+        print(f'usage: {parser.usage % dict(prog=os.path.basename(sys.argv[0]))}', file=sys.stderr)
         print(f'error: {exc}', file=sys.stderr)
         sys.exit(1)
 
