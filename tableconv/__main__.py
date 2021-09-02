@@ -154,7 +154,7 @@ def main():
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including all API calls.')
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
 
-    if sys.argv[1] == 'configure':
+    if len(sys.argv) > 1 and sys.argv[1] == 'configure':
         # Special parser mode for this. Each adapter can specify its own "configure" args, so we cannot use the main
         # argparse parser.
         try:
