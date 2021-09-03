@@ -1,6 +1,6 @@
 # tableconv
 
-tableconv is a prototype of a core data plumbing tool that enables running SQL and import/export across 50+ data formats (such as Postgres, DynamoDB, CSV, JSON, Excel, Google Sheets). It is conceptually similar to [pandoc](https://pandoc.org/), except it operates on data formats instead of text formats.
+tableconv is a prototype of a core data plumbing tool that enables running SQL and import/export across 50+ data formats (such as Postgres, DynamoDB, CSV, JSON, Excel, Google Sheets).
 
 ## Install
 
@@ -93,34 +93,8 @@ As a prototype, tableconv is usable as a quick and dirty CLI ETL tool for conver
 However, right now this is just a prototype. The software is slow and memory intensive. It has no streaming support and loads all data into memory before converting it. It is not suitable for tables over 1 million rows. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre and inconsistent. Most obscure adapter options are untested. It has an incomplete story on how to use it outside the CLI in other software, as a library. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor any adapter-specific options.
 
 
-## Prior Art
-
-Most influential:
+## Influences
 - odo
-  - Really novel tool that takes native format conversion tools from many different libraries and provides a unified interface for them. Wherever possible it tries to use native code to convert directly from your src to dest, but if there is no direct converter it uses an intermediate format (actually can use any number of chained intermediate formats, that it dynamically calculates. It has no prefered internal intermediate format).   - http://odo.pydata.org/en/latest/
 - Singer
-  - OSS "open-core" spinoff from the Stich ETL platform (managed). This is not so much a tool itself as it is just a spec for a JSON-based intermediate format that has spawned some ~100 tools written in different languages that can import and export to the intermediate format. https://www.singer.io/
 - ODBC/JDBC
-  - 1980s/90s successful standard API for database drivers. Widely embraced by database developers. https://en.wikipedia.org/wiki/Open_Database_Connectivity.
-- osquery https://github.com/osquery/osquery
-  - Very popular tool that exposing os-level information such as process status in a SQL interface. Used in sysadmin automation. Exposed as a Thrift API, with sdks in many languages.
-- Spark http://spark.apache.org/docs/latest/sql-data-sources.html
-  - Created concept of "RDDs", providing an abstract dataframe-based query interface to an arbitrary distributed backend datastore. Wrapped by spark-SQL to make this a SQL interface. Excellent distributed performance on a cluster.
-
-Less influential, but notable:
-- pandas io
-  - The sub-components of pandas that deal with exporting/importing data formats. This actually is the core of tableconv's current POC implementation.
-- https://github.com/betodealmeida/shillelagh
-  - Small project to provide a SQL interface to arbitrary "virtual databases" (read adapters).
-- https://github.com/kellyjonbrazil/jc
-  - CLI tool to convert text output of common unix commands into structured format (json)
-- https://github.com/personalcomputer/sql_api_framework_poc
-  - Weak POC exploring SQL's flexibility as a general-purpose network query language. Alternative to the current trend of using REST and GraphQL as general purpose network query languages (see e.g. PostgREST).
-- https://github.com/personalcomputer/sql_api_framework_poc
-  - Demonstration of SQL<->JSON interchangeability.
-- https://github.com/johnkerl/miller
-  - Data file query tool. Implements a custom query language.
-- https://github.com/BurntSushi/xsv
-  - Comprehensive CSV query tool. Implements a custom query language.
-- https://github.com/tstack/lnav
-  - Inspiration for adding misc log formats support and the regex adapter
+- osquery
