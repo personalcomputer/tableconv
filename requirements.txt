@@ -4,3 +4,4 @@ xlrd
 duckdb
 sqlalchemy
 tabulate
+PyYAML

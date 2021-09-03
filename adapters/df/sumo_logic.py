@@ -5,7 +5,7 @@ import re
 import time
 from typing import Optional, Union
 
-import mock
+from unittest import mock
 import pandas as pd
 import yaml
 from dateutil.parser import parse as dateutil_parse

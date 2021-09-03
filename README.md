@@ -84,6 +84,15 @@ supported url schemes:
 - yamlsequence:-
 ```
 
+To be added:
+- bson
+- msgpack
+- avro
+- pickle or dill
+- serpent (alternative implementation of python literal serialization)
+- multifile/folder support, where each file is part of the same table.
+  - Can still treat as multi-table via complicated queries, like `SELECT users.id, photos.name from data users JOIN data photos ON (photos.filename='photos' AND photos.author_id=users.id) WHERE users.filename='users'`. This is difficult thuough, so alternatively it could have support for treating multi-file as multi-table.
+
 ## Prior Art
 
 Most influential:
