@@ -1,9 +1,5 @@
-import os
-import json
-import sys
-
-import pandas as pd
 import marko
+import pandas as pd
 
 from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin

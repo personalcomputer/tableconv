@@ -1,13 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import io
 import os
-import sys
-from shutil import rmtree
 
-from setuptools import find_packages, setup, Command
-
+from setuptools import find_packages, setup
 
 NAME = 'tableconv'
 
@@ -18,7 +12,6 @@ about = {}
 project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
 with open(os.path.join(here, project_slug, '__version__.py')) as f:
     exec(f.read(), about)
-
 
 setup(
     name=NAME,

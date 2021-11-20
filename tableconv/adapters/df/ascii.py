@@ -1,6 +1,4 @@
-import pandas as pd
-
-from .base import register_adapter, Adapter
+from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
 
@@ -40,7 +38,7 @@ def render_unicodebox(ordered_fields, rows):
         for field in ordered_fields:
             rendered_values_list.append(row[field].ljust(max_lengths[field]))
         output_lines.append('│ ' + ' │ '.join(rendered_values_list) + ' │')
-    output_lines.append('└─' + '─┴─'.join(['─'*max_lengths[field] for field in ordered_fields]) + '─┘')
+    output_lines.append('└─' + '─┴─'.join(['─' * max_lengths[field] for field in ordered_fields]) + '─┘')
     return '\n'.join(output_lines)
 
 

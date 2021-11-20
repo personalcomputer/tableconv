@@ -22,7 +22,7 @@ def parse_uri(uri_str):
         # logger.warning(f'Inferring input is a {uri.scheme} from file extension. To specify explicitly, use syntax {uri.scheme}://{uri.path}')
         uri.authority = None
     query_dict_items = (kv.split('=') for kv in uri.query.split('&')) if uri.query else []
-    uri.query = {k.lower(): v for k,v in query_dict_items}
+    uri.query = {k.lower(): v for k, v in query_dict_items}
     if uri.scheme:
         uri.scheme = uri.scheme.lower()
     return uri

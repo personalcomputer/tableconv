@@ -45,7 +45,7 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
         open(INTERACTIVE_HIST_PATH, 'wb').close()
     readline.set_history_length(1000)
 
-    if len(original_source) <= (7+5+19):
+    if len(original_source) <= (7 + 5 + 19):
         prompt = f'{original_source}=> '
     else:
         prompt = f'{original_source[:7]}[...]{original_source[-19:]}=> '
@@ -62,8 +62,6 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
         readline.append_history_file(1, INTERACTIVE_HIST_PATH)
         if source_query[0] in ('\\', '.', '/'):
             if source_query[1:] in ('schema', 'dt', 'd', 'd+', 'describe', 'show'):
-                # TODO: This is a huge hack. This is loading the *entire table into ram* just so we can look at what
-                # columns are in it.
                 table = load_url(source)
                 print('Table "data":')
                 for column, column_data in table.get_json_schema()['properties'].items():
@@ -88,10 +86,10 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
                 logger.info(f'Wrote out {output}')
             if output and open_dest:
                 os.system(f'open "{output}"')
-        except SuppliedDataError as e:
+        except SuppliedDataError:
             print('(0 rows)')
-        except Exception as e:
-            print(e)
+        except Exception as exc:
+            print(exc)
 
 
 def set_up_logging():
@@ -171,7 +169,7 @@ def main(argv=None):
     if argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
         # Hidden feature to self test
         os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        sys.exit(os.system('pytest'))
+        sys.exit(os.system('flake8 --ignore E501,F403,W503 tests tableconv setup.py; pytest'))
 
     if argv and argv[0] == 'configure':
         # Special parser mode for this hidden feature. Each adapter can specify its own "configure" args, so we cannot
@@ -190,7 +188,7 @@ def main(argv=None):
             for arg, description in args_list.items():
                 adapter_config_parser.add_argument(f'--{arg}', help=description)
             args = vars(adapter_config_parser.parse_args(argv))
-            args = {name: value  for name, value in args.items() if value is not None and name in args_list}
+            args = {name: value for name, value in args.items() if value is not None and name in args_list}
             adapter.set_configuration_options(args)
         except NoConfigurationOptionsAvailable as exc:
             raise_argparse_style_error(USAGE, f'{exc.args[0]} has no configuration options')
@@ -238,7 +236,7 @@ def main(argv=None):
         else:
             # Otherwise, default to ascii output to console
             dest = 'ascii:-'
-        logger.debug(f'No output destination specificied, defaulting to {parse_uri(dest).scheme} output to stdout')
+        logger.debug(f'No output destination specified, defaulting to {parse_uri(dest).scheme} output to stdout')
 
     # Execute interactive
     if args.interactive:

@@ -14,8 +14,8 @@ from .base import Adapter, register_adapter
 logger = logging.getLogger(__name__)
 
 
-def list_ljust(l, n, fill_value=None):
-    return l + [fill_value] * (n - len(l))
+def list_ljust(ls, n, fill_value=None):
+    return ls + [fill_value] * (n - len(ls))
 
 
 def get_sheet_properties(spreadsheet_data, sheet_name):
@@ -78,7 +78,7 @@ class GoogleSheetsAdapter(Adapter):
             # login as a service account via env var
             http = None
         else:
-            # login using Oauth
+            # login using OAuth
             http = GoogleSheetsAdapter._get_oauth_credentials().authorize(httplib2.Http())
 
         return googleapiclient.discovery.build(service, version, http=http)
@@ -155,7 +155,7 @@ class GoogleSheetsAdapter(Adapter):
                     'gridProperties': {'rowCount': new_total_rows},
                     'sheetId': sheet_id,
                 },
-                'fields': 'gridProperties.rowCount',  # ,sheetId',
+                'fields': 'gridProperties.rowCount',
             }
         }
         googlesheets.spreadsheets().batchUpdate(
@@ -173,7 +173,7 @@ class GoogleSheetsAdapter(Adapter):
                 if isinstance(obj, datetime.datetime):
                     if obj.tzinfo is not None:
                         obj = obj.astimezone(datetime.timezone.utc)
-                    # Warning: Interpret naive TS as being UTC.
+                    # WARNING: In effect, this line is causing naive datetimes to be reinterpreted as UTC.
                     serialized_records[i][j] = obj.strftime('%Y-%m-%d %H:%M:%S')
                 elif isinstance(obj, list) or isinstance(obj, dict):
                     serialized_records[i][j] = str(obj)
@@ -237,7 +237,7 @@ class GoogleSheetsAdapter(Adapter):
                     googlesheets, spreadsheet_id, sheet_name, columns, rows)
                 new_sheet = True
             except googleapiclient.errors.HttpError as exc:
-                if not f'A sheet with the name "{sheet_name}" already exists' in str(exc):
+                if f'A sheet with the name "{sheet_name}" already exists' not in str(exc):
                     raise
                 if if_exists == 'fail':
                     raise

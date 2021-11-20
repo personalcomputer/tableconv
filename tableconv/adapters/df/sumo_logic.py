@@ -15,7 +15,6 @@ from .base import Adapter, register_adapter
 
 logger = logging.getLogger(__name__)
 
-
 SUMO_API_MAX_RESULTS_PER_API_CALL = 10000
 SUMO_API_TS_FORMAT = '%Y-%m-%dT%H:%M:%S'
 SUMO_API_RESULTS_POLLING_INTERVAL = datetime.timedelta(seconds=5)
@@ -42,7 +41,6 @@ def get_sumo_data(search_query: str,
     from sumologic import \
         SumoLogic  # TODO: This is a low quality library by an inexperienced developer. Replace with a home-spun version
 
-
     # As a hack to deal with the low quality code in SumoLogic SDK, we monkeypatch print() so it does not fill up user's
     # terminal with junk debug information.
     with mock.patch('builtins.print'):
@@ -57,7 +55,7 @@ def get_sumo_data(search_query: str,
     )
 
     logger.info(f'Waiting for query to complete (job id: {search_job["id"]})')
-    time.sleep((SUMO_API_RESULTS_POLLING_INTERVAL/2).total_seconds())
+    time.sleep((SUMO_API_RESULTS_POLLING_INTERVAL / 2).total_seconds())
     while True:
         status = sumo.search_job_status(search_job)
         if status['state'] != 'GATHERING RESULTS':
@@ -87,7 +85,7 @@ def get_sumo_data(search_query: str,
 def parse_input_time(val: str) -> Union[datetime.timedelta, datetime.datetime]:
     hms_match = re.match(r'^\-?(\d\d):(\d\d):(\d\d)$', val)
     if hms_match:
-        return datetime.timedelta(seconds=int(hms_match.group(1))*60*60 + int(hms_match.group(2))*60 + int(hms_match.group(3)))
+        return datetime.timedelta(seconds=int(hms_match.group(1))*60*60 + int(hms_match.group(2))*60 + int(hms_match.group(3)))  # noqa: E226
     elif re.match(r'-?\d+$', val):
         return datetime.timedelta(seconds=abs(int(val)))
     else:

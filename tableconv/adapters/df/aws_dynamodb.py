@@ -28,7 +28,7 @@ class AWSDynamoDB(Adapter):
         scan_results = dynamodb.get_paginator('scan').paginate(TableName=table_name)
         raw_array = []
 
-        logger.info(f'Sequentially querying DynamoDB scan results...')
+        logger.info('Sequentially querying DynamoDB scan results...')
         for response in scan_results:
             raw_array.extend(response['Items'])
 

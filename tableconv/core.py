@@ -103,13 +103,13 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     Note: This implementation is pretty hacky.
     """
     import fsspec
-    logger.info(f'Source URL is a remote file - attempting to create local copy (via fsspec)')
+    logger.info('Source URL is a remote file - attempting to create local copy (via fsspec)')
     temp_file = tempfile.NamedTemporaryFile()
     parsed_url = parse_uri(url)
     with fsspec.open(f'{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}') as network_file:
         temp_file.write(network_file.read())
     temp_file.flush()
-    encoded_query_params = '?' + '&'.join((f'{key}={value}' for key,value in parsed_url.query.items()))
+    encoded_query_params = '?' + '&'.join((f'{key}={value}' for key, value in parsed_url.query.items()))
     new_url = f'{os.path.splitext(parsed_url.path)[1][1:]}://{temp_file.name}{encoded_query_params if url.query else ""}'
     logger.info(f'Cached remote file as {new_url}')
     return new_url
