@@ -6,16 +6,20 @@ import pandas as pd
 from ...in_memory_query import query_in_memory
 
 
+class NoConfigurationOptionsAvailable(Exception):
+    pass
+
+
 class Adapter:
     text_based = False
 
     @classmethod
     def get_configuration_options_description(cls):
-        raise argparse.ArgumentError(f'{cls} has no configuration options')
+        raise NoConfigurationOptionsAvailable(str(cls.__name__))
 
     @classmethod
     def set_configuration_options(cls, args):
-        raise argparse.ArgumentError(f'{cls} has no configuration options')
+        raise NoConfigurationOptionsAvailable(str(cls.__name__))
 
     @classmethod
     def _query_in_memory(cls, df, query):

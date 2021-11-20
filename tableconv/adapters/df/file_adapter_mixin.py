@@ -14,15 +14,15 @@ class FileAdapterMixin():
     @classmethod
     def load(cls, uri, query) -> pd.DataFrame:
         uri = parse_uri(uri)
-        if uri.authority == '-' or uri.path == '-':
-            uri.path = '/dev/fd/0'
+        if uri.authority == '-' or uri.path == '-' or uri.path == '/dev/fd/0':
+            uri.path = sys.stdin
         df = cls.load_file(uri.scheme, uri.path, uri.query)
         return cls._query_in_memory(df, query)
 
     @classmethod
     def dump(cls, df, uri):
         uri = parse_uri(uri)
-        if uri.authority == '-' or uri.path == '-':
+        if uri.authority == '-' or uri.path == '-' or uri.path == '/dev/fd/1':
             uri.path = '/dev/fd/1'
         try:
             cls.dump_file(df, uri.scheme, uri.path, uri.query)
@@ -36,8 +36,12 @@ class FileAdapterMixin():
 
     @classmethod
     def load_file(cls, scheme, path, query_args) -> pd.DataFrame:
-        with open(path, 'r') as f:
-            return cls.load_text_data(scheme, f.read(), query_args)
+        if hasattr(path, 'read'):
+            text = path.read()
+        else:
+            with open(path, 'r') as f:
+                text = f.read()
+        return cls.load_text_data(scheme, text, query_args)
 
     @classmethod
     def dump_file(cls, df, scheme, path, query_args) -> None:

@@ -63,8 +63,10 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                 lines=(scheme == 'jsonl'),
                 orient='records',
             )
-
-        raw_json = open(path).read()
+        if hasattr(path, 'read'):
+            raw_json = path.read()
+        else:
+            raw_json = open(path).read()
         if scheme == 'json':
             raw_array = json.loads(raw_json)
             if not isinstance(raw_array, list):

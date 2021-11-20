@@ -8,7 +8,7 @@ from .file_adapter_mixin import FileAdapterMixin
 
 
 @register_adapter(['py', 'python'])
-class PyhtonAdapter(FileAdapterMixin, Adapter):
+class PythonAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
     @staticmethod

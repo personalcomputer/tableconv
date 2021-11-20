@@ -14,7 +14,9 @@ class YAMLAdapter(FileAdapterMixin, Adapter):
         if kwargs.get('preserve_nesting', False):
             raise NotImplementedError()
 
-        raw_array = yaml.safe_load(open(path))
+        if not hasattr(path, 'read'):
+            path = open(path)
+        raw_array = yaml.safe_load(path)
         if not isinstance(raw_array, list):
             raise ValueError('Input must be a YAML sequence (list/array)')
         for i, item in enumerate(raw_array):

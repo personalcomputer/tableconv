@@ -49,10 +49,10 @@ class GoogleSheetsAdapter(Adapter):
             with open(args['secrets_file']) as in_file:
                 f.write(in_file.read())
         logger.info(f'Wrote configuration to {GSHEETS_OAUTH_SECRETS_FILE_PATH}')
-        GoogleSheetsAdapter._get_credentials()  # Trigger OAuth flow prompt
+        GoogleSheetsAdapter._get_oauth_credentials()  # Trigger OAuth flow prompt
 
     @staticmethod
-    def _get_credentials():
+    def _get_oauth_credentials():
         from oauth2client import client, tools
         from oauth2client.file import Storage
 
@@ -70,10 +70,22 @@ class GoogleSheetsAdapter(Adapter):
         return credentials
 
     @staticmethod
-    def load(uri, query):
+    def _get_googleapiclient_client(service, version):
         import googleapiclient.discovery
         import httplib2
 
+        if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+            # login as a service account via env var
+            http = None
+        else:
+            raise AssertionError
+            # login using Oauth
+            http = GoogleSheetsAdapter._get_oauth_credentials().authorize(httplib2.Http())
+
+        return googleapiclient.discovery.build(service, version, http=http)
+
+    @staticmethod
+    def load(uri, query):
         parsed_uri = parse_uri(uri)
         spreadsheet_id = parsed_uri.authority
         sheet_name = parsed_uri.path.strip('/')
@@ -81,9 +93,7 @@ class GoogleSheetsAdapter(Adapter):
         if not sheet_name:
             raise ValueError('Must specify sheet_name')
 
-        googlesheets = googleapiclient.discovery.build(
-            'sheets', 'v4', http=GoogleSheetsAdapter._get_credentials().authorize(httplib2.Http())
-        )
+        googlesheets = GoogleSheetsAdapter._get_googleapiclient_client('sheets', 'v4')
 
         # Query data
         raw_data = googlesheets.spreadsheets().values().get(
@@ -177,7 +187,6 @@ class GoogleSheetsAdapter(Adapter):
     @staticmethod
     def dump(df, uri):
         import googleapiclient.discovery
-        import httplib2
 
         parsed_uri = parse_uri(uri)
         if parsed_uri.authority is None:
@@ -199,10 +208,7 @@ class GoogleSheetsAdapter(Adapter):
 
         serialized_records = GoogleSheetsAdapter._serialize_df(df)
         serialized_header = [list(df.columns)]
-        http_client = GoogleSheetsAdapter._get_credentials().authorize(httplib2.Http())
-        googlesheets = googleapiclient.discovery.build(
-            'sheets', 'v4', http=http_client
-        )
+        googlesheets = GoogleSheetsAdapter._get_googleapiclient_client('sheets', 'v4')
 
         # Create new spreadsheet, if specified.
         columns = len(df.columns)
@@ -219,9 +225,7 @@ class GoogleSheetsAdapter(Adapter):
 
             permission_domain = os.environ.get('TABLECONV_GSHEETS_DEFAULT_PERMISSION_GRANT_DOMAIN')
             if permission_domain:
-                drive_service = googleapiclient.discovery.build(
-                    'drive', 'v3', http=http_client
-                )
+                drive_service = GoogleSheetsAdapter._get_googleapiclient_client('drive', 'v3')
                 drive_service.permissions().create(
                     fileId=spreadsheet_id,
                     body={'type': 'domain', 'role': 'writer', 'domain': permission_domain},

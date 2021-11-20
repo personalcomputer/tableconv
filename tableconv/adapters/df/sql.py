@@ -28,7 +28,10 @@ class SQLAdapter(Adapter):
 
     @staticmethod
     def get_example_url(scheme):
-        return f'{scheme}://127.0.0.1:5432/example_db'
+        if scheme.startswith('sqlite'):
+            return f'{scheme}:///tmp/example.db'
+        else:
+            return f'{scheme}://127.0.0.1:5432/example_db'
 
     @staticmethod
     def _get_engine_and_table_from_uri(parsed_uri):
@@ -53,7 +56,7 @@ class SQLAdapter(Adapter):
                 parsed_uri.scheme = 'postgresql'
 
             if parsed_uri.scheme == 'postgresql' and resolve_pgcli_uri_alias(parsed_uri.authority):
-                alchemy_uri = resolve_pgcli_uri_alias(parsed_uri.authority)
+                alchemy_uri = resolve_pgcli_uri_alias(parsed_uri.authority).replace('postgres://', 'postgresql://')
             else:
                 if database_is_filename:
                     database = parsed_uri.path
