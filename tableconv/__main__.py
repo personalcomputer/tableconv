@@ -7,43 +7,13 @@ import readline
 import sys
 import textwrap
 
-# I don't know where to put CLI logging config; please advise.
-logging.config.dictConfig({
-    'version': 1,
-    'disable_existing_loggers': True,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s [%(name)s](%(levelname)s) %(message)s',
-        }
-    },
-    'handlers': {
-        'default': {
-            'class': 'logging.StreamHandler',
-            'level': 'DEBUG',
-            'formatter': 'standard',
-            'stream': 'ext://sys.stderr',
-        }
-    },
-    'loggers': {
-        'googleapiclient.discovery_cache': {
-            'level': 'ERROR',
-        },
-        'botocore': {
-            'level': 'WARNING',
-        },
-    },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['default'],
-    },
-})
-
+from .__version__ import __version__
 from .adapters.df import adapters, read_adapters, write_adapters
-from .core import load_url, parse_source_url, SuppliedDataError
+from .adapters.df.base import NoConfigurationOptionsAvailable
+from .core import SuppliedDataError, load_url, parse_source_url
 from .uri import parse_uri
 
 logger = logging.getLogger(__name__)
-
 
 INTERACTIVE_HIST_PATH = os.path.join(os.path.expanduser("~"), ".tableconv_history")
 INTERACTIVE_PAGER_BIN = os.environ.get('PAGER', 'less')
@@ -124,6 +94,38 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
             print(e)
 
 
+def set_up_logging():
+    logging.config.dictConfig({
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'standard': {
+                'format': '%(asctime)s [%(name)s](%(levelname)s) %(message)s',
+            }
+        },
+        'handlers': {
+            'default': {
+                'class': 'logging.StreamHandler',
+                'level': 'DEBUG',
+                'formatter': 'standard',
+                'stream': 'ext://sys.stderr',
+            }
+        },
+        'loggers': {
+            '': {
+                'level': 'INFO',
+                'handlers': ['default'],
+            },
+            'googleapiclient.discovery_cache': {
+                'level': 'ERROR',
+            },
+            'botocore': {
+                'level': 'WARNING',
+            },
+        },
+    })
+
+
 class NoExitArgParser(argparse.ArgumentParser):
     """
     Py <= 3.8 polyfill for `exit_on_error=False`
@@ -137,7 +139,18 @@ class NoExitArgParser(argparse.ArgumentParser):
         raise argparse.ArgumentError(None, message)
 
 
-def main():
+def raise_argparse_style_error(usage, error):
+    print(f'usage: {usage % dict(prog=os.path.basename(sys.argv[0]))}', file=sys.stderr)
+    print(f'error: {error}', file=sys.stderr)
+    sys.exit(1)
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    set_up_logging()
+
     # Process arguments
     parser = NoExitArgParser(
         usage='%(prog)s SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]',
@@ -152,32 +165,41 @@ def main():
     parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode')
     parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url (not supported for all destination types)')
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including all API calls.')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'configure':
-        # Special parser mode for this. Each adapter can specify its own "configure" args, so we cannot use the main
-        # argparse parser.
+    if argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
+        # Hidden feature to self test
+        os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        sys.exit(os.system('pytest'))
+
+    if argv and argv[0] == 'configure':
+        # Special parser mode for this hidden feature. Each adapter can specify its own "configure" args, so we cannot
+        # use the main argparse parser.
+        USAGE = 'usage: %(prog)s configure ADAPTER [options]'
         try:
-            if len(sys.argv) < 3 or sys.argv[2].startswith('--'):
-                raise argparse.ArgumentError('Must specify adapter')
-            adapter = adapters[sys.argv[2]]
+            if len(argv) < 3 or argv[1].startswith('--'):
+                raise argparse.ArgumentError(None, 'Must specify adapter')
+            if argv[1] not in adapters:
+                raise argparse.ArgumentError(None, f'Unrecognized adapter "{argv[1]}"')
+            adapter = adapters[argv[1]]
             args_list = adapter.get_configuration_options_description()
             adapter_config_parser = NoExitArgParser(exit_on_error=False)
             adapter_config_parser.add_argument('CONFIGURE')
             adapter_config_parser.add_argument('ADAPTER')
             for arg, description in args_list.items():
                 adapter_config_parser.add_argument(f'--{arg}', help=description)
-            args = vars(adapter_config_parser.parse_args())
-            args = {name: value  for name, value in args.items() if value != None and name in args_list}
+            args = vars(adapter_config_parser.parse_args(argv))
+            args = {name: value  for name, value in args.items() if value is not None and name in args_list}
             adapter.set_configuration_options(args)
+        except NoConfigurationOptionsAvailable as exc:
+            raise_argparse_style_error(USAGE, f'{exc.args[0]} has no configuration options')
         except argparse.ArgumentError as exc:
-            print(f'usage: {os.path.basename(sys.argv[0])} configure ADAPTER [options]', file=sys.stderr)
-            print(f'error: {exc}', file=sys.stderr)
-            sys.exit(1)
+            raise_argparse_style_error(USAGE, exc)
         return
 
     try:
-        args = parser.parse_args()
+        args = parser.parse_args(argv)
         if args.quiet and args.verbose:
             raise argparse.ArgumentError(
                 None, 'Options --verbose and --quiet are incompatible, cannot specify both at once.')
@@ -187,13 +209,7 @@ def main():
         if not args.SOURCE_URL:
             raise argparse.ArgumentError(None, 'SOURCE_URL empty')
     except argparse.ArgumentError as exc:
-        print(f'usage: {parser.usage % dict(prog=os.path.basename(sys.argv[0]))}', file=sys.stderr)
-        print(f'error: {exc}', file=sys.stderr)
-        sys.exit(1)
-
-    if args.SOURCE_URL in ('self-test', 'selftest'):
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        sys.exit(os.system('pytest'))
+        raise_argparse_style_error(parser.usage, exc)
 
     if args.verbose:
         logging.config.dictConfig({

@@ -78,7 +78,6 @@ class GoogleSheetsAdapter(Adapter):
             # login as a service account via env var
             http = None
         else:
-            raise AssertionError
             # login using Oauth
             http = GoogleSheetsAdapter._get_oauth_credentials().authorize(httplib2.Http())
 

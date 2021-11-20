@@ -24,7 +24,7 @@ def resolve_query_arg(query: str) -> str:
         if query.startswith('file://'):
             query = query[len('file://'):]
 
-    potential_snippet_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'snippets', query)
+    potential_snippet_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'snippets', query)
     if os.path.exists(potential_snippet_path):
         with open(potential_snippet_path) as f:
             return f.read().strip()
@@ -52,12 +52,12 @@ class IntermediateExchangeTable:
             logger.error(f'Unsupported scheme {scheme}. Please see --help.')
             sys.exit(1)
 
-        logger.debug(f'Exporting data out via {write_adapter.__qualname__} on {url}')
+        logger.debug(f'Exporting data out via {write_adapter.__qualname__} to {url}')
         return write_adapter.dump(self.df, url)
 
     def get_json_schema(self):
         """
-        This is undocumented for a reason: It's recommended to not use this.
+        Warning: This is just experimental / exploratory. The current implementation is also buggy.
         """
         # Consider instead using https://github.com/pandas-dev/pandas/blob/v1.3.2/pandas/io/json/_table_schema.py
         from genson import SchemaBuilder
@@ -124,7 +124,7 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
     query = resolve_query_arg(query)
     filter_sql = resolve_query_arg(filter_sql)
 
-    logger.debug(f'Loading data in via {read_adapter.__qualname__} on {url}')
+    logger.debug(f'Loading data in via {read_adapter.__qualname__} from {url}')
     try:
         df = read_adapter.load(url, query)
     except EmptyDataError as e:
