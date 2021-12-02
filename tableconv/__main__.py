@@ -166,7 +166,7 @@ def main(argv=None):
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
 
-    if argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
+    if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
         # Hidden feature to self test
         os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.exit(os.system('flake8 --ignore E501,F403,W503 tests tableconv setup.py; pytest'))

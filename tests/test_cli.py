@@ -1,15 +1,15 @@
 import ast
 import copy
+import io
 import json
 import logging
+import os
 import re
 import shlex
 import subprocess
-import io
 import textwrap
 
 import pytest
-
 from tableconv.__main__ import main
 
 EXAMPLE_CSV_RAW = textwrap.dedent('''
@@ -40,13 +40,18 @@ EXAMPLE_LIST_RAW = textwrap.dedent('''
 
 def invoke_cli(args, stdin=None, use_subprocess=False, capfd=None, monkeypatch=None):
     if use_subprocess:
+        # Test by invoking a subprocess. This is extremely similar to how a user would experience tableconv from their
+        # terminal.
         cmd = ['tableconv'] + args
         logging.warning(f'Running cmd `{shlex.join(cmd)}`')
         return subprocess.run(cmd, capture_output=True, input=stdin, text=True, check=True).stdout
-    monkeypatch.setattr('sys.stdin', io.StringIO(stdin))
-    main(args)
-    stdout, _ = capfd.readouterr()
-    return stdout
+    else:
+        # Test by running the CLI within the same test thread. This is faster than a subprocess, but less realistic,
+        # testcases could be corrupted by e.g. global variables shared from test to test.
+        monkeypatch.setattr('sys.stdin', io.StringIO(stdin))
+        main(args)
+        stdout, _ = capfd.readouterr()
+        return stdout
 
 
 def test_csv_to_tsv(capfd, monkeypatch):
@@ -94,15 +99,14 @@ def test_interactive(tmp_path):
 
     stdout, _ = proc.communicate('SELECT date FROM DATA WHERE date > \'2015\'\n', timeout=1)
     stdout_lines = stdout.splitlines()
-    assert re.match(r'/.{6}\[\.\.\.\]teractive0/test\.tsv=> ', stdout_lines.pop(0) + \
-                                  '+------+')
+    assert re.match(r'/.{6}\[\.\.\.\]teractive0/test\.tsv=> ', stdout_lines.pop(0))
     assert stdout_lines.pop(0) == '| date |'
     assert stdout_lines.pop(0) == '+------+'
     assert stdout_lines.pop(0) == '| 2023 |'
 
     # NOTE: this test is weak because it is not using a real TTY. The interactive mode only needs to work correctly on a
-    # real TTY. Here, we should have a space between the end of the query output and the next prompt. However, lack of
-    # real TTY in this test can break tableconv and cause it to miss the space. Not strictly a bug, but needs to be
+    # real TTY. Here, we should have a linebreak between the end of the query output and the next prompt. However, lack of
+    # real TTY in this test can break tableconv and cause it to miss the linebreak. Not strictly a bug, but needs to be
     # fixed so that this test can be completed (TODO).
     # assert stdout_lines.pop(0) == '+------+'
     # assert re.match(r'/.{6}\[\.\.\.\]teractive0/test\.tsv=> ', stdout_lines.pop(0))
@@ -157,6 +161,14 @@ def test_help():
     assert 'usage' in stdout.lower()
     assert '-o' in stdout.lower()
     assert '://' in stdout.lower()
+
+
+def test_no_arguments():
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        invoke_cli([], use_subprocess=True)
+    assert 'usage:' in excinfo.value.stderr.lower()
+    assert 'error' in excinfo.value.stderr.lower()
+    assert 'arguments are required' in excinfo.value.stderr.lower()
 
 
 def test_full_roundtrip_file_adapters(tmp_path, capfd, monkeypatch):
@@ -243,3 +255,34 @@ def test_table_to_array(capfd, monkeypatch):
     """Test table (csv) to to array (csa) conversion"""
     stdout = invoke_cli(['csv:-', '-q', 'SELECT name from data', '-o', 'csa:-'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
     assert stdout == 'George,Steven,Rachel'
+
+
+@pytest.mark.skip('slow')
+def test_packaging(tmp_path):
+    """
+    Test that tableconv is packaged correctly by installing it into a clean environment and then running it. Doing this
+    test vaguely confirms that the required dependencies are specified for installation correctly and that the CLI
+    entrypoint is specified correctly.
+    """
+    from tableconv.__version__ import __version__ as version_number
+    assert os.path.abspath(os.getcwd()) == os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+    # Build a new copy of tableconv package
+    subprocess.run(['rm', '-rf', 'dist'], check=True)
+    subprocess.run(['python', 'setup.py', 'sdist', 'bdist_wheel'], check=True)
+
+    # Install the build into an isolated docker container
+    dockerfile_path = os.path.join(tmp_path, 'Dockerfile')
+    with open(dockerfile_path, 'w') as f:
+        f.write(textwrap.dedent('''
+            FROM python:3.8
+            COPY dist/* /tmp/
+            RUN pip install /tmp/tableconv-*.tar.gz
+        ''').strip())
+    subprocess.run(['docker', 'build', '-t', 'tableconv_test', '-f', dockerfile_path, '.'], check=True)
+
+    # Verify the tableconv CLI can be ran within that container, and verify it knows its correct version number.
+    cmd = ['tableconv', '--version']
+    cmd_output = subprocess.run(['docker', 'run', '-t', 'tableconv_test'] + cmd, capture_output=True, text=True, check=True).stdout
+    assert version_number in cmd_output
+    assert 'tableconv' in cmd_output
