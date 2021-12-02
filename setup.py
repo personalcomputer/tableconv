@@ -25,7 +25,7 @@ setup(
     url='https://github.com/Ridecell/tableconv',
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     entry_points={
-        'console_scripts': ['tableconv=tableconv.main:main_cli_wrapper'],
+        'console_scripts': ['tableconv=tableconv.__main__:main'],
     },
     install_requires=[
         'black',
