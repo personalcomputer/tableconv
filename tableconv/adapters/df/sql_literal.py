@@ -9,6 +9,10 @@ class SQLLiteralAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
     @staticmethod
+    def get_example_url(scheme):
+        return f'{scheme}:-'
+
+    @staticmethod
     def dump_text_data(df, scheme, kwargs):
         data = df.to_dict(orient='split')
 

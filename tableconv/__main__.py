@@ -158,9 +158,9 @@ def main(argv=None):
     )
     parser.add_argument('SOURCE_URL', type=str, help='Specify the data source URL.')
     parser.add_argument('-q', '--query', dest='source_query', default=None, help='Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still supported, try `SELECT * FROM data`.')
-    parser.add_argument('-F', '--filter', dest='intermediate_filter_sql', default=None, help='Filter (aka transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.')
+    parser.add_argument('-F', '--filter', dest='intermediate_filter_sql', default=None, help='Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.')
     parser.add_argument('-o', '--dest', '--out', dest='DEST_URL', type=str, help='Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.')
-    parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode')
+    parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode.')
     parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url (not supported for all destination types)')
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including all API calls.')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
@@ -174,7 +174,7 @@ def main(argv=None):
     if argv and argv[0] in ('configure', '--configure'):
         # Special parser mode for this hidden feature. Each adapter can specify its own "configure" args, so we cannot
         # use the main argparse parser.
-        USAGE = 'usage: %(prog)s configure ADAPTER [options]'
+        CONFIGURE_USAGE = 'usage: %(prog)s configure ADAPTER [options]'
         try:
             if len(argv) < 2 or argv[1].startswith('--'):
                 raise argparse.ArgumentError(None, 'Must specify adapter')
@@ -191,9 +191,9 @@ def main(argv=None):
             args = {name: value for name, value in args.items() if value is not None and name in args_list}
             adapter.set_configuration_options(args)
         except NoConfigurationOptionsAvailable as exc:
-            raise_argparse_style_error(USAGE, f'{exc.args[0]} has no configuration options')
+            raise_argparse_style_error(CONFIGURE_USAGE, f'{exc.args[0]} has no configuration options')
         except argparse.ArgumentError as exc:
-            raise_argparse_style_error(USAGE, exc)
+            raise_argparse_style_error(CONFIGURE_USAGE, exc)
         return
 
     try:

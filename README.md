@@ -17,7 +17,6 @@ positional arguments:
   SOURCE_URL            Specify the data source URL.
 
 optional arguments:
-  -h, --help            show this help message and exit
   -q SOURCE_QUERY, --query SOURCE_QUERY
                         Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still supported, try `SELECT * FROM data`.
   -F INTERMEDIATE_FILTER_SQL, --filter INTERMEDIATE_FILTER_SQL
@@ -31,64 +30,68 @@ optional arguments:
   --quiet               Only display errors.
 
 supported url schemes:
-- ascii:- (dest only)
-- asciibox:- (dest only)
-- asciifancygrid:- (dest only)
-- asciigrid:- (dest only)
-- asciilite:- (dest only)
-- asciipipe:- (dest only)
-- asciiplain:- (dest only)
-- asciipresto:- (dest only)
-- asciipretty:- (dest only)
-- asciipsql:- (dest only)
-- asciisimple:- (dest only)
-- awsathena://eu-central-1 
-- awsdynamodb://eu-central-1/example_table (source only)
-- csa:- 
-- example.csv 
-- example.dta 
-- example.feather 
-- example.h5 
-- example.hdf5 
-- example.json 
-- example.jsonl 
-- example.orc (source only)
-- example.parquet 
-- example.py 
-- example.python 
-- example.tsv 
-- example.xls 
-- example.xlsx 
-- example.yaml 
-- gsheets://:new: 
-- html:- (dest only)
-- jiracloud://mycorpname (source only)
-- jsonarray:- 
-- latex:- (dest only)
-- list:- 
-- markdown:- (dest only)
-- md:- (dest only)
-- mediawikiformat:- (dest only)
-- moinmoinformat:- (dest only)
-- mssql://127.0.0.1:5432/example_db 
-- mysql://127.0.0.1:5432/example_db 
-- oracle://127.0.0.1:5432/example_db 
-- postgis://127.0.0.1:5432/example_db 
-- postgres://127.0.0.1:5432/example_db 
-- postgresql://127.0.0.1:5432/example_db 
-- pylist:- 
-- rst:- (dest only)
-- smartsheet://SHEET_ID (source only)
-- sqlite3://127.0.0.1:5432/example_db 
-- sqlite://127.0.0.1:5432/example_db 
-- sumologic://?from=2021-03-01T00:00:00Z&to=2021-05-03T00:00:00Z (source only)
-- tex:- (dest only)
-- yamlsequence:-
+  ascii:- (dest only)
+  asciibox:- (dest only)
+  asciifancygrid:- (dest only)
+  asciigrid:- (dest only)
+  asciilite:- (dest only)
+  asciipipe:- (dest only)
+  asciiplain:- (dest only)
+  asciipresto:- (dest only)
+  asciipretty:- (dest only)
+  asciipsql:- (dest only)
+  asciisimple:- (dest only)
+  awsathena://eu-central-1
+  awsdynamodb://eu-central-1/example_table (source only)
+  csa:-
+  example.csv
+  example.dta
+  example.feather
+  example.h5
+  example.hdf5
+  example.json
+  example.jsonl
+  example.orc (source only)
+  example.parquet
+  example.py
+  example.python
+  example.tsv
+  example.xls
+  example.xlsx
+  example.yaml
+  example.yml
+  gsheets://:new:
+  html:- (dest only)
+  jiracloud://mycorpname (source only)
+  jiraformat:- (dest only)
+  jsonarray:-
+  latex:- (dest only)
+  list:-
+  markdown:- (dest only)
+  md:- (dest only)
+  mediawikiformat:- (dest only)
+  moinmoinformat:- (dest only)
+  mssql://127.0.0.1:5432/example_db
+  mysql://127.0.0.1:5432/example_db
+  nestedlist:- (source only)
+  oracle://127.0.0.1:5432/example_db
+  postgis://127.0.0.1:5432/example_db
+  postgres://127.0.0.1:5432/example_db
+  postgresql://127.0.0.1:5432/example_db
+  pylist:-
+  rst:- (dest only)
+  smartsheet://SHEET_ID (source only)
+  sql_values:- (dest only)
+  sqlite3:///tmp/example.db
+  sqlite:///tmp/example.db
+  sumologic://?from=2021-03-01T00:00:00Z&to=2021-05-03T00:00:00Z (source only)
+  tex:- (dest only)
+  yamlsequence:-
 ```
 
 ## Examples
 
-### Basic conversion
+### Basic Conversion
 
 Convert JSON to CSV
 
@@ -102,7 +105,7 @@ Convert CSV to JSON
 tableconv test.csv -o test.json
 ```
 
-Dump a postgres table as JSON
+Dump a Postgres table as JSON
 
 ```
 tableconv postgresql://192.168.0.10:5432/test_db/my_table -o my_table.json
@@ -114,13 +117,13 @@ Display a parquet file's data in a human-readable format
 tableconv test.parquet -o ascii:-
 ```
 
-Convert CSV to a Markdown table
+Convert CSV to a Markdown Table
 
 ```
 tableconv test.csv -o md:-
 ```
 
-### Data transformation with SQL
+### Data Transformation
 
 Dump the first 100 rows of a postgres table as JSON
 
@@ -135,7 +138,7 @@ Copy a few columns from one CSV into a new CSV.
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o output.csv
 ```
 
-Append a few columns from a CSV into MySQL
+Append a Few Columns From a Csv Into MySQL
 
 ```
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o mysql://localhost:3306/test_db/my_table?if_exists=append
@@ -147,12 +150,12 @@ Extract a report from a SQLite database into a new Google Spreadsheet
 tableconv sqlite3://my_db.db -q 'SELECT name, COUNT(*) from occurences ORDER BY 2 DESC LIMIT 10' -o "gsheets://:new:/?name=top_occurences_$(date +'%Y_%m_%d')"
 ```
 
-### Interactive mode
+### Interactive Mode
 
 Launch an interactive SQL shell to inspect data from a CSV file in the terminal
 
 ```
-tableconv test.csv -i -o ascii:-
+tableconv test.csv -i
 ```
 
 ### Arrays
