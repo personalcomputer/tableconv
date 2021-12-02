@@ -171,12 +171,12 @@ def main(argv=None):
         os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.exit(os.system('flake8 --ignore E501,F403,W503 tests tableconv setup.py; pytest'))
 
-    if argv and argv[0] == 'configure':
+    if argv and argv[0] in ('configure', '--configure'):
         # Special parser mode for this hidden feature. Each adapter can specify its own "configure" args, so we cannot
         # use the main argparse parser.
         USAGE = 'usage: %(prog)s configure ADAPTER [options]'
         try:
-            if len(argv) < 3 or argv[1].startswith('--'):
+            if len(argv) < 2 or argv[1].startswith('--'):
                 raise argparse.ArgumentError(None, 'Must specify adapter')
             if argv[1] not in adapters:
                 raise argparse.ArgumentError(None, f'Unrecognized adapter "{argv[1]}"')
@@ -230,7 +230,7 @@ def main(argv=None):
     dest = args.DEST_URL
     if dest is None:
         source_scheme, _ = parse_source_url(source)
-        if source_scheme in write_adapters and write_adapters[source_scheme].text_based:
+        if source_scheme in write_adapters and write_adapters[source_scheme].text_based and not args.interactive:
             # Default to outputting to console, in same format as input
             dest = f'{source_scheme}:-'
         else:

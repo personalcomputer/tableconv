@@ -2,10 +2,11 @@ import datetime
 import logging
 import os
 import re
+import sys
 import time
 from typing import Optional, Union
-
 from unittest import mock
+
 import pandas as pd
 import yaml
 from dateutil.parser import parse as dateutil_parse
@@ -107,7 +108,9 @@ class SumoLogicAdapter(Adapter):
 
     @staticmethod
     def set_configuration_options(args):
-        assert set(args.keys()) == set(SumoLogicAdapter.get_configuration_options_description().keys())
+        if set(args.keys()) != set(SumoLogicAdapter.get_configuration_options_description().keys()):
+            print('Please specify all required options. See --help.')
+            sys.exit(1)
         with open(CREDENTIALS_FILE_PATH, 'w') as f:
             f.write(yaml.dump(args))
         logger.info(f'Wrote configuration to "{CREDENTIALS_FILE_PATH}"')

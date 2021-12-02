@@ -44,8 +44,8 @@ class SQLAdapter(Adapter):
             parsed_uri.path = os.path.abspath(os.path.expanduser(parsed_uri.path))
         table = None
         if parsed_uri.authority is None:
-            # local file specified via path only (no scheme)
-            assert parsed_uri.path.endswith('.sqlite3') or parsed_uri.path.endswith('.sqlite')
+            # local file specified via path only (no hostname)
+            assert parsed_uri.path.endswith('.sqlite3') or parsed_uri.path.endswith('.sqlite') or parsed_uri.scheme in ('sqlite', 'sqlite3')
             alchemy_uri = f'sqlite:///{parsed_uri.path}'
         else:
             # Resolve scheme aliases
