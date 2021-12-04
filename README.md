@@ -138,7 +138,7 @@ Copy a few columns from one CSV into a new CSV.
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o output.csv
 ```
 
-Append a Few Columns From a Csv Into MySQL
+Append a Few Columns From a CSV Into MySQL
 
 ```
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o mysql://localhost:3306/test_db/my_table?if_exists=append

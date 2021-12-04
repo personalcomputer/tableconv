@@ -5,7 +5,7 @@ from .file_adapter_mixin import FileAdapterMixin
 
 @register_adapter(['sql_values'], write_only=True)
 class SQLLiteralAdapter(FileAdapterMixin, Adapter):
-    """ Currently only supports Postgres-flavored VALUES syntax"""
+    """ Currently only supports the PostgreSQL-flavored VALUES syntax"""
     text_based = True
 
     @staticmethod
