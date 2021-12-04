@@ -44,7 +44,6 @@ setup(
         'python-dateutil',
         'PyYAML',
         'sqlalchemy',
-        'sumologic-sdk',
         'tabulate',
         'xlrd',
         'xlwt',

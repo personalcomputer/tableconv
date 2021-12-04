@@ -1,13 +1,14 @@
 import datetime
+import json
 import logging
 import os
 import re
 import sys
 import time
 from typing import Optional, Union
-from unittest import mock
 
 import pandas as pd
+import requests
 import yaml
 from dateutil.parser import parse as dateutil_parse
 
@@ -20,12 +21,65 @@ SUMO_API_MAX_RESULTS_PER_API_CALL = 10000
 SUMO_API_TS_FORMAT = '%Y-%m-%dT%H:%M:%S'
 SUMO_API_RESULTS_POLLING_INTERVAL = datetime.timedelta(seconds=5)
 CREDENTIALS_FILE_PATH = os.path.expanduser('~/.sumologiccredentials.yaml')
+SUMOLOGIC_API_RATE_LIMIT_INTERVAL_S = datetime.timedelta(milliseconds=1000 / 4).total_seconds()
 
 
 def utcnow():
     ts = datetime.datetime.utcnow()
     ts = ts.replace(tzinfo=datetime.timezone.utc)
     return ts
+
+
+class SumoLogicClient():
+    """
+    Derivative of https://github.com/SumoLogic/sumologic-python-sdk
+    """
+    def __init__(self, accessId, accessKey):
+        self.session = requests.Session()
+        self.session.auth = (accessId, accessKey)
+        self.session.headers = {'content-type': 'application/json', 'accept': 'application/json'}
+        self.endpoint = self._get_endpoint()
+        self.last_query_time = None
+
+    def _get_endpoint(self):
+        self.endpoint = 'https://api.sumologic.com/api'
+        self.response = self.session.get('https://api.sumologic.com/api/v1/collectors')  # Dummy call to get endpoint
+        endpoint = self.response.url.replace('/v1/collectors', '')  # Sanitize URI and retain domain
+        return endpoint + '/v1'
+
+    def request(self, method, sub_url, params=None, data=None):
+        time_since_last_query = time.time() - (self.last_query_time or 0)
+        if time_since_last_query < SUMOLOGIC_API_RATE_LIMIT_INTERVAL_S:
+            time.sleep(SUMOLOGIC_API_RATE_LIMIT_INTERVAL_S - time_since_last_query)
+        self.last_query_time = time.time()
+        r = self.session.request(method, self.endpoint + sub_url, params=params, json=data)
+        if 400 <= r.status_code < 600:
+            r.reason = r.text
+        r.raise_for_status()
+        return r
+
+    def search_job(self, query, from_time=None, to_time=None, time_zone='UTC', by_receipt_time=None):
+        data = {
+            'query': query,
+            'from': from_time.astimezone(datetime.timezone.utc).strftime(SUMO_API_TS_FORMAT),
+            'to': to_time.astimezone(datetime.timezone.utc).strftime(SUMO_API_TS_FORMAT),
+            'timeZone': time_zone,
+            'byReceiptTime': by_receipt_time
+        }
+        r = self.request('POST', '/search/jobs', data=data)
+        return json.loads(r.text)
+
+    def search_job_status(self, search_job_id):
+        r = self.request('GET', f'/search/jobs/{search_job_id}')
+        return json.loads(r.text)
+
+    def search_job_messages(self, search_job_id, limit=None, offset=0):
+        params = {'limit': limit, 'offset': offset}
+        r = self.request('GET', f'/search/jobs/{search_job_id}/messages', params)
+        return json.loads(r.text)
+
+    def delete_search_job(self, search_job_id):
+        return self.request('DELETE', f'/search/jobs/{search_job_id}')
 
 
 def get_sumo_data(search_query: str,
@@ -38,27 +92,21 @@ def get_sumo_data(search_query: str,
         search_to = utcnow() + datetime.timedelta(days=1)
 
     SUMO_CREDS = yaml.safe_load(open(CREDENTIALS_FILE_PATH))
-
-    from sumologic import \
-        SumoLogic  # TODO: This is a low quality library by an inexperienced developer. Replace with a home-spun version
-
-    # As a hack to deal with the low quality code in SumoLogic SDK, we monkeypatch print() so it does not fill up user's
-    # terminal with junk debug information.
-    with mock.patch('builtins.print'):
-        sumo = SumoLogic(SUMO_CREDS['access_id'], SUMO_CREDS['access_key'])
+    sumo = SumoLogicClient(SUMO_CREDS['access_id'], SUMO_CREDS['access_key'])
 
     search_job = sumo.search_job(
         query=search_query + ' | json auto',
-        fromTime=search_from.astimezone(datetime.timezone.utc).strftime(SUMO_API_TS_FORMAT),
-        toTime=search_to.astimezone(datetime.timezone.utc).strftime(SUMO_API_TS_FORMAT),
-        timeZone='UTC',
-        byReceiptTime=by_receipt_time,
+        from_time=search_from,
+        to_time=search_to,
+        time_zone='UTC',
+        by_receipt_time=by_receipt_time,
     )
+    search_job_id = search_job['id']
 
-    logger.info(f'Waiting for query to complete (job id: {search_job["id"]})')
+    logger.info(f'Waiting for query to complete (job id: {search_job_id})')
     time.sleep((SUMO_API_RESULTS_POLLING_INTERVAL / 2).total_seconds())
     while True:
-        status = sumo.search_job_status(search_job)
+        status = sumo.search_job_status(search_job_id)
         if status['state'] != 'GATHERING RESULTS':
             assert(status['state'] == 'DONE GATHERING RESULTS')
             break
@@ -71,14 +119,14 @@ def get_sumo_data(search_query: str,
     if message_count > 0:
         offset = 0
         while offset < message_count:
-            search_output = sumo.search_job_messages(search_job, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset)['messages']
+            search_output = sumo.search_job_messages(search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset)['messages']
             assert(search_output)
             raw_results.extend((r['map'] for r in search_output))
             offset += len(search_output)
             logger.debug(f'Sumo message download {round(100*offset/message_count)}% complete')
     assert(len(raw_results) == message_count)
 
-    sumo.delete_search_job(search_job)
+    sumo.delete_search_job(search_job_id)
 
     return pd.DataFrame.from_records(raw_results)
 
