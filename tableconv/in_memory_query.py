@@ -29,12 +29,6 @@ def flatten_arrays_for_duckdb(df):
 def query_in_memory(df, query):
     import duckdb
     flatten_arrays_for_duckdb(df)
-    if 'log_timestamp' in df.columns:
-        import ciso8601
-        # TODO: This is a hack. I'm leaving it here as a clear demonstration of missing feature requirements
-        # (schema management & schema coercion). Similarly to coercing types at this point, we should be able to force
-        # existence of columns (set to all NULL if no data available).
-        df['log_timestamp'] = df.apply(lambda r: ciso8601.parse_datetime(r['log_timestamp']), axis=1)
     duck_conn = duckdb.connect(database=':memory:', read_only=False)
     duck_conn.register('data', df)
     duck_conn.execute(query)

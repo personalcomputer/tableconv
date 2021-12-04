@@ -10,7 +10,7 @@ import textwrap
 from .__version__ import __version__
 from .adapters.df import adapters, read_adapters, write_adapters
 from .adapters.df.base import NoConfigurationOptionsAvailable
-from .core import SuppliedDataError, load_url, parse_source_url
+from .core import SuppliedDataError, load_url, parse_source_url, validate_coercion_schema, resolve_query_arg
 from .uri import parse_uri
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,8 @@ def get_supported_schemes_list_str() -> str:
     return textwrap.indent('\n'.join(sorted(descriptions)), '  ')
 
 
-def run_interactive_shell(original_source: str, source: str, dest: str, intermediate_filter_sql: str, open_dest: bool
-                          ) -> None:
+def run_interactive_shell(original_source: str, source: str, dest: str, intermediate_filter_sql: str, open_dest: bool,
+                          schema_coercion, restrict_schema) -> None:
     # shell_dimensions_raw = subprocess.check_output(['stty', 'size']).split()
     # shell_height = int(shell_dimensions_raw[0])
     # shell_width = int(shell_dimensions_raw[1])
@@ -79,7 +79,8 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
                 continue
         try:
             # Read source
-            table = load_url(url=source, query=source_query, filter_sql=intermediate_filter_sql)
+            table = load_url(url=source, query=source_query, filter_sql=intermediate_filter_sql,
+                             schema_coercion=schema_coercion, restrict_schema=restrict_schema)
             # Write destination
             output = table.dump_to_url(url=dest)
             if output:
@@ -89,6 +90,7 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
         except SuppliedDataError:
             print('(0 rows)')
         except Exception as exc:
+            # TODO: Only catch exceptions from query errors
             print(exc)
 
 
@@ -162,6 +164,8 @@ def main(argv=None):
     parser.add_argument('-o', '--dest', '--out', dest='DEST_URL', type=str, help='Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.')
     parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode.')
     parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url (not supported for all destination types)')
+    parser.add_argument('-s', '--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema (experimental feature)')
+    parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the schema definition (experimental feature)')
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including all API calls.')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
@@ -222,6 +226,25 @@ def main(argv=None):
             'root': {'level': 'ERROR'},
         })
 
+    if args.schema_coercion:
+        import io
+        import yaml
+        iostr = io.StringIO()
+        iostr.write(resolve_query_arg(args.schema_coercion))
+        iostr.seek(0)
+        try:
+            schema_coercion = yaml.safe_load(iostr)
+        except yaml.YAMLError:
+            raise_argparse_style_error(parser.usage, 'Coercion schema must be specified as a valid YAML mapping')
+        if not isinstance(schema_coercion, dict):
+            raise_argparse_style_error(parser.usage, 'Coercion schema must be specified as a valid YAML mapping')
+        try:
+            validate_coercion_schema(schema_coercion)
+        except ValueError as exc:
+            raise_argparse_style_error(parser.usage, exc)
+    else:
+        schema_coercion = None
+
     # Set source
     source = args.SOURCE_URL
     original_source = source
@@ -240,12 +263,14 @@ def main(argv=None):
 
     # Execute interactive
     if args.interactive:
-        run_interactive_shell(original_source, source, dest, args.intermediate_filter_sql, args.open_dest)
+        run_interactive_shell(original_source, source, dest, args.intermediate_filter_sql, args.open_dest,
+                              schema_coercion, args.restrict_schema)
         return
 
     # Read source (load source)
     try:
-        table = load_url(url=source, query=args.source_query, filter_sql=args.intermediate_filter_sql)
+        table = load_url(url=source, query=args.source_query, filter_sql=args.intermediate_filter_sql,
+                         schema_coercion=schema_coercion, restrict_schema=args.restrict_schema)
     except SuppliedDataError as e:
         logger.error(str(e))
         sys.exit(1)

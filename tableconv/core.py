@@ -4,12 +4,13 @@ import sys
 import tempfile
 from typing import Any, Dict, Tuple
 
+import ciso8601
 from pandas.errors import EmptyDataError
 
-from .uri import parse_uri
 from .adapters.df import read_adapters, write_adapters
 from .adapters.df.base import Adapter
 from .in_memory_query import query_in_memory
+from .uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -115,13 +116,52 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     return new_url
 
 
-def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_sql: str = None
-             ) -> IntermediateExchangeTable:
+def validate_coercion_schema(schema):
+    SCHEMA_COERCION_SUPPORTED_TYPES = {'datetime', 'str', 'int', 'float'}
+    unsupported_schema_types = set(schema.values()) - SCHEMA_COERCION_SUPPORTED_TYPES
+    if unsupported_schema_types:
+        raise ValueError(f'Unsupported schema type(s): {", ".join(unsupported_schema_types)}')
+
+
+def coerce_schema(df, schema, restrict_schema):
+    validate_coercion_schema(schema)
+
+    # Add missing columns
+    for col in set(schema.keys()) - set(df.columns):
+        df[col] = None
+
+    # Coerce the type of pre-existing columns
+    for col in set(schema.keys()).intersection(set(df.columns)):
+        if schema[col] == 'datetime':
+            df[col] = df.apply(
+                lambda r: ciso8601.parse_datetime(r[col]) if r[col] not in (None, '') else None, axis=1
+            )
+        elif schema[col] == 'str':
+            df[col] = df[col].astype('string')
+        elif schema[col] == 'int':
+            df[col] = df.apply(
+                lambda r: int(r[col]) if r[col] not in (None, '') else None, axis=1
+            )
+            # df[col] = pd.to_numeric(df[col], downcast='integer')
+        elif schema[col] == 'float':
+            df[col] = df.apply(
+                lambda r: float(r[col]) if r[col] not in (None, '') else None, axis=1
+            )
+
+    if restrict_schema:
+        # Drop all other columns
+        df = df[schema.keys()]
+
+    return df
+
+
+def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_sql: str = None,
+             schema_coercion: Dict[str, str] = None, restrict_schema: bool = False) -> IntermediateExchangeTable:
     if parse_uri(url).scheme in FSSPEC_SCHEMES:
         url = process_and_rewrite_remote_source_url(url)
 
     source_scheme, read_adapter = parse_source_url(url)
-    query = resolve_query_arg(query)
+    query = resolve_query_arg(query)  # TODO: Dynamic file resolution is great for CLI but it isn't appropriate for the Python API.
     filter_sql = resolve_query_arg(filter_sql)
 
     logger.debug(f'Loading data in via {read_adapter.__qualname__} from {url}')
@@ -131,6 +171,10 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         raise SuppliedDataError(f'Empty data source {url}: {str(e)}') from e
     if df.empty:
         raise SuppliedDataError(f'Empty data source {url}')
+
+    # Schema coercion
+    if schema_coercion:
+        df = coerce_schema(df, schema_coercion, restrict_schema)
 
     # Run in-memory filters
     if filter_sql:
