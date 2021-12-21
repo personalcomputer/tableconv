@@ -61,10 +61,14 @@ def run_interactive_shell(original_source: str, source: str, dest: str, intermed
             continue
         readline.append_history_file(1, INTERACTIVE_HIST_PATH)
         if source_query[0] in ('\\', '.', '/'):
-            if source_query[1:] in ('schema', 'dt', 'd', 'd+', 'describe', 'show'):
+            cmd = source_query[1:]
+            if cmd in ('schema', 'dt', 'ds', 'd', 'd+', 'describe', 'show'):
                 table = load_url(source)
                 print('Table "data":')
-                for column, column_data in table.get_json_schema()['properties'].items():
+                columns = table.get_json_schema()['properties'].items()
+                if cmd == 'ds':
+                    columns = sorted(list(columns))
+                for column, column_data in columns:
                     if 'type' in column_data:
                         if isinstance(column_data["type"], str):
                             types = [column_data["type"]]
