@@ -280,7 +280,7 @@ class AWSAthenaAdapter(Adapter):
                         query=f'DROP TABLE `{table_name}`',
                         aws_region=aws_region, catalog='AwsDataCatalog', database=database, athena_client=athena_client
                     )
-                    # It's just too dangerous to actually delete any data.
+                    # It's just too dangerous to actually delete any data; commented out.
                     # s3 = boto3.resource('s3')
                     # bucket = s3.Bucket(s3_bucket)
                     # bucket.objects.filter(Prefix=f'{s3_bucket_prefix}/').delete()

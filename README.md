@@ -147,7 +147,7 @@ tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o mysql:
 Extract a report from a SQLite database into a new Google Spreadsheet
 
 ```
-tableconv sqlite3://my_db.db -q 'SELECT name, COUNT(*) from occurences ORDER BY 2 DESC LIMIT 10' -o "gsheets://:new:/?name=top_occurences_$(date +'%Y_%m_%d')"
+tableconv sqlite3://my_db.db -q 'SELECT name, COUNT(*) from occurrences ORDER BY 2 DESC LIMIT 10' -o "gsheets://:new:/?name=top_occurrences_$(date +'%Y_%m_%d')"
 ```
 
 ### Interactive Mode

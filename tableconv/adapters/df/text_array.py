@@ -26,13 +26,13 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         elif scheme == 'yamlsequence':
             array = [(item,) for item in yaml.loads(data)]
         elif scheme in ('csa', 'list'):
-            seperator = {
+            separator = {
                 'csa': ',',
                 'list': '\n'
             }[scheme]
-            if seperator[-1] == '\n' and data[-1] == '\n':
+            if separator[-1] == '\n' and data[-1] == '\n':
                 data = data[:-1]
-            array = [(item,) for item in data.split(seperator)]
+            array = [(item,) for item in data.split(separator)]
         else:
             raise AssertionError
         return pd.DataFrame.from_records(array, columns=['value'])
@@ -50,16 +50,16 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         elif scheme == 'yamlsequence':
             return yaml.safe_dump(serialized_array)
         elif scheme in ('csa', 'list'):
-            seperator = {
+            separator = {
                 'csa': ',',
                 'list': '\n'
             }[scheme]
-            seperator_word = {
+            separator_word = {
                 ',': 'comma',
                 '\n': 'new-line',
-            }[seperator]
-            if any((seperator in item for item in serialized_array)):
-                raise ValueError(f'Cannot write as {scheme}, one or more values contain a {seperator_word}')
-            return seperator.join(serialized_array)
+            }[separator]
+            if any((separator in item for item in serialized_array)):
+                raise ValueError(f'Cannot write as {scheme}, one or more values contain a {separator_word}')
+            return separator.join(serialized_array)
         else:
             raise AssertionError
