@@ -113,6 +113,10 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         else:
             if_exists = 'fail'
 
+        if 'indent' in kwargs:
+            indent = int(kwargs['indent'])
+        else:
+            indent = None
         unnest = kwargs.get('unnest', 'false').lower() == 'true'
         format_mode = kwargs.get('format_mode', kwargs.get('orient', kwargs.get('mode', 'records')))
         # `format_mode` Options are
@@ -137,7 +141,11 @@ class JSONAdapter(FileAdapterMixin, Adapter):
             elif if_exists == 'append':
                 path_or_buf = open(path, 'a')
 
-        df.to_json(path_or_buf, lines=(scheme == 'jsonl'), orient=format_mode)
+        if format_mode in ['split', 'index', 'columns']:
+            # Index required. Use first column as index.
+            df.set_index(df.columns[0], inplace=True)
+
+        df.to_json(path_or_buf, lines=(scheme == 'jsonl'), indent=indent, orient=format_mode)
 
         if not isinstance(path_or_buf, str):
             path_or_buf.close()
