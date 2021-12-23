@@ -110,7 +110,7 @@ class IntermediateExchangeTable:
         """
         Expose the loaded data as a List of Dict records.
         """
-        return self.as_pandas_df.to_dict(orient='records')
+        return self.as_pandas_df().to_dict(orient='records')
 
     def as_pandas_df(self) -> pd.DataFrame:
         """
