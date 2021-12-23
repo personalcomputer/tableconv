@@ -90,6 +90,7 @@ supported url schemes:
   postgres://127.0.0.1:5432/example_db 
   postgresql://127.0.0.1:5432/example_db 
   pylist:- 
+  pythonlist:- 
   rst:- (dest only)
   smartsheet://SHEET_ID (source only)
   sql_values:- (dest only)
@@ -181,14 +182,10 @@ pbpaste | tableconv list:- -o csv:-
 
 As a prototype, tableconv is usable as a quick and dirty CLI ETL tool for converting data between any of the formats, or usable for performing basic bulk data transformations and joins defined in a unified language (SQL) but operating across disparate data in wildly different formats. That is the immediate value proposition of tableconv, but it was created within the mental framework of a larger vision: The tableconv vision of computing is that all software fundamentally interfaces via data tables; that all UIs and APIs can be interpreted as data frames or data tables. Instead of requiring power users to learn interface after interface and build their own bespoke tooling to extract and manipulate the data at scale in each interface, the world needs a highly interoperable operating system level client for power users to directly interact with, join, and manipulate the data with SQL (or similar) using the universal "table" abstraction provided in a consistent UI across each service. Tableconv is that tool. It is meant to have adapters written to support any/all services and data formats.
 
-However, this is just a prototype. The software is slow in all ways and memory+cpu intensive. It has no streaming support and loads all data into memory before converting it. Its most efficient adapters cannot handle tables over 10 million cells, and the least efficient cannot handle over 100000 cells. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre and inconsistent. Most obscure adapter options are untested. It has an incomplete story on how to use it outside the CLI in other software, as a library. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor documentation of any adapter-specific options.
+However, this is just a prototype. The software is slow in all ways and memory+cpu intensive. It has no streaming support and loads all data into memory before converting it. Its most efficient adapters cannot handle tables over 10 million cells, and the least efficient cannot handle over 100000 cells. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre and inconsistent. Most obscure adapter options are untested. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor documentation of any adapter-specific options.
 
 
 ## Python API
-
-Tableconv is primarily designed for use in shell scripts and use by end-users via the CLI, but it also has a Python API that works well for rapid prototyping of software that needs to do ETL tasks.
-
-Disclaimer: To add ETL functionality in more and more powerful software, we recommend to go down to the raw lower level libraries like pandas and SQLAlchemy, or to switch to distributed systems like PySpark as your ETL performance requirements exceeds what tableconv and even those named libraries are capable of. Tableconv focuses on the rapid CLI and rapid prototyping usecases, but is outcompeted by other solutions for truly high scale high reliability data processing requirements.
 
 ### Quickstart Example: Basic API usage: Replicating a typical CLI command using the API
 
