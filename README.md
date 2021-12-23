@@ -4,7 +4,7 @@ tableconv converts tabular data from any format to any format.
 
 ## Install
 
-```
+```sh
 pip install tableconv
 ```
 
@@ -106,57 +106,57 @@ supported url schemes:
 ### Basic Conversion
 
 Convert JSON to CSV
-```
+```sh
 tableconv test.json -o test.csv
 ```
 
 Convert CSV to JSON
-```
+```sh
 tableconv test.csv -o test.json
 ```
 
 Dump a Postgres table as JSON
-```
+```sh
 tableconv postgresql://192.168.0.10:5432/test_db/my_table -o my_table.json
 ```
 
 Display a parquet file's data in a human-readable format
-```
+```sh
 tableconv test.parquet -o ascii:-
 ```
 
 Convert CSV to a Markdown Table
-```
+```sh
 tableconv test.csv -o md:-
 ```
 
 ### Data Transformation
 
 Dump the first 100 rows of a postgres table as JSON
-```
+```sh
 tableconv postgresql://192.168.0.10:5432/test_db -q 'SELECT * FROM my_table ORDER BY id LIMIT 100' -o my_table.json
 ```
 
 Copy a few columns from one CSV into a new CSV.
 (in general, all functionality works on all of the supported data formats. So you can of course query with SQL on an Oracle database but it's also supported to query with SQL on JSON, SQL on Excel, and, here SQL on CSV)
-```
+```sh
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o output.csv
 ```
 
 Append a Few Columns From a CSV Into MySQL
-```
+```sh
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o mysql://localhost:3306/test_db/my_table?if_exists=append
 ```
 
 Extract a report from a SQLite database into a new Google Spreadsheet
-```
+```sh
 tableconv sqlite3://my_db.db -q 'SELECT name, COUNT(*) from occurrences ORDER BY 2 DESC LIMIT 10' -o "gsheets://:new:/?name=top_occurrences_$(date +'%Y_%m_%d')"
 ```
 
 ### Interactive Mode
 
 Launch an interactive SQL shell to inspect data from a CSV file in the terminal
-```
+```sh
 tableconv test.csv -i
 ```
 
@@ -164,17 +164,17 @@ tableconv test.csv -i
 
 Arrays: Arrays can be thought of as one dimensional tables, so tableconv has strong support for array formats too. Here
 is an example of converting a copy/pasted newline-deliminated list into a list in the Python list syntax.
-```
+```sh
 pbpaste | tableconv list:- -o pylist:-
 ```
 
 Or in YAML's sequence syntax:
-```
+```sh
 pbpaste | tableconv list:- -o yamlsequence:-
 ```
 
 Or as a full single-dimensional CSV table:
-```
+```sh
 pbpaste | tableconv list:- -o csv:-
 ```
 
