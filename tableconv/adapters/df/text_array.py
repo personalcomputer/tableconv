@@ -8,7 +8,7 @@ from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
 
-@register_adapter(['list', 'csa', 'jsonarray', 'pylist', 'yamlsequence'])
+@register_adapter(['list', 'csa', 'jsonarray', 'pythonlist', 'pylist', 'yamlsequence'])
 class TextArrayAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
@@ -21,7 +21,7 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         data = data.strip()
         if scheme == 'jsonarray':
             array = [(item,) for item in json.loads(data)]
-        elif scheme == 'pylist':
+        elif scheme in ('pythonlist', 'pylist'):
             array = [(item,) for item in ast.literal_eval(data)]
         elif scheme == 'yamlsequence':
             array = [(item,) for item in yaml.loads(data)]
@@ -45,7 +45,7 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         serialized_array = [str(item) for item in array]
         if scheme == 'jsonarray':
             return json.dumps(array)
-        elif scheme == 'pylist':
+        elif scheme in ('pythonlist', 'pylist'):
             return repr(array)
         elif scheme == 'yamlsequence':
             return yaml.safe_dump(serialized_array)
