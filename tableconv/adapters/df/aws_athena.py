@@ -1,11 +1,12 @@
-import tempfile
-import uuid
-import textwrap
 import datetime
 import logging
 import os
+import tempfile
+import textwrap
 import time
+import uuid
 
+from ...exceptions import AppendSchemeConflictError, InvalidParamsError, TableAlreadyExistsError, InvalidQueryError
 from ...uri import parse_uri
 from .base import Adapter, register_adapter
 from .pandas_io import CSVAdapter, ParquetAdapter
@@ -87,7 +88,7 @@ class AWSAthenaAdapter(Adapter):
             status = details['QueryExecution']['Status']['State']
             if status in ('FAILED', 'CANCELLED'):
                 error_message = details['QueryExecution']['Status'].get('StateChangeReason')
-                raise RuntimeError(f'AWS Athena Query {status.lower()}: {error_message}')
+                raise InvalidQueryError(f'AWS Athena Query {status.lower()}: {error_message}')
             elif status == 'SUCCEEDED':
                 break
             else:
@@ -199,7 +200,7 @@ class AWSAthenaAdapter(Adapter):
             if_exists = 'fail'
 
         if if_exists not in ('replace', 'append', 'fail'):
-            raise ValueError('valid values for if_exists are replace, append, or fail (default)')
+            raise InvalidParamsError('valid values for if_exists are replace, append, or fail (default)')
 
         aws_region = uri.authority
 
@@ -218,7 +219,7 @@ class AWSAthenaAdapter(Adapter):
             s3_bucket_prefix = table_name
         data_format = uri.query['data_format']
         if data_format not in FORMAT_SQL_MAPPING:
-            raise ValueError(f'Only formats {FORMAT_SQL_MAPPING.keys()} supported')
+            raise InvalidParamsError(f'Only formats {FORMAT_SQL_MAPPING.keys()} supported')
         s3_base_url = f's3://{os.path.join(s3_bucket, s3_bucket_prefix)}'
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -245,18 +246,18 @@ class AWSAthenaAdapter(Adapter):
                     raise
             if table_exists:
                 if if_exists == 'fail':
-                    raise RuntimeError(f'{database}{table_name} already exists')
+                    raise TableAlreadyExistsError(f'{database}{table_name} already exists')
                 elif if_exists == 'append':
                     pre_existing_columns = [col['Name'] for col in table_metadata['TableMetadata']['Columns']]
                     if not pre_existing_columns == columns:
-                        raise RuntimeError('Cannot append to existing table - schema mismatch')
+                        raise AppendSchemeConflictError('Cannot append to existing table - schema mismatch')
                     pre_existing_s3_base_url = table_metadata['TableMetadata']['Parameters']['location'].strip('/')
                     if pre_existing_s3_base_url != s3_base_url.strip('/'):
                         existing_uri = parse_uri(pre_existing_s3_base_url)
                         existing_bucket = existing_uri.authority
                         existing_prefix = existing_uri.path.strip('/')
                         if existing_bucket != s3_bucket:
-                            raise RuntimeError(f'Cannot append to existing table - s3 bucket mismatch (pre-existing location is {pre_existing_s3_base_url})')
+                            raise AppendSchemeConflictError(f'Cannot append to existing table - s3 bucket mismatch (pre-existing location is {pre_existing_s3_base_url})')
                         if existing_prefix.startswith(s3_bucket_prefix):
                             # Discovered prefix is more restrictive than our requested prefix - this is safe, we can just adopt it.
                             logger.warning(f'Appending to found pre-existing prefix at {existing_prefix}')

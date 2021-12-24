@@ -4,6 +4,8 @@ import os
 
 import pandas as pd
 
+from ...exceptions import (AppendSchemeConflictError, InvalidParamsError, InvalidQueryError, InvalidURLError,
+                           TableAlreadyExistsError)
 from ...uri import parse_uri
 from .base import Adapter, register_adapter
 
@@ -74,21 +76,33 @@ class SQLAdapter(Adapter):
 
     @staticmethod
     def load(uri, query):
+        import sqlalchemy.exc
         from sqlalchemy import text as sqlalchemy_text
         engine, table = SQLAdapter._get_engine_and_table_from_uri(parse_uri(uri))
         if query:
-            return pd.read_sql(sqlalchemy_text(query), engine)
+            try:
+                return pd.read_sql(sqlalchemy_text(query), engine)
+            except sqlalchemy.exc.ProgrammingError as exc:
+                raise InvalidQueryError(*exc.args) from exc
         elif table:
-            return pd.read_sql_table(table, engine)
+            try:
+                return pd.read_sql_table(table, engine)
+            except sqlalchemy.exc.OperationalError as exc:
+                raise InvalidURLError(*exc.args) from exc
+            except ValueError as exc:
+                if exc.args[0] == f'Table {table} not found':
+                    raise InvalidURLError(*exc.args) from exc
+                raise
         else:
-            raise ValueError('Please pass a SELECT SQL query to run (-q <sql>), or include a `table` in the URI query string to dump a whole table.')
+            raise InvalidParamsError('Please pass a SELECT SQL query to run (-q <sql>), or include a `table` in the URI query string to dump a whole table.')
 
     @staticmethod
     def dump(df, uri):
+        import sqlalchemy.exc
         parsed_uri = parse_uri(uri)
         engine, table = SQLAdapter._get_engine_and_table_from_uri(parsed_uri)
         if not table:
-            raise ValueError('Please pass table name, in format <engine>://<host>:<post>/<db>/<table> or <engine>://<host>:<post>/<db>?table=<table>')
+            raise InvalidParamsError('Please pass table name, in format <engine>://<host>:<post>/<db>/<table> or <engine>://<host>:<post>/<db>?table=<table>')
         if 'if_exists' in parsed_uri.query:
             if_exists = parsed_uri.query['if_exists']
         elif 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false':
@@ -97,4 +111,15 @@ class SQLAdapter(Adapter):
             if_exists = 'replace'
         else:
             if_exists = 'fail'
-        df.to_sql(table, engine, index=False, if_exists=if_exists)
+        try:
+            df.to_sql(table, engine, index=False, if_exists=if_exists)
+        except ValueError as exc:
+            if if_exists == 'fail' and exc.args[0] == f'Table \'{table}\' already exists.':
+                raise TableAlreadyExistsError(*exc.args) from exc
+            raise
+        except sqlalchemy.exc.OperationalError as exc:
+            raise InvalidURLError(*exc.args) from exc
+        except (sqlalchemy.exc.ProgrammingError, sqlalchemy.exc.IntegrityError) as exc:
+            if if_exists == 'append':
+                raise AppendSchemeConflictError(*exc.args) from exc
+            raise

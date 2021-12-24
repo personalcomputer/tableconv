@@ -1,15 +1,16 @@
-import logging
 import datetime
+import logging
 import math
 import os
 import sys
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
+from ...exceptions import (AppendSchemeConflictError, InvalidLocationReferenceError, InvalidParamsError,
+                           TableAlreadyExistsError)
 from ...uri import parse_uri
 from .base import Adapter, register_adapter
-
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ class GoogleSheetsAdapter(Adapter):
         sheet_name = parsed_uri.path.strip('/')
 
         if not sheet_name:
-            raise ValueError('Must specify sheet_name')
+            raise InvalidLocationReferenceError('Must specify sheet_name')
 
         googlesheets = GoogleSheetsAdapter._get_googleapiclient_client('sheets', 'v4')
 
@@ -189,7 +190,7 @@ class GoogleSheetsAdapter(Adapter):
 
         parsed_uri = parse_uri(uri)
         if parsed_uri.authority is None:
-            raise ValueError('Please specify spreadsheet id or :new: in gsheets uri')
+            raise InvalidLocationReferenceError('Please specify spreadsheet id or :new: in gsheets uri')
 
         if 'if_exists' in parsed_uri.query:
             if_exists = parsed_uri.query['if_exists']
@@ -216,7 +217,7 @@ class GoogleSheetsAdapter(Adapter):
         start_row = 1
         if parsed_uri.authority == ':new:':
             if if_exists != 'fail':
-                raise ValueError('only if_exists=fail supported for new spreadsheets')
+                raise InvalidParamsError('only if_exists=fail supported for new spreadsheets')
             spreadsheet_name = parsed_uri.query.get('name', f'Untitled {datetime.datetime.utcnow().isoformat()[:-7]}')
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
                 googlesheets, spreadsheet_name, sheet_name, columns, rows)
@@ -240,7 +241,7 @@ class GoogleSheetsAdapter(Adapter):
                 if f'A sheet with the name "{sheet_name}" already exists' not in str(exc):
                     raise
                 if if_exists == 'fail':
-                    raise
+                    raise TableAlreadyExistsError(*exc.args) from exc
                 new_sheet = False
             if not new_sheet:
                 if if_exists == 'replace':
@@ -252,7 +253,7 @@ class GoogleSheetsAdapter(Adapter):
                     existing_rows = sheet['gridProperties']['rowCount']
                     existing_columns = sheet['gridProperties']['columnCount']
                     if existing_columns != columns:
-                        raise ValueError(f'Cannot append to {sheet_name} - columns don\'t match')
+                        raise AppendSchemeConflictError(f'Cannot append to {sheet_name} - columns don\'t match')
                     sheet_id = sheet['sheetId']
                     total_rows = existing_rows + columns
                     GoogleSheetsAdapter._extend_sheet(googlesheets, spreadsheet_id, sheet_id, new_total_rows=total_rows)

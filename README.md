@@ -34,7 +34,7 @@ optional arguments:
   --restrict-schema     Exclude all columns not included in the schema definition (experimental
                         feature)
   -v, --verbose, --debug
-                        Show debug details, including all API calls.
+                        Show debug details, including API calls and error sources.
   --version             show program's version number and exit
   --quiet               Only display errors.
 

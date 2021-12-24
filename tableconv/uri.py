@@ -1,6 +1,8 @@
-from dataclasses import dataclass
 import os
 import re
+from dataclasses import dataclass
+
+from .exceptions import InvalidURLSyntaxError
 
 
 @dataclass
@@ -15,7 +17,7 @@ class URI:
 def parse_uri(uri_str):
     m = re.match(r'^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?(?P<path>[^?#]*)(?:\?(?P<query>[^#]*))?(?:#(?P<fragment>.*))?', uri_str)
     if not m:
-        raise ValueError(f'Unable to parse URI {uri_str}')
+        raise InvalidURLSyntaxError(f'Unable to parse URI {uri_str}')
     uri = URI(**m.groupdict())
     if uri.path and not uri.scheme and os.path.extsep in uri.path:
         uri.scheme = os.path.splitext(uri.path)[1][1:]

@@ -1,6 +1,7 @@
 import marko
 import pandas as pd
 
+from ...exceptions import SourceParseError
 from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
@@ -30,9 +31,15 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
     def load_text_data(scheme, data, kwargs):
         document = marko.parse(data.strip())
         if len(document.children) != 1 or not isinstance(document.children[0], marko.block.List):
-            raise ValueError('Unable to parse nested list')
+            raise SourceParseError('Unable to parse nested list')
+
+        # nesting_sep = kwargs.get('nesting_sep', 'columns')
+        # if nesting_sep == 'columns':
+        # elif nesting_sep == 'dots':
+        #     nesting_sep = '.'
+        # elif nesting_sep in ('chevrons', 'arrows'):
+        #     nesting_sep = ' > '
 
         records = NestedListAdapter._traverse(document.children[0].children, [])
         max_depth = max([len(record) for record in records])
-
         return pd.DataFrame.from_records(records, columns=[f'level{i}' for i in range(max_depth)])

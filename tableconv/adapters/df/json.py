@@ -1,9 +1,10 @@
-import os
 import json
+import os
 import sys
 
 import pandas as pd
 
+from ...exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
 from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
@@ -73,7 +74,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         if scheme == 'json':
             raw_array = json.loads(raw_json)
             if not isinstance(raw_array, list):
-                raise ValueError('Input must be a JSON array')
+                raise SourceParseError('Input must be a JSON array')
         elif scheme == 'jsonl':
             raw_array = []
             for line_number, line in enumerate(raw_json.splitlines()):
@@ -94,7 +95,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                     json_type = 'array'
                 else:
                     json_type = str(type(item))
-                raise ValueError(
+                raise SourceParseError(
                     f'Every element of the input {scheme} must be a JSON object. '
                     f'(element {i + 1} in input was a JSON {json_type})')
         return pd.json_normalize(raw_array, sep=nesting_sep)
@@ -127,7 +128,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         #    'values': just the values array
         #    'table': dict like {'schema': {schema}, 'data': {data}}
         if scheme == 'jsonl' and format_mode != 'records':
-            raise ValueError('?format_mode must be records for jsonl')
+            raise InvalidParamsError('?format_mode must be records for jsonl')
         if unnest:
             raise NotImplementedError
             # nesting_sep = kwargs.get('nesting_sep', '.')
@@ -137,7 +138,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         path_or_buf = path
         if os.path.exists(path):
             if if_exists == 'error':
-                raise RuntimeError(f'{path} already exists')
+                raise TableAlreadyExistsError(f'{path} already exists')
             elif if_exists == 'append':
                 path_or_buf = open(path, 'a')
 

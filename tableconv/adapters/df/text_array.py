@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import yaml
 
+from ...exceptions import IncapableDestinationError
 from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
@@ -40,7 +41,8 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def dump_text_data(df, scheme, kwargs):
         if len(df.columns) > 1:
-            raise ValueError(f'Table has multiple columns; unable to condense into an array for {scheme}')
+            raise IncapableDestinationError(
+                f'Table has multiple columns; unable to condense into an array for {scheme}')
         array = list(df[df.columns[0]].values)
         serialized_array = [str(item) for item in array]
         if scheme == 'jsonarray':
@@ -59,7 +61,8 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
                 '\n': 'new-line',
             }[separator]
             if any((separator in item for item in serialized_array)):
-                raise ValueError(f'Cannot write as {scheme}, one or more values contain a {separator_word}')
+                raise IncapableDestinationError(
+                    f'Cannot write as {scheme}, one or more values contain a {separator_word}')
             return separator.join(serialized_array)
         else:
             raise AssertionError

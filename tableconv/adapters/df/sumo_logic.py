@@ -12,6 +12,7 @@ import requests
 import yaml
 from dateutil.parser import parse as dateutil_parse
 
+from ...exceptions import InvalidParamsError
 from ...uri import parse_uri
 from .base import Adapter, register_adapter
 
@@ -181,7 +182,7 @@ class SumoLogicAdapter(Adapter):
         #   Use receipt time. Default: False
 
         if 'from' not in params:
-            raise ValueError('?from must be specified. This is the lower time range bound for the query. Specify either a datetime in any format, or a relative time in seconds or HH:MM:SS format')
+            raise InvalidParamsError('?from must be specified. This is the lower time range bound for the query. Specify either a datetime in any format, or a relative time in seconds or HH:MM:SS format')
 
         from_time = parse_input_time(params['from'])
         if 'to' in params:

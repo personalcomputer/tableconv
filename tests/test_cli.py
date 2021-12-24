@@ -6,10 +6,12 @@ import logging
 import os
 import re
 import shlex
+import sqlite3
 import subprocess
 import textwrap
 
 import pytest
+
 from tableconv.__main__ import main
 
 EXAMPLE_CSV_RAW = textwrap.dedent('''
@@ -38,20 +40,39 @@ EXAMPLE_LIST_RAW = textwrap.dedent('''
 ''').strip()
 
 
-def invoke_cli(args, stdin=None, use_subprocess=False, capfd=None, monkeypatch=None):
+def invoke_cli(args, stdin=None, capture_stderr=False, assert_nonzero_exit_code=False,
+               use_subprocess=False, capfd=None, monkeypatch=None):
     if use_subprocess:
         # Test by invoking a subprocess. This is extremely similar to how a user would experience tableconv from their
         # terminal.
         cmd = ['tableconv'] + args
         logging.warning(f'Running cmd `{shlex.join(cmd)}`')
-        return subprocess.run(cmd, capture_output=True, input=stdin, text=True, check=True).stdout
+        process = subprocess.run(cmd, capture_output=True, input=stdin, text=True)
+        if assert_nonzero_exit_code:
+            assert process.returncode != 0
+        else:
+            assert process.returncode == 0
+        if capture_stderr:
+            return process.stdout, process.sderr
+        else:
+            return process.stdout
     else:
         # Test by running the CLI within the same test thread. This is faster than a subprocess, but less realistic,
         # testcases could be corrupted by e.g. global variables shared from test to test.
-        monkeypatch.setattr('sys.stdin', io.StringIO(stdin))
-        main(args)
-        stdout, _ = capfd.readouterr()
-        return stdout
+        if stdin:
+            monkeypatch.setattr('sys.stdin', io.StringIO(stdin))
+        try:
+            main(args)
+        except SystemExit as sysexit:
+            if assert_nonzero_exit_code:
+                assert sysexit.code != 0
+            else:
+                assert sysexit.code == 0
+        stdout, stderr = capfd.readouterr()
+        if capture_stderr:
+            return stdout, stderr
+        else:
+            return stdout
 
 
 def test_csv_to_tsv(capfd, monkeypatch):
@@ -150,25 +171,67 @@ def test_interactive(tmp_path):
 #     proc.wait()
 #     assert proc.returncode == 0
 
-
-def test_help():
-    stdout = invoke_cli(['-h'], use_subprocess=True)
-    CORE_SUPPORTED_SCHEMES = [
+def help_test_util(capfd, use_subprocess=False):
+    stdout = invoke_cli(['-h'], use_subprocess=use_subprocess, capfd=capfd)
+    MINIMUM_SUPPORED_SCHEMES = [
         'csv ', 'json ', 'jsonl ', 'python ', 'tsv ', 'xls ', 'ascii', 'gsheets'
     ]
-    for scheme in CORE_SUPPORTED_SCHEMES:
+    for scheme in MINIMUM_SUPPORED_SCHEMES:
         assert scheme in stdout.lower()
     assert 'usage' in stdout.lower()
     assert '-o' in stdout.lower()
     assert '://' in stdout.lower()
 
 
-def test_no_arguments():
-    with pytest.raises(subprocess.CalledProcessError) as excinfo:
-        invoke_cli([], use_subprocess=True)
-    assert 'usage:' in excinfo.value.stderr.lower()
-    assert 'error' in excinfo.value.stderr.lower()
-    assert 'arguments are required' in excinfo.value.stderr.lower()
+def test_help(capfd):
+    help_test_util(capfd=capfd)
+
+
+def test_launch_process(capfd):
+    help_test_util(use_subprocess=True, capfd=capfd)
+
+
+def test_no_arguments(capfd, monkeypatch):
+    _, stderr = invoke_cli([], assert_nonzero_exit_code=True,
+                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+    assert 'traceback' not in stderr.lower()
+    assert 'usage:' in stderr.lower()
+    assert 'error' in stderr.lower()
+    assert 'arguments are required' in stderr.lower()
+
+
+def test_invalid_filename(capfd, monkeypatch):
+    _, stderr = invoke_cli(['/tmp/does_not_exist_c3b8c2ecd34a.csv'], assert_nonzero_exit_code=True,
+                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+    assert 'traceback' not in stderr.lower()
+    assert 'error' in stderr.lower()
+    assert 'does_not_exist_c3b8c2ecd34a.csv' in stderr.lower()
+    assert 'not found' in stderr.lower() or 'no such file' in stderr.lower()
+
+
+def test_no_data_file(tmp_path, capfd, monkeypatch):
+    filename = f'{tmp_path}/test.tsv'
+    with open(filename, 'w') as f:
+        f.write('')
+    _, stderr = invoke_cli([filename], assert_nonzero_exit_code=True,
+                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+    assert 'traceback' not in stderr.lower()
+    assert 'error' in stderr.lower()
+    assert 'empty' in stderr.lower()
+
+
+def test_no_data_sqlite3(tmp_path, capfd, monkeypatch):
+    path = f'{tmp_path}/test.sqlite3'
+    conn = sqlite3.connect(path)
+    cur = conn.cursor()
+    cur.execute('CREATE TABLE wasd (name TEXT NOT NULL, id INT NOT NULL)')
+    conn.close()
+
+    _, stderr = invoke_cli([f'{path}?table=wasd'], assert_nonzero_exit_code=True,
+                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+    assert 'traceback' not in stderr.lower()
+    assert 'error' in stderr.lower()
+    assert 'empty' in stderr.lower()
 
 
 def test_full_roundtrip_file_adapters(tmp_path, capfd, monkeypatch):
@@ -198,13 +261,18 @@ def test_full_roundtrip_file_adapters(tmp_path, capfd, monkeypatch):
     assert json.loads(EXAMPLE_JSON_RAW) == json.loads(last_call_stdout)
 
 
-def test_sqlite_url_errors(tmp_path, capfd, monkeypatch):
-    with pytest.raises(subprocess.CalledProcessError) as exc:
-        invoke_cli(['csv://-', '-o', 'sqlite://db.db'], use_subprocess=True, stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
-        assert 'Invalid SQLite URL' in exc.stderr
-    with pytest.raises(subprocess.CalledProcessError) as exc:
-        invoke_cli(['csv://-', '-o', 'sqlite:///tmp/db.db'], use_subprocess=True, stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
-        assert 'Invalid SQLite URL' in exc.stderr
+def test_sqlite_file_missing_table(tmp_path, capfd, monkeypatch):
+    _, stderr = invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3'], stdin=EXAMPLE_CSV_RAW, assert_nonzero_exit_code=True,
+                           capture_stderr=True, capfd=capfd, monkeypatch=monkeypatch)
+    assert 'traceback' not in stderr.lower()
+    assert 'error' in stderr.lower()
+    assert 'table' in stderr.lower()
+
+
+def test_sqlite_file_roundtrip(tmp_path, capfd, monkeypatch):
+    invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli([f'{tmp_path}/db.sqlite3?table=test', '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
+    assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
 def test_sqlite_roundtrip(tmp_path, capfd, monkeypatch):

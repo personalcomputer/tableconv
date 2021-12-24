@@ -2,15 +2,17 @@ import logging
 import os
 import sys
 import tempfile
+import urllib.parse
 from typing import Any, Dict, List, Tuple
 
-import urllib.parse
 import ciso8601
 import pandas as pd
-from pandas.errors import EmptyDataError
+from pandas.errors import EmptyDataError as pd_EmptyDataError
 
 from .adapters.df import read_adapters, write_adapters
 from .adapters.df.base import Adapter
+from .exceptions import (EmptyDataError, InvalidURLSyntaxError,
+                         UnrecognizedFormatError, InvalidLocationReferenceError)
 from .in_memory_query import query_in_memory
 from .uri import parse_uri
 
@@ -39,10 +41,6 @@ def resolve_query_arg(query: str) -> str:
     return query
 
 
-class SuppliedDataError(RuntimeError):
-    pass
-
-
 class IntermediateExchangeTable:
     def __init__(self, df=None, from_df: pd.DataFrame = None, from_dict_records: List[Dict[str, Any]] = None):
         """
@@ -56,6 +54,9 @@ class IntermediateExchangeTable:
             Wrap the provided Pandas Dataframe in a IntermediateExchangeTable.
         :param from_dict_records:
             Wrap the provided List of Dict records in a IntermediateExchangeTable.
+
+        :raises tableconv.EmptyDataError:
+            Raised if the supplied datasource is empty.
         """
         if sum([df is not None, from_df is not None, from_dict_records is not None]) != 1:
             raise ValueError('Please pass one and only one of either df, from_df, or from_dict_records')
@@ -64,7 +65,9 @@ class IntermediateExchangeTable:
         if from_df is not None:
             self.df = from_df
         if from_dict_records is not None:
-            self.df = pd.DataFrame.from_dict(from_dict_records, orient='records')
+            self.df = pd.DataFrame.from_records(from_dict_records)
+        if self.df.empty:
+            raise EmptyDataError
 
     def dump_to_url(self, url: str, params: Dict[str, Any] = None) -> str:
         """
@@ -74,13 +77,19 @@ class IntermediateExchangeTable:
             A "permalink" url that can be used to access the exported data. This URL is normally identical to the URL
             that was passed in, but not always in cases where e.g. a new ID needed to be dynamically generated during
             the export, or in cases when the passed in URL was relative or otherwise vague.
+
+        :raises tableconv.InvalidURLError:
+            Raised if the provided URL itself is invalid. (either an unsupported/unrecognized data format, an incorrect
+            URL syntax, or incorrect URL parameters).
+        :raises tableconv.DataError:
+            Raised if the data is incompatible with sending to that URL for any reason. (e.g. appending to an existing
+            table and there is a schema mismatch)
         """
         scheme = parse_uri(url).scheme
         try:
             write_adapter = write_adapters[scheme]
         except KeyError:
-            logger.error(f'Unsupported scheme {scheme}. Please see --help.')
-            sys.exit(1)
+            raise UnrecognizedFormatError(f'Unsupported scheme {scheme}.')
 
         if params:
             # TODO: This is a total hack! Implementing real structured table references, including structured passing of
@@ -136,14 +145,12 @@ def parse_source_url(url: str) -> Tuple[str, Adapter]:
         source_scheme = os.path.splitext(parsed_url.path)[1][1:]
 
     if source_scheme is None:
-        logger.error(f'Unable to parse URL "{url}". Please see --help.')
-        sys.exit(1)
+        raise InvalidURLSyntaxError(f'Unable to parse URL "{url}".')
 
     try:
         read_adapter = read_adapters[source_scheme]
     except KeyError:
-        logger.error(f'Unsupported scheme {source_scheme}. Please see --help.')
-        sys.exit(1)
+        raise UnrecognizedFormatError(f'Unsupported scheme {source_scheme}.')
 
     return source_scheme, read_adapter
 
@@ -233,8 +240,20 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         This is an experimental feature. Subject to change. Docummentation unavailable.
     :param restrict_schema:
         This is an experimental feature. Subject to change. Docummentation unavailable.
+
+    :raises tableconv.InvalidURLError:
+        Raised if the provided URL cannot be accessed. (anything from an unsupported/unrecognized data format, an
+        incorrect URL syntax, a non-existent / non-responsive location, or incorrect URL parameters).
+    :raises tableconv.DataError:
+        Raised if the data WITHIN the table referenced by the URL is invalid in any way.
+    :raises tableconv.EmptyDataError:
+        Specific type of DataError that is raised if data can theoretically be loaded, but there are zero records
+        available for loading. tableconv doesn't supporting loading an empty schema.
+    :raises tableconv.InvalidQueryError:
+        Raised if the ``query`` is invalid.
     """
-    if parse_uri(url).scheme in FSSPEC_SCHEMES:
+    scheme = parse_uri(url).scheme
+    if scheme in FSSPEC_SCHEMES:
         url = process_and_rewrite_remote_source_url(url)
 
     source_scheme, read_adapter = parse_source_url(url)
@@ -250,10 +269,12 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
     logger.debug(f'Loading data in via {read_adapter.__qualname__} from {url}')
     try:
         df = read_adapter.load(url, query)
-    except EmptyDataError as e:
-        raise SuppliedDataError(f'Empty data source {url}: {str(e)}') from e
+    except pd_EmptyDataError as exc:
+        raise EmptyDataError(f'Empty data source {url}: {str(exc)}') from exc
+    except FileNotFoundError as exc:
+        raise InvalidLocationReferenceError(f'{url} not found: {str(exc)}') from exc
     if df.empty:
-        raise SuppliedDataError(f'Empty data source {url}')
+        raise EmptyDataError(f'Empty data source {url}')
 
     # Schema coercion
     if schema_coercion:
@@ -265,7 +286,7 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         df = query_in_memory(df, filter_sql)
 
     if df.empty:
-        raise SuppliedDataError('No rows returned by intermediate filter sql query')
+        raise EmptyDataError('No rows returned by intermediate filter sql query')
 
     table = IntermediateExchangeTable(df)
     table.source_scheme = source_scheme

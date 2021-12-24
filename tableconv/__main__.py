@@ -6,11 +6,13 @@ import os
 import readline
 import sys
 import textwrap
+from typing import Union
 
 from .__version__ import __version__
 from .adapters.df import adapters, read_adapters, write_adapters
 from .adapters.df.base import NoConfigurationOptionsAvailable
-from .core import SuppliedDataError, load_url, parse_source_url, validate_coercion_schema, resolve_query_arg
+from .core import load_url, parse_source_url, resolve_query_arg, validate_coercion_schema
+from .exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
 from .uri import parse_uri
 
 logger = logging.getLogger(__name__)
@@ -32,70 +34,6 @@ def get_supported_schemes_list_str() -> str:
         example = adapter.get_example_url(scheme)
         descriptions.append(f'{example} {disclaimer}')
     return textwrap.indent('\n'.join(sorted(descriptions)), '  ')
-
-
-def run_interactive_shell(original_source: str, source: str, dest: str, intermediate_filter_sql: str, open_dest: bool,
-                          schema_coercion, restrict_schema) -> None:
-    # shell_dimensions_raw = subprocess.check_output(['stty', 'size']).split()
-    # shell_height = int(shell_dimensions_raw[0])
-    # shell_width = int(shell_dimensions_raw[1])
-    try:
-        readline.read_history_file(INTERACTIVE_HIST_PATH)
-    except FileNotFoundError:
-        open(INTERACTIVE_HIST_PATH, 'wb').close()
-    readline.set_history_length(1000)
-
-    if len(original_source) <= (7 + 5 + 19):
-        prompt = f'{original_source}=> '
-    else:
-        prompt = f'{original_source[:7]}[...]{original_source[-19:]}=> '
-
-    while True:
-        try:
-            raw_query = input(prompt)
-        except (EOFError, KeyboardInterrupt):
-            print()
-            break
-        source_query = raw_query.strip()
-        if not source_query:
-            continue
-        readline.append_history_file(1, INTERACTIVE_HIST_PATH)
-        if source_query[0] in ('\\', '.', '/'):
-            cmd = source_query[1:]
-            if cmd in ('schema', 'dt', 'ds', 'd', 'd+', 'describe', 'show'):
-                table = load_url(source)
-                print('Table "data":')
-                columns = table.get_json_schema()['properties'].items()
-                if cmd == 'ds':
-                    columns = sorted(list(columns))
-                for column, column_data in columns:
-                    if 'type' in column_data:
-                        if isinstance(column_data["type"], str):
-                            types = [column_data["type"]]
-                        elif isinstance(column_data["type"], list):
-                            types = column_data["type"]
-                        else:
-                            raise AssertionError
-                    else:
-                        assert('anyOf' in column_data)
-                        types = [i['type'] for i in column_data['anyOf']]
-                    print(f'  "{column}" {", ".join(types)}')
-                continue
-        try:
-            # Read source
-            table = load_url(url=source, query=source_query, filter_sql=intermediate_filter_sql,
-                             schema_coercion=schema_coercion, restrict_schema=restrict_schema)
-            # Write destination
-            output = table.dump_to_url(url=dest)
-            if output:
-                logger.info(f'Wrote out {output}')
-            if output and open_dest:
-                os.system(f'open "{output}"')
-        except SuppliedDataError:
-            print('(0 rows)')
-        except Exception as exc:
-            # TODO: Only catch exceptions from query errors
-            print(exc)
 
 
 def set_up_logging():
@@ -143,19 +81,148 @@ class NoExitArgParser(argparse.ArgumentParser):
         raise argparse.ArgumentError(None, message)
 
 
-def raise_argparse_style_error(usage, error):
-    print(f'usage: {usage % dict(prog=os.path.basename(sys.argv[0]))}', file=sys.stderr)
+def raise_argparse_style_error(error: Union[str, Exception], usage=None):
+    if usage:
+        print(f'usage: {usage % dict(prog=os.path.basename(sys.argv[0]))}', file=sys.stderr)
+    if isinstance(error, Exception):
+        logger.debug(error, exc_info=True)
     print(f'error: {error}', file=sys.stderr)
     sys.exit(1)
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
+def run_configuration_mode(argv):
+    # Special parser mode for this hidden feature. Each adapter can specify its own "configure" args, so we cannot
+    # use the main argparse parser.
+    CONFIGURE_USAGE = 'usage: %(prog)s configure ADAPTER [options]'
+    try:
+        if len(argv) < 2 or argv[1].startswith('--'):
+            raise argparse.ArgumentError(None, 'Must specify adapter')
+        if argv[1] not in adapters:
+            raise argparse.ArgumentError(None, f'Unrecognized adapter "{argv[1]}"')
+        adapter = adapters[argv[1]]
+        args_list = adapter.get_configuration_options_description()
+        adapter_config_parser = NoExitArgParser(exit_on_error=False)
+        adapter_config_parser.add_argument('CONFIGURE')
+        adapter_config_parser.add_argument('ADAPTER')
+        for arg, description in args_list.items():
+            adapter_config_parser.add_argument(f'--{arg}', help=description)
+        args = vars(adapter_config_parser.parse_args(argv))
+        args = {name: value for name, value in args.items() if value is not None and name in args_list}
+        adapter.set_configuration_options(args)
+    except NoConfigurationOptionsAvailable as exc:
+        raise_argparse_style_error(f'{exc.args[0]} has no configuration options', CONFIGURE_USAGE)
+    except argparse.ArgumentError as exc:
+        raise_argparse_style_error(exc, CONFIGURE_USAGE)
 
+
+def parse_schema_coercion_arg(args):
+    if not args.schema_coercion:
+        return None
+    import io
+
+    import yaml
+    iostr = io.StringIO()
+    iostr.write(resolve_query_arg(args.schema_coercion))
+    iostr.seek(0)
+    try:
+        schema_coercion = yaml.safe_load(iostr)
+    except yaml.YAMLError:
+        raise_argparse_style_error('Coercion schema must be specified as a valid YAML mapping')
+    if not isinstance(schema_coercion, dict):
+        raise_argparse_style_error('Coercion schema must be specified as a valid YAML mapping')
+    try:
+        validate_coercion_schema(schema_coercion)
+    except ValueError as exc:
+        raise_argparse_style_error(exc)
+    return schema_coercion
+
+
+def parse_dest_arg(args):
+    if args.DEST_URL:
+        return args.DEST_URL
+    try:
+        source_scheme, _ = parse_source_url(args.SOURCE_URL)
+    except InvalidURLError as exc:
+        raise_argparse_style_error(exc)
+
+    if source_scheme in write_adapters and write_adapters[source_scheme].text_based and not args.interactive:
+        # Default to outputting to console, in same format as input
+        dest = f'{source_scheme}:-'
+    else:
+        # Otherwise, default to ascii output to console
+        dest = 'ascii:-'
+    logger.debug(f'No output destination specified, defaulting to {parse_uri(dest).scheme} output to stdout')
+    return dest
+
+
+def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, open_dest: bool,
+                          schema_coercion, restrict_schema) -> None:
+    # shell_width, shell_height = shutil.get_terminal_size()
+    try:
+        readline.read_history_file(INTERACTIVE_HIST_PATH)
+    except FileNotFoundError:
+        open(INTERACTIVE_HIST_PATH, 'wb').close()
+    readline.set_history_length(1000)
+
+    if len(source) <= (7 + 5 + 19):
+        prompt = f'{source}=> '
+    else:
+        prompt = f'{source[:7]}[...]{source[-19:]}=> '
+
+    while True:
+        try:
+            raw_query = input(prompt)
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        source_query = raw_query.strip()
+        if not source_query:
+            continue
+        readline.append_history_file(1, INTERACTIVE_HIST_PATH)
+        if source_query[0] in ('\\', '.', '/'):
+            cmd = source_query[1:]
+            if cmd in ('schema', 'dt', 'ds', 'd', 'd+', 'describe', 'show'):
+                table = load_url(source)
+                print('Table "data":')
+                columns = table.get_json_schema()['properties'].items()
+                if cmd == 'ds':
+                    columns = sorted(list(columns))
+                for column, column_data in columns:
+                    if 'type' in column_data:
+                        if isinstance(column_data["type"], str):
+                            types = [column_data["type"]]
+                        elif isinstance(column_data["type"], list):
+                            types = column_data["type"]
+                        else:
+                            raise AssertionError
+                    else:
+                        assert('anyOf' in column_data)
+                        types = [i['type'] for i in column_data['anyOf']]
+                    print(f'  "{column}" {", ".join(types)}')
+                continue
+        try:
+            # Load source
+            table = load_url(url=source, query=source_query, filter_sql=intermediate_filter_sql,
+                             schema_coercion=schema_coercion, restrict_schema=restrict_schema)
+            # Dump to destination
+            output = table.dump_to_url(url=dest)
+            if output:
+                print(f'Wrote out {output}')
+            if output and open_dest:
+                os.system(f'open "{output}"')
+        except EmptyDataError:
+            print('(0 rows)')
+        except InvalidQueryError as exc:
+            print(exc)
+
+
+def main(argv=None):
     set_up_logging()
 
     # Process arguments
+    if argv is None:
+        argv = sys.argv[1:]
+
     parser = NoExitArgParser(
         usage='%(prog)s SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]',
         formatter_class=argparse.RawDescriptionHelpFormatter,  # Necessary for \n in epilog
@@ -170,7 +237,7 @@ def main(argv=None):
     parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url (not supported for all destination types)')
     parser.add_argument('-s', '--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema (experimental feature)')
     parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the schema definition (experimental feature)')
-    parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including all API calls.')
+    parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
 
@@ -178,31 +245,9 @@ def main(argv=None):
         # Hidden feature to self test
         os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.exit(os.system('flake8 --ignore E501,F403,W503 tests tableconv setup.py; pytest'))
-
     if argv and argv[0] in ('configure', '--configure'):
-        # Special parser mode for this hidden feature. Each adapter can specify its own "configure" args, so we cannot
-        # use the main argparse parser.
-        CONFIGURE_USAGE = 'usage: %(prog)s configure ADAPTER [options]'
-        try:
-            if len(argv) < 2 or argv[1].startswith('--'):
-                raise argparse.ArgumentError(None, 'Must specify adapter')
-            if argv[1] not in adapters:
-                raise argparse.ArgumentError(None, f'Unrecognized adapter "{argv[1]}"')
-            adapter = adapters[argv[1]]
-            args_list = adapter.get_configuration_options_description()
-            adapter_config_parser = NoExitArgParser(exit_on_error=False)
-            adapter_config_parser.add_argument('CONFIGURE')
-            adapter_config_parser.add_argument('ADAPTER')
-            for arg, description in args_list.items():
-                adapter_config_parser.add_argument(f'--{arg}', help=description)
-            args = vars(adapter_config_parser.parse_args(argv))
-            args = {name: value for name, value in args.items() if value is not None and name in args_list}
-            adapter.set_configuration_options(args)
-        except NoConfigurationOptionsAvailable as exc:
-            raise_argparse_style_error(CONFIGURE_USAGE, f'{exc.args[0]} has no configuration options')
-        except argparse.ArgumentError as exc:
-            raise_argparse_style_error(CONFIGURE_USAGE, exc)
-        return
+        run_configuration_mode(argv)
+        sys.exit(0)
 
     try:
         args = parser.parse_args(argv)
@@ -215,7 +260,7 @@ def main(argv=None):
         if not args.SOURCE_URL:
             raise argparse.ArgumentError(None, 'SOURCE_URL empty')
     except argparse.ArgumentError as exc:
-        raise_argparse_style_error(parser.usage, exc)
+        raise_argparse_style_error(exc, parser.usage)
 
     if args.verbose:
         logging.config.dictConfig({
@@ -230,64 +275,28 @@ def main(argv=None):
             'root': {'level': 'ERROR'},
         })
 
-    if args.schema_coercion:
-        import io
-        import yaml
-        iostr = io.StringIO()
-        iostr.write(resolve_query_arg(args.schema_coercion))
-        iostr.seek(0)
-        try:
-            schema_coercion = yaml.safe_load(iostr)
-        except yaml.YAMLError:
-            raise_argparse_style_error(parser.usage, 'Coercion schema must be specified as a valid YAML mapping')
-        if not isinstance(schema_coercion, dict):
-            raise_argparse_style_error(parser.usage, 'Coercion schema must be specified as a valid YAML mapping')
-        try:
-            validate_coercion_schema(schema_coercion)
-        except ValueError as exc:
-            raise_argparse_style_error(parser.usage, exc)
-    else:
-        schema_coercion = None
+    schema_coercion = parse_schema_coercion_arg(args)
+    dest = parse_dest_arg(args)
 
-    # Set source
-    source = args.SOURCE_URL
-    original_source = source
-
-    # Set dest
-    dest = args.DEST_URL
-    if dest is None:
-        source_scheme, _ = parse_source_url(source)
-        if source_scheme in write_adapters and write_adapters[source_scheme].text_based and not args.interactive:
-            # Default to outputting to console, in same format as input
-            dest = f'{source_scheme}:-'
-        else:
-            # Otherwise, default to ascii output to console
-            dest = 'ascii:-'
-        logger.debug(f'No output destination specified, defaulting to {parse_uri(dest).scheme} output to stdout')
-
-    # Execute interactive
-    if args.interactive:
-        run_interactive_shell(original_source, source, dest, args.intermediate_filter_sql, args.open_dest,
-                              schema_coercion, args.restrict_schema)
-        return
-
-    # Read source (load source)
     try:
-        table = load_url(url=source, query=args.source_query, filter_sql=args.intermediate_filter_sql,
-                         schema_coercion=schema_coercion, restrict_schema=args.restrict_schema)
-    except SuppliedDataError as e:
-        logger.error(str(e))
-        sys.exit(1)
+        # Execute interactive
+        if args.interactive:
+            run_interactive_shell(args.SOURCE_URL, dest, args.intermediate_filter_sql, args.open_dest,
+                                  schema_coercion, args.restrict_schema)
+            return
 
-    # Write destination (dump to destination)
-    output = table.dump_to_url(url=dest)
+        # Load source
+        table = load_url(url=args.SOURCE_URL, query=args.source_query, filter_sql=args.intermediate_filter_sql,
+                         schema_coercion=schema_coercion, restrict_schema=args.restrict_schema)
+        # Dump to destination
+        output = table.dump_to_url(url=dest)
+    except (DataError, InvalidQueryError, InvalidURLError) as exc:
+        raise_argparse_style_error(exc)
 
     if output:
         logger.info(f'Wrote out {output}')
-
-    # Open
-    if output and args.open_dest:
-        os.system(f'open "{output}"')
+        if args.open_dest:
+            os.system(f'open "{output}"')
 
 
 if __name__ == '__main__':
