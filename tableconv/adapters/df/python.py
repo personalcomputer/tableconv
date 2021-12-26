@@ -37,6 +37,6 @@ class PythonAdapter(FileAdapterMixin, Adapter):
         process.wait()
         output, stderr = process.communicate()
         if process.returncode != 0:
-            # fail silently
+            # fail gracefullly
             return raw
         return output.decode()

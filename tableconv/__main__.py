@@ -6,6 +6,7 @@ import os
 import readline
 import sys
 import textwrap
+import io
 from typing import Union
 
 from .__version__ import __version__
@@ -118,8 +119,6 @@ def run_configuration_mode(argv):
 def parse_schema_coercion_arg(args):
     if not args.schema_coercion:
         return None
-    import io
-
     import yaml
     iostr = io.StringIO()
     iostr.write(resolve_query_arg(args.schema_coercion))
@@ -226,7 +225,10 @@ def main(argv=None):
     parser = NoExitArgParser(
         usage='%(prog)s SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]',
         formatter_class=argparse.RawDescriptionHelpFormatter,  # Necessary for \n in epilog
-        epilog=f'supported url schemes:\n{get_supported_schemes_list_str()}',
+        epilog=(
+            f'supported url schemes:\n{get_supported_schemes_list_str()}\n\n'
+            'help & support:\n  https://github.com/personalcomputer/tableconv/issues'
+        ),
         exit_on_error=False,
     )
     parser.add_argument('SOURCE_URL', type=str, help='Specify the data source URL.')

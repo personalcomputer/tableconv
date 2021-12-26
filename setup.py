@@ -22,7 +22,7 @@ setup(
     author='John Miller',
     author_email='john@johngm.com',
     python_requires='>=3.7.0',
-    url='https://github.com/Ridecell/tableconv',
+    url='https://github.com/personalcomputer/tableconv',
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     entry_points={
         'console_scripts': ['tableconv=tableconv.__main__:main'],
