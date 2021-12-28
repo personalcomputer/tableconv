@@ -1,3 +1,7 @@
+import subprocess
+import shlex
+import shutil
+
 #!/usr/bin/env python3
 import argparse
 import logging
@@ -215,6 +219,16 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
             print(exc)
 
 
+def os_open(url: str):
+    for opener in {'xdg-open', 'open', 'start', 'Invoke-Item'}:
+        if shutil.which(opener):
+            opener_cmd = [opener, url]
+            logger.debug(f'Opening via `{shlex.join(opener_cmd)}`')
+            subprocess.run(opener_cmd)
+            return
+    raise RuntimeError(f'Not sure how to open files/urls on {sys.platform}')
+
+
 def main(argv=None):
     set_up_logging()
 
@@ -236,7 +250,7 @@ def main(argv=None):
     parser.add_argument('-F', '--filter', dest='intermediate_filter_sql', default=None, help='Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.')
     parser.add_argument('-o', '--dest', '--out', dest='DEST_URL', type=str, help='Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.')
     parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode.')
-    parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url (not supported for all destination types)')
+    parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url in the operating system desktop environment (not supported for all destination types)')
     parser.add_argument('-s', '--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema (experimental feature)')
     parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the schema definition (experimental feature)')
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')
@@ -298,7 +312,7 @@ def main(argv=None):
     if output:
         logger.info(f'Wrote out {output}')
         if args.open_dest:
-            os.system(f'open "{output}"')
+            os_open(output)
 
 
 if __name__ == '__main__':
