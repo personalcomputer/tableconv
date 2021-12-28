@@ -101,14 +101,14 @@ def run_configuration_mode(argv):
         if argv[1] not in adapters:
             raise argparse.ArgumentError(None, f'Unrecognized adapter "{argv[1]}"')
         adapter = adapters[argv[1]]
-        args_list = adapter.get_configuration_options_description()
+        required_args = adapter.get_configuration_options_description()
         adapter_config_parser = NoExitArgParser(exit_on_error=False)
-        adapter_config_parser.add_argument('CONFIGURE')
+        adapter_config_parser.add_argument('configure')
         adapter_config_parser.add_argument('ADAPTER')
-        for arg, description in args_list.items():
-            adapter_config_parser.add_argument(f'--{arg}', help=description)
+        for arg, description in required_args.items():
+            adapter_config_parser.add_argument(f'--{arg.replace("_", "-")}', help=description, required=True)
         args = vars(adapter_config_parser.parse_args(argv))
-        args = {name: value for name, value in args.items() if value is not None and name in args_list}
+        args = {name: value for name, value in args.items() if value is not None and name in required_args}
         adapter.set_configuration_options(args)
     except NoConfigurationOptionsAvailable as exc:
         raise_argparse_style_error(f'{exc.args[0]} has no configuration options', CONFIGURE_USAGE)

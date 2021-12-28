@@ -40,7 +40,7 @@ class GoogleSheetsAdapter(Adapter):
     def get_configuration_options_description():
         return {
             'secrets_file': 'Path to JSON file containing Google Sheets OAuth secrets. Generate this file via '
-                            'https://console.cloud.google.com/apis/credentials.',
+                            'https://console.cloud.google.com/apis/credentials .',
         }
 
     @staticmethod
