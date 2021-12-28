@@ -144,6 +144,7 @@ supported url schemes:
   example.hdf5 
   example.json 
   example.jsonl 
+  example.jsonlines 
   example.ldjson 
   example.ndjson 
   example.orc (source only)

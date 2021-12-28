@@ -2,7 +2,6 @@ import subprocess
 import shlex
 import shutil
 
-#!/usr/bin/env python3
 import argparse
 import logging
 import logging.config

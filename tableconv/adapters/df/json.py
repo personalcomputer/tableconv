@@ -9,7 +9,7 @@ from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
 
-@register_adapter(['json', 'jsonl', 'ldjson', 'ndjson'])
+@register_adapter(['json', 'jsonl', 'jsonlines', 'ldjson', 'ndjson'])
 class JSONAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
@@ -56,7 +56,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def load_file(scheme, path, kwargs):
-        if scheme in ('ldjson', 'ndjson'):
+        if scheme in ('jsonlines', 'ldjson', 'ndjson'):
             scheme = 'jsonl'
 
         preserve_nesting = kwargs.get('preserve_nesting', 'false').lower() == 'true'
@@ -102,7 +102,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_file(df, scheme, path, kwargs):
-        if scheme in ('ldjson', 'ndjson'):
+        if scheme in ('jsonlines', 'ldjson', 'ndjson'):
             scheme = 'jsonl'
 
         if 'if_exists' in kwargs:
