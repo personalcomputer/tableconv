@@ -45,8 +45,9 @@ test-ci: lint
 	# Smaller testsuite for CI until I bother to fix the CI environment to run postgres etc.
 	pytest -k test_cli
 
-test_packaging:
-	bash ./test_packaging_in_docker.sh
+test-packaging:
+	wasdwasd
+	#bash ./test_packaging_in_docker.sh
 
 coverage:
 	coverage run --source tableconv -m pytest
