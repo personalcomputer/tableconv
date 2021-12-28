@@ -28,12 +28,12 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
         return records
 
     @staticmethod
-    def load_text_data(scheme, data, kwargs):
+    def load_text_data(scheme, data, params):
         document = marko.parse(data.strip())
         if len(document.children) != 1 or not isinstance(document.children[0], marko.block.List):
             raise SourceParseError('Unable to parse nested list')
 
-        # nesting_sep = kwargs.get('nesting_sep', 'columns')
+        # nesting_sep = params.get('nesting_sep', 'columns')
         # if nesting_sep == 'columns':
         # elif nesting_sep == 'dots':
         #     nesting_sep = '.'

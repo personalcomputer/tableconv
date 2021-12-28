@@ -11,8 +11,8 @@ class YAMLAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
     @staticmethod
-    def load_file(scheme, path, kwargs):
-        if kwargs.get('preserve_nesting', False):
+    def load_file(scheme, path, params):
+        if params.get('preserve_nesting', False):
             raise NotImplementedError()
 
         if not hasattr(path, 'read'):
@@ -36,7 +36,7 @@ class YAMLAdapter(FileAdapterMixin, Adapter):
         return pd.json_normalize(raw_array)
 
     @staticmethod
-    def dump_file(df, scheme, path, kwargs):
+    def dump_file(df, scheme, path, params):
         yaml_text = yaml.dump(
             df.to_dict(orient='records'),
             sort_keys=False, indent=4

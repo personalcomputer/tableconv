@@ -31,7 +31,7 @@ class Adapter:
         raise NotImplementedError(f'get_example_url not defined for {scheme}')
 
     @classmethod
-    def load(cls, uri: str, query: str) -> pd.DataFrame:
+    def load(cls, uri: str, query: Optional[str]) -> pd.DataFrame:
         raise NotImplementedError
 
     @classmethod

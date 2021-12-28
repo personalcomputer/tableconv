@@ -191,12 +191,13 @@ class GoogleSheetsAdapter(Adapter):
         parsed_uri = parse_uri(uri)
         if parsed_uri.authority is None:
             raise InvalidLocationReferenceError('Please specify spreadsheet id or :new: in gsheets uri')
+        params = parsed_uri.query
 
-        if 'if_exists' in parsed_uri.query:
-            if_exists = parsed_uri.query['if_exists']
-        elif 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false':
+        if 'if_exists' in params:
+            if_exists = params['if_exists']
+        elif 'append' in params and params['append'].lower() != 'false':
             if_exists = 'append'
-        elif 'overwrite' in parsed_uri.query and parsed_uri.query['overwrite'].lower() != 'false':
+        elif 'overwrite' in params and params['overwrite'].lower() != 'false':
             if_exists = 'replace'
         else:
             if_exists = 'fail'
@@ -218,7 +219,7 @@ class GoogleSheetsAdapter(Adapter):
         if parsed_uri.authority == ':new:':
             if if_exists != 'fail':
                 raise InvalidParamsError('only if_exists=fail supported for new spreadsheets')
-            spreadsheet_name = parsed_uri.query.get('name', f'Untitled {datetime.datetime.utcnow().isoformat()[:-7]}')
+            spreadsheet_name = params.get('name', f'Untitled {datetime.datetime.utcnow().isoformat()[:-7]}')
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
                 googlesheets, spreadsheet_name, sheet_name, columns, rows)
             sheet_id = 0

@@ -1,9 +1,8 @@
 import logging
 import os
-import sys
 import tempfile
 import urllib.parse
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import ciso8601
 import pandas as pd
@@ -11,25 +10,24 @@ from pandas.errors import EmptyDataError as pd_EmptyDataError
 
 from .adapters.df import read_adapters, write_adapters
 from .adapters.df.base import Adapter
-from .exceptions import (EmptyDataError, InvalidURLSyntaxError,
-                         UnrecognizedFormatError, InvalidLocationReferenceError)
+from .exceptions import EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError, UnrecognizedFormatError
 from .in_memory_query import query_in_memory
 from .uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
 
-def resolve_query_arg(query: str) -> str:
+def resolve_query_arg(query: Optional[str]) -> Optional[str]:
     if not query:
         return None
 
-    if sys.version_info.major > 3 or (sys.version_info.major == 3 and sys.version_info.minor >= 9):
-        query = query.removeprefix('file://')
-    else:
-        if query.startswith('file://'):
-            query = query[len('file://'):]
+    if query.startswith('file://'):
+        # Note: python 3.9+ has str.removeprefix. Is there a backport/polyfill?
+        query = query[len('file://'):]
 
-    potential_snippet_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'snippets', query)
+    potential_snippet_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'snippets', query
+    )
     if os.path.exists(potential_snippet_path):
         with open(potential_snippet_path) as f:
             return f.read().strip()
@@ -96,7 +94,8 @@ class IntermediateExchangeTable:
             # params to adapters, is still pending. Right now everything is stringly-typed internally.
             assert '?' not in url
             url += f'?{urllib.parse.urlencode(params)}'
-        logger.debug(f'Exporting data out via {write_adapter.__qualname__} to {url}')
+        write_adapter_name = write_adapter.__qualname__  # type: ignore[attr-defined]
+        logger.debug(f'Exporting data out via {write_adapter_name} to {url}')
         return write_adapter.dump(self.df, url)
 
     def get_json_schema(self):
@@ -170,20 +169,23 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     with fsspec.open(f'{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}') as network_file:
         temp_file.write(network_file.read())
     temp_file.flush()
-    encoded_query_params = '?' + '&'.join((f'{key}={value}' for key, value in parsed_url.query.items()))
-    new_url = f'{os.path.splitext(parsed_url.path)[1][1:]}://{temp_file.name}{encoded_query_params if parsed_url.query else ""}'
+    if parsed_url.query:
+        encoded_query_params = '?' + '&'.join((f'{key}={value}' for key, value in parsed_url.query.items()))
+    else:
+        encoded_query_params = ''
+    new_url = f'{os.path.splitext(parsed_url.path)[1][1:]}://{temp_file.name}{encoded_query_params}'
     logger.info(f'Cached remote file as {new_url}')
     return new_url
 
 
-def validate_coercion_schema(schema):
+def validate_coercion_schema(schema: Dict[str, str]) -> None:
     SCHEMA_COERCION_SUPPORTED_TYPES = {'datetime', 'str', 'int', 'float'}
     unsupported_schema_types = set(schema.values()) - SCHEMA_COERCION_SUPPORTED_TYPES
     if unsupported_schema_types:
         raise ValueError(f'Unsupported schema type(s): {", ".join(unsupported_schema_types)}')
 
 
-def coerce_schema(df, schema, restrict_schema):
+def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: bool) -> pd.DataFrame:
     validate_coercion_schema(schema)
 
     # Add missing columns
@@ -266,7 +268,8 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         assert '?' not in url
         url += f'?{urllib.parse.urlencode(params)}'
 
-    logger.debug(f'Loading data in via {read_adapter.__qualname__} from {url}')
+    read_adapter_name = read_adapter.__qualname__  # type: ignore[attr-defined]
+    logger.debug(f'Loading data in via {read_adapter_name} from {url}')
     try:
         df = read_adapter.load(url, query)
     except pd_EmptyDataError as exc:
@@ -289,6 +292,5 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         raise EmptyDataError('No rows returned by intermediate filter sql query')
 
     table = IntermediateExchangeTable(df)
-    table.source_scheme = source_scheme
 
     return table

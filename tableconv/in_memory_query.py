@@ -1,13 +1,14 @@
 import logging
 
 import numpy as np
+import pandas as pd
 
 from .exceptions import InvalidQueryError
 
 logger = logging.getLogger(__name__)
 
 
-def flatten_arrays_for_duckdb(df):
+def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
     """
     DuckDB doesn't support creating columns of arrays. It returns the values always as NaN. So, as a workaround, convert
     all array columns to string.
@@ -28,7 +29,7 @@ def flatten_arrays_for_duckdb(df):
         logger.warning(f'Flattened some columns into strings for in-memory query: {", ".join(flattened)}')
 
 
-def query_in_memory(df, query):
+def query_in_memory(df: pd.DataFrame, query: str) -> pd.DataFrame:
     import duckdb
     flatten_arrays_for_duckdb(df)
     duck_conn = duckdb.connect(database=':memory:', read_only=False)

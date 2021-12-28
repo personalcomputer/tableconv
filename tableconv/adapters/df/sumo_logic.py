@@ -5,7 +5,7 @@ import os
 import re
 import sys
 import time
-from typing import Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 import requests
@@ -23,12 +23,6 @@ SUMO_API_TS_FORMAT = '%Y-%m-%dT%H:%M:%S'
 SUMO_API_RESULTS_POLLING_INTERVAL = datetime.timedelta(seconds=5)
 CREDENTIALS_FILE_PATH = os.path.expanduser('~/.sumologiccredentials.yaml')
 SUMOLOGIC_API_RATE_LIMIT_INTERVAL_S = datetime.timedelta(milliseconds=1000 / 4).total_seconds()
-
-
-def utcnow():
-    ts = datetime.datetime.utcnow()
-    ts = ts.replace(tzinfo=datetime.timezone.utc)
-    return ts
 
 
 class SumoLogicClient():
@@ -85,12 +79,14 @@ class SumoLogicClient():
 
 def get_sumo_data(search_query: str,
                   search_from: Union[datetime.datetime, datetime.timedelta],
-                  search_to: Optional[datetime.datetime] = None,
+                  search_to: Optional[Union[datetime.datetime, datetime.timedelta]] = None,
                   by_receipt_time: bool = False):
     if isinstance(search_from, datetime.timedelta):
-        search_from = utcnow() - search_from
+        search_from = datetime.datetime.now(tz=datetime.timezone.utc) - search_from
+    if isinstance(search_to, datetime.timedelta):
+        search_to = datetime.datetime.now(tz=datetime.timezone.utc) - search_to
     if search_to is None:
-        search_to = utcnow() + datetime.timedelta(days=1)
+        search_to = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)
 
     SUMO_CREDS = yaml.safe_load(open(CREDENTIALS_FILE_PATH))
     sumo = SumoLogicClient(SUMO_CREDS['access_id'], SUMO_CREDS['access_key'])
@@ -116,7 +112,7 @@ def get_sumo_data(search_query: str,
     message_count = status['messageCount']
     logger.info(f'Downloading sumo results (message count: {message_count})')
 
-    raw_results = []
+    raw_results: List[Dict[str, Any]] = []
     if message_count > 0:
         offset = 0
         while offset < message_count:

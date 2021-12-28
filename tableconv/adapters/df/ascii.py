@@ -91,7 +91,7 @@ class ASCIIAdapter(FileAdapterMixin, Adapter):
         return f'{scheme}:-'
 
     @staticmethod
-    def dump_text_data(df, scheme, kwargs):
+    def dump_text_data(df, scheme, params):
         TABULATE_TABLEFMT = {
             'ascii': 'simple',
             'asciiplain': 'plain',

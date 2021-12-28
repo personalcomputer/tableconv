@@ -55,12 +55,12 @@ class JSONAdapter(FileAdapterMixin, Adapter):
     #     return pd.DataFrame.from_records(records)
 
     @staticmethod
-    def load_file(scheme, path, kwargs):
+    def load_file(scheme, path, params):
         if scheme in ('jsonlines', 'ldjson', 'ndjson'):
             scheme = 'jsonl'
 
-        preserve_nesting = kwargs.get('preserve_nesting', 'false').lower() == 'true'
-        nesting_sep = kwargs.get('nesting_sep', '.')
+        preserve_nesting = params.get('preserve_nesting', 'false').lower() == 'true'
+        nesting_sep = params.get('nesting_sep', '.')
         if preserve_nesting:
             return pd.read_json(
                 path,
@@ -85,6 +85,8 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                     exc.args = (exc.args[0].replace(': line 1 column', f': line {line_number + 1} column'),)
                     exc.lineno = line_number + 1
                     raise exc
+        else:
+            raise AssertionError
         for i, item in enumerate(raw_array):
             if not isinstance(item, dict):
                 if isinstance(item, (int, float)):
@@ -101,25 +103,25 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         return pd.json_normalize(raw_array, sep=nesting_sep)
 
     @staticmethod
-    def dump_file(df, scheme, path, kwargs):
+    def dump_file(df, scheme, path, params):
         if scheme in ('jsonlines', 'ldjson', 'ndjson'):
             scheme = 'jsonl'
 
-        if 'if_exists' in kwargs:
-            if_exists = kwargs['if_exists']
-        elif 'append' in kwargs and kwargs['append'].lower() != 'false':
+        if 'if_exists' in params:
+            if_exists = params['if_exists']
+        elif 'append' in params and params['append'].lower() != 'false':
             if_exists = 'append'
-        elif 'overwrite' in kwargs and kwargs['overwrite'].lower() != 'false':
+        elif 'overwrite' in params and params['overwrite'].lower() != 'false':
             if_exists = 'replace'
         else:
             if_exists = 'fail'
 
-        if 'indent' in kwargs:
-            indent = int(kwargs['indent'])
+        if 'indent' in params:
+            indent = int(params['indent'])
         else:
             indent = None
-        unnest = kwargs.get('unnest', 'false').lower() == 'true'
-        format_mode = kwargs.get('format_mode', kwargs.get('orient', kwargs.get('mode', 'records')))
+        unnest = params.get('unnest', 'false').lower() == 'true'
+        format_mode = params.get('format_mode', params.get('orient', params.get('mode', 'records')))
         # `format_mode` Options are
         #    'split': dict like {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
         #    'records': list like [{column -> value}, ... , {column -> value}]
@@ -131,7 +133,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
             raise InvalidParamsError('?format_mode must be records for jsonl')
         if unnest:
             raise NotImplementedError
-            # nesting_sep = kwargs.get('nesting_sep', '.')
+            # nesting_sep = params.get('nesting_sep', '.')
             # for column in df.columns:
             #     if nesting_sep in column:
             #         raise NotImplementedError

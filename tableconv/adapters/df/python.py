@@ -13,8 +13,8 @@ class PythonAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
     @staticmethod
-    def load_text_data(scheme, data, kwargs):
-        if kwargs.get('preserve_nesting', False):
+    def load_text_data(scheme, data, params):
+        if params.get('preserve_nesting', False):
             raise NotImplementedError()
 
         raw_array = ast.literal_eval(data)
@@ -28,7 +28,7 @@ class PythonAdapter(FileAdapterMixin, Adapter):
         return pd.json_normalize(raw_array)
 
     @staticmethod
-    def dump_text_data(df, scheme, kwargs):
+    def dump_text_data(df, scheme, params):
         raw = str(df.to_dict(orient='records'))
         # TODO: This is not an acceptable way to invoke Black. Use its API instead. Black also should only be an
         # optional dependency.

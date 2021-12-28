@@ -14,7 +14,7 @@ class SQLLiteralAdapter(FileAdapterMixin, Adapter):
         return f'{scheme}:-'
 
     @staticmethod
-    def dump_text_data(df, scheme, kwargs):
+    def dump_text_data(df, scheme, params):
         data = df.to_dict(orient='split')
 
         table_name = 'data'

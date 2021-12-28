@@ -1,4 +1,5 @@
 import ast
+import io
 import json
 
 import pandas as pd
@@ -18,14 +19,15 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         return f'{scheme}:-'
 
     @staticmethod
-    def load_text_data(scheme, data, kwargs):
+    def load_text_data(scheme, data, params):
         data = data.strip()
         if scheme == 'jsonarray':
             array = [(item,) for item in json.loads(data)]
         elif scheme in ('pythonlist', 'pylist'):
             array = [(item,) for item in ast.literal_eval(data)]
         elif scheme == 'yamlsequence':
-            array = [(item,) for item in yaml.loads(data)]
+            data_stream = io.StringIO(data)
+            array = [(item,) for item in yaml.safe_load(data_stream)]
         elif scheme in ('csa', 'list'):
             separator = {
                 'csa': ',',
@@ -39,7 +41,7 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         return pd.DataFrame.from_records(array, columns=['value'])
 
     @staticmethod
-    def dump_text_data(df, scheme, kwargs):
+    def dump_text_data(df, scheme, params):
         if len(df.columns) > 1:
             raise IncapableDestinationError(
                 f'Table has multiple columns; unable to condense into an array for {scheme}')

@@ -1,30 +1,37 @@
 import os
 import re
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from .exceptions import InvalidURLSyntaxError
 
 
 @dataclass
 class URI:
-    scheme: str = None
-    authority: str = None
-    path: str = None
-    query: str = None
-    fragment: str = None
+    scheme: str
+    query: Dict[str, Any]
+    authority: Optional[str] = None
+    path: str = ''
+    fragment: Optional[str] = None
 
 
-def parse_uri(uri_str):
+def parse_uri(uri_str: str) -> URI:
     m = re.match(r'^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?(?P<path>[^?#]*)(?:\?(?P<query>[^#]*))?(?:#(?P<fragment>.*))?', uri_str)
     if not m:
         raise InvalidURLSyntaxError(f'Unable to parse URI {uri_str}')
-    uri = URI(**m.groupdict())
-    if uri.path and not uri.scheme and os.path.extsep in uri.path:
-        uri.scheme = os.path.splitext(uri.path)[1][1:]
-        # logger.warning(f'Inferring input is a {uri.scheme} from file extension. To specify explicitly, use syntax {uri.scheme}://{uri.path}')
-        uri.authority = None
-    query_dict_items = (kv.split('=') for kv in uri.query.split('&')) if uri.query else []
-    uri.query = {k.lower(): v for k, v in query_dict_items}
-    if uri.scheme:
-        uri.scheme = uri.scheme.lower()
-    return uri
+    scheme = m.group('scheme')
+    authority = m.group('authority')
+    if m.group('path') and not scheme and os.path.extsep in m.group('path'):
+        scheme = os.path.splitext(m.group('path'))[1][1:]
+        # logger.warning(f'Inferring input is a {scheme} from file extension. To specify explicitly, use syntax {scheme}://{path}')
+        authority = None
+    scheme = scheme.lower()
+    query_dict_items = (kv.split('=') for kv in m.group('query').split('&')) if m.group('query') else []
+    query = {k.lower(): v for k, v in query_dict_items}
+    return URI(
+        scheme=scheme,
+        query=query,
+        authority=authority,
+        path=m.group('path'),
+        fragment=m.group('fragment'),
+    )

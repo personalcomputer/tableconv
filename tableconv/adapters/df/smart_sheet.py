@@ -60,6 +60,8 @@ class SmartSheetAdapter(Adapter):
 
         uri = parse_uri(uri)
         permalink_id = uri.authority
+        if not permalink_id:
+            raise InvalidQueryError('Unable to parse smartsheet id from URL')
 
         smartsheet_token = json.loads(open(os.path.expanduser('~/.smartsheetcredentials.json')).read())['token']
         smartsheet = SmartSheetClient(smartsheet_token)
