@@ -171,23 +171,34 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
     else:
         prompt = f'{source[:7]}[...]{source[-19:]}=> '
 
+    last_result = None
+
     while True:
         try:
             raw_query = input(prompt)
         except (EOFError, KeyboardInterrupt):
-            print()
+            print(file=sys.stderr)
             break
         source_query = raw_query.strip()
         if not source_query:
             continue
         readline.append_history_file(1, INTERACTIVE_HIST_PATH)
         if source_query[0] in ('\\', '.', '/'):
-            cmd = source_query[1:]
-            if cmd in ('schema', 'dt', 'ds', 'd', 'd+', 'describe', 'show'):
+            preferred_cmd_delimiter = source_query[0]
+            cmd = source_query[1:].split(' ')
+            if cmd[0] in ('h', 'help', '?'):
+                print(
+                    'Commands:\n'
+                    ' - dt (describe table)\n'
+                    ' - ds (describe table, sorted)\n'
+                    ' - export URL (export results)',
+                    file=sys.stderr
+                )
+            elif cmd[0] in ('schema', 'dt', 'ds', 'd', 'd+', 'describe', 'show'):
                 table = load_url(source)
-                print('Table "data":')
+                print('Table "data":', file=sys.stderr)
                 columns = table.get_json_schema()['properties'].items()
-                if cmd == 'ds':
+                if cmd[0] == 'ds':
                     columns = sorted(list(columns))
                 for column, column_data in columns:
                     if 'type' in column_data:
@@ -200,8 +211,21 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
                     else:
                         assert('anyOf' in column_data)
                         types = [i['type'] for i in column_data['anyOf']]
-                    print(f'  "{column}" {", ".join(types)}')
-                continue
+                    print(f'  "{column}" {", ".join(types)}', file=sys.stderr)
+            elif cmd[0] in ('save', 'export', 'out'):
+                if last_result is None:
+                    print('Error: No results to export. Run a query first.', file=sys.stderr)
+                    continue
+                if len(cmd) < 2:
+                    print('Error: Please specify export URL/path.', file=sys.stderr)
+                    continue
+                output = last_result.dump_to_url(url=cmd[1])
+                if output:
+                    print(f'Wrote out {output}', file=sys.stderr)
+            else:
+                print(f'Unrecognized command {source_query}. For help, see {preferred_cmd_delimiter}help',
+                      file=sys.stderr)
+            continue
         try:
             # Load source
             table = load_url(url=source, query=source_query, filter_sql=intermediate_filter_sql,
@@ -209,13 +233,14 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
             # Dump to destination
             output = table.dump_to_url(url=dest)
             if output:
-                print(f'Wrote out {output}')
+                print(f'Wrote out {output}', file=sys.stderr)
             if output and open_dest:
-                os.system(f'open "{output}"')
+                os_open(output)
+            last_result = table
         except EmptyDataError:
-            print('(0 rows)')
+            print('(0 rows)', file=sys.stderr)
         except InvalidQueryError as exc:
-            print(exc)
+            print(exc, file=sys.stderr)
 
 
 def os_open(url: str):
