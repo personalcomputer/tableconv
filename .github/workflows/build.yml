@@ -21,14 +21,17 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '.cache/localpip'
-        key: tableconv-0-${{ steps.setup-python.outputspython-version }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('.github/workflows/build.yml') }}
+        key: tableconv-0-${{ steps.setup-python.outputspython-version }}-${{ hashFiles('requirements-dev.txt', '.github/workflows/build.yml') }}
     - name: Install Python Dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt --target=.cache/localpip
+        pip install -r requirements-dev.txt --target="$PWD/.cache/localpip"
     - name: Test
       run: |
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && make install && make test-ci
+        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip"
+        export PATH=$PATH:"$PWD/.cache/localpip/bin"
+        python setup.py install --install-base "$PWD/.cache/localpip"
+        make test-ci
 
 

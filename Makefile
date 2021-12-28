@@ -34,7 +34,7 @@ clean-test:
 
 lint:
 	flake8 tableconv tests setup.py
-	codespell --check-filenames --skip '**/htmlcov,**/_build,**/bin,**/dist,**.egg-info,**/snippets,**/tests/fixtures,**/.git,**/layer_build,**/.mypy_cache,**.bak,**/node_modules,**.map,**/build,**/scripting_*,**.log,**/yarn.lock,**/*backup*.jsonl'
+	codespell --check-filenames 'tests/**.py' tableconv setup.py README.md Makefile docs --skip '**/_build'
 	mypy --ignore-missing-imports --show-error-codes tableconv tests
 
 test: lint
@@ -72,6 +72,3 @@ dist: clean
 	python setup.py sdist
 	python setup.py bdist_wheel
 	ls -l dist
-
-install:
-	python setup.py install
