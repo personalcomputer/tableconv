@@ -31,7 +31,7 @@ jobs:
       run: |
         export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip"
         export PATH=$PATH:"$PWD/.cache/localpip/bin"
-        python setup.py install --install-base "$PWD/.cache/localpip"
+        python setup.py install --prefix "$PWD/.cache/localpip"
         make test-ci
 
 
