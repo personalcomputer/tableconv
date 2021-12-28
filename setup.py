@@ -9,8 +9,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = '\n' + f.read()
 about = {}
-project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
-with open(os.path.join(here, project_slug, '__version__.py')) as f:
+with open(os.path.join(here, NAME, '__version__.py')) as f:
     exec(f.read(), about)
 
 setup(
@@ -23,7 +22,7 @@ setup(
     author_email='john@johngm.com',
     python_requires='>=3.7.0',
     url='https://github.com/personalcomputer/tableconv',
-    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+    packages=find_packages(include=['tableconv', 'tableconv.*']),
     entry_points={
         'console_scripts': ['tableconv=tableconv.__main__:main'],
     },
@@ -55,6 +54,5 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: Implementation :: CPython',
     ],
 )
