@@ -2,6 +2,8 @@ import logging
 
 import numpy as np
 
+from .exceptions import InvalidQueryError
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +33,9 @@ def query_in_memory(df, query):
     flatten_arrays_for_duckdb(df)
     duck_conn = duckdb.connect(database=':memory:', read_only=False)
     duck_conn.register('data', df)
-    duck_conn.execute(query)
+    try:
+        duck_conn.execute(query)
+    except RuntimeError as exc:
+        raise InvalidQueryError(*exc.args) from exc
     result_df = duck_conn.fetchdf()
     return result_df

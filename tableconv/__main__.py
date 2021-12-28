@@ -184,17 +184,17 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
             continue
         readline.append_history_file(1, INTERACTIVE_HIST_PATH)
         if source_query[0] in ('\\', '.', '/'):
-            preferred_cmd_delimiter = source_query[0]
+            cmd_char = source_query[0]
             cmd = source_query[1:].split(' ')
             if cmd[0] in ('h', 'help', '?'):
                 print(
                     'Commands:\n'
-                    ' - dt (describe table)\n'
-                    ' - ds (describe table, sorted)\n'
-                    ' - export URL (export results)',
+                    f' - {cmd_char}dt (describe table)\n'
+                    f' - {cmd_char}ds (describe table, sorted)\n'
+                    f' - {cmd_char}export URL (save results)',
                     file=sys.stderr
                 )
-            elif cmd[0] in ('schema', 'dt', 'ds', 'd', 'd+', 'describe', 'show'):
+            elif cmd[0] in ('schema', 'dt', 'dt+', 'ds', 'd', 'd+', 'describe', 'show'):
                 table = load_url(source)
                 print('Table "data":', file=sys.stderr)
                 columns = table.get_json_schema()['properties'].items()
@@ -212,7 +212,7 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
                         assert('anyOf' in column_data)
                         types = [i['type'] for i in column_data['anyOf']]
                     print(f'  "{column}" {", ".join(types)}', file=sys.stderr)
-            elif cmd[0] in ('save', 'export', 'out'):
+            elif cmd[0] in ('save', 'export', 'copy', 'out', 'o'):
                 if last_result is None:
                     print('Error: No results to export. Run a query first.', file=sys.stderr)
                     continue
@@ -223,7 +223,7 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
                 if output:
                     print(f'Wrote out {output}', file=sys.stderr)
             else:
-                print(f'Unrecognized command {source_query}. For help, see {preferred_cmd_delimiter}help',
+                print(f'Unrecognized command {source_query}. For help, see {cmd_char}help',
                       file=sys.stderr)
             continue
         try:
@@ -240,7 +240,7 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
         except EmptyDataError:
             print('(0 rows)', file=sys.stderr)
         except InvalidQueryError as exc:
-            print(exc, file=sys.stderr)
+            print(str(exc).strip(), file=sys.stderr)
 
 
 def os_open(url: str):

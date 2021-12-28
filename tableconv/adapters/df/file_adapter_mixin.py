@@ -54,7 +54,7 @@ class FileAdapterMixin():
                     # Ignore broken pipe error when outputting to stdout
                     return
                 raise
-        if data[-1] != '\n' and '/dev/fd/1' and sys.stdout.isatty():
+        if data[-1] != '\n' and path == '/dev/fd/1' and sys.stdout.isatty():
             print()
 
     @classmethod
