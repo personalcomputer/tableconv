@@ -259,7 +259,8 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
         url = process_and_rewrite_remote_source_url(url)
 
     source_scheme, read_adapter = parse_source_url(url)
-    query = resolve_query_arg(query)  # TODO: Dynamic file resolution is great for CLI but it isn't appropriate for the Python API.
+    # TODO: Dynamic file resolution is great for CLI but it isn't appropriate for the Python API.
+    query = resolve_query_arg(query)
     filter_sql = resolve_query_arg(filter_sql)
 
     if params:

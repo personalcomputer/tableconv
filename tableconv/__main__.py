@@ -279,15 +279,15 @@ def main(argv=None):
         exit_on_error=False,
     )
     parser.add_argument('SOURCE_URL', type=str, help='Specify the data source URL.')
-    parser.add_argument('-q', '--query', dest='source_query', default=None, help='Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still supported, try `SELECT * FROM data`.')
-    parser.add_argument('-F', '--filter', dest='intermediate_filter_sql', default=None, help='Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.')
-    parser.add_argument('-o', '--dest', '--out', dest='DEST_URL', type=str, help='Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.')
-    parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode.')
-    parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url in the operating system desktop environment (not supported for all destination types)')
-    parser.add_argument('-s', '--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema (experimental feature)')
-    parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the schema definition (experimental feature)')
-    parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')
-    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
+    parser.add_argument('-q', '--query', dest='source_query', default=None, help='Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still supported, try `SELECT * FROM data`.')  # noqa: E501
+    parser.add_argument('-F', '--filter', dest='intermediate_filter_sql', default=None, help='Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.')  # noqa: E501
+    parser.add_argument('-o', '--dest', '--out', dest='DEST_URL', type=str, help='Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.')  # noqa: E501
+    parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode.')  # noqa: E501
+    parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url in the operating system desktop environment (not supported for all destination types)')  # noqa: E501
+    parser.add_argument('-s', '--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema (experimental feature)')  # noqa: E501
+    parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the schema definition (experimental feature)')  # noqa: E501
+    parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')  # noqa: E501
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')  # noqa: E501
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
 
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):

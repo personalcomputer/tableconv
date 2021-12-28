@@ -3,8 +3,9 @@ from .base import Adapter, register_adapter
 from .file_adapter_mixin import FileAdapterMixin
 
 
+# @register_write_adapter(
+#    protocol='sql_values', aliases=[], parameters={}, example_url='', text_based=True, file_based=True)
 @register_adapter(['sql_values'], write_only=True)
-# @register_write_adapter(protocol='sql_values', aliases=[], parameters={}, example_url='', text_based=True, file_based=True)
 class SQLLiteralAdapter(FileAdapterMixin, Adapter):
     """ Currently only supports the PostgreSQL-flavored VALUES syntax"""
     text_based = True

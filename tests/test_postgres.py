@@ -27,19 +27,23 @@ def initialize_db_test_table():
 
 
 def test_postgres_read(initialize_db_test_table, capfd, monkeypatch):
-    stdout = invoke_cli(['postgresql://localhost:5432/test/test_table', '-o', 'json:-'], capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['postgresql://localhost:5432/test/test_table', '-o', 'json:-'], capfd=capfd,
+                        monkeypatch=monkeypatch)
     assert json.loads(stdout)[0] == {'id': 1, 'name': 'hello'}
 
 
 def test_postgres_read_kwarg_table(initialize_db_test_table, capfd, monkeypatch):
-    stdout = invoke_cli(['postgresql://localhost:5432/test?table=test_table', '-o', 'json:-'], capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['postgresql://localhost:5432/test?table=test_table', '-o', 'json:-'], capfd=capfd,
+                        monkeypatch=monkeypatch)
     assert json.loads(stdout)[0] == {'id': 1, 'name': 'hello'}
 
 
 def test_postgres_write(clean_db_test_table, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
     stdout = invoke_cli(
-        ['postgresql://localhost:5432/test', '-q', 'select name from test_table ORDER BY name', '-o', 'json:-'], capfd=capfd, monkeypatch=monkeypatch)
+        ['postgresql://localhost:5432/test', '-q', 'select name from test_table ORDER BY name', '-o', 'json:-'],
+        capfd=capfd, monkeypatch=monkeypatch)
     assert json.loads(stdout) == [
         {'name': 'George'},
         {'name': 'Rachel'},
@@ -48,8 +52,10 @@ def test_postgres_write(clean_db_test_table, capfd, monkeypatch):
 
 
 def test_postgres_overwrite(clean_db_test_table, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
-    invoke_cli(['list:-', '-o', 'postgresql://localhost:5432/test/test_table?overwrite=True'], stdin=EXAMPLE_LIST_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
+    invoke_cli(['list:-', '-o', 'postgresql://localhost:5432/test/test_table?overwrite=True'], stdin=EXAMPLE_LIST_RAW,
+               capfd=capfd, monkeypatch=monkeypatch)
     stdout = invoke_cli([
         'postgresql://localhost:5432/test',
         '-q', 'select value from test_table ORDER BY value ASC LIMIT 1',
@@ -59,10 +65,13 @@ def test_postgres_overwrite(clean_db_test_table, capfd, monkeypatch):
 
 
 def test_postgres_append(clean_db_test_table, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
-    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table?append=True'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', 'postgresql://localhost:5432/test/test_table?append=True'], stdin=EXAMPLE_CSV_RAW,
+               capfd=capfd, monkeypatch=monkeypatch)
     stdout = invoke_cli(
-        ['postgresql://localhost:5432/test', '-q', 'select name from test_table ORDER BY name ASC', '-o', 'json:-'], capfd=capfd, monkeypatch=monkeypatch)
+        ['postgresql://localhost:5432/test', '-q', 'select name from test_table ORDER BY name ASC', '-o', 'json:-'],
+        capfd=capfd, monkeypatch=monkeypatch)
     assert json.loads(stdout) == [
         {'name': 'George'}, {'name': 'George'},
         {'name': 'Rachel'}, {'name': 'Rachel'},

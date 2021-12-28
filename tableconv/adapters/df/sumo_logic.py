@@ -116,7 +116,8 @@ def get_sumo_data(search_query: str,
     if message_count > 0:
         offset = 0
         while offset < message_count:
-            search_output = sumo.search_job_messages(search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset)['messages']
+            search_output = sumo.search_job_messages(
+                search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset)['messages']
             assert(search_output)
             raw_results.extend((r['map'] for r in search_output))
             offset += len(search_output)
@@ -131,7 +132,8 @@ def get_sumo_data(search_query: str,
 def parse_input_time(val: str) -> Union[datetime.timedelta, datetime.datetime]:
     hms_match = re.match(r'^\-?(\d\d):(\d\d):(\d\d)$', val)
     if hms_match:
-        return datetime.timedelta(seconds=int(hms_match.group(1))*60*60 + int(hms_match.group(2))*60 + int(hms_match.group(3)))  # noqa: E226
+        seconds = int(hms_match.group(1))*60*60 + int(hms_match.group(2))*60 + int(hms_match.group(3))  # noqa: E226
+        return datetime.timedelta(seconds=seconds)
     elif re.match(r'-?\d+$', val):
         return datetime.timedelta(seconds=abs(int(val)))
     else:
@@ -171,14 +173,19 @@ class SumoLogicAdapter(Adapter):
 
         # Params:
         # ?from
-        #   Specify the lower time range bound for the query. Specify either a timezone-aware datetime in any format, or a relative time in seconds or HH:MM:SS format
+        #   Specify the lower time range bound for the query. Specify either a timezone-aware datetime in any format, or
+        #   a relative time in seconds or HH:MM:SS format
         # ?to
-        #   Specify the upper time range bound for the query. Specify either a timezone-aware datetime in any format, or a relative time in seconds or HH:MM:SS format. Default: Unlimited
+        #   Specify the upper time range bound for the query. Specify either a timezone-aware datetime in any format, or
+        #   a relative time in seconds or HH:MM:SS format. Default: Unlimited
         # ?receipt_time
         #   Use receipt time. Default: False
 
         if 'from' not in params:
-            raise InvalidParamsError('?from must be specified. This is the lower time range bound for the query. Specify either a datetime in any format, or a relative time in seconds or HH:MM:SS format')
+            raise InvalidParamsError(
+                '?from must be specified. This is the lower time range bound for the query. Specify either a datetime'
+                ' in any format, or a relative time in seconds or HH:MM:SS format'
+            )
 
         from_time = parse_input_time(params['from'])
         if 'to' in params:
@@ -186,6 +193,7 @@ class SumoLogicAdapter(Adapter):
         else:
             to_time = None
 
-        df = get_sumo_data(query, search_from=from_time, search_to=to_time, by_receipt_time=params.get('receipt_time', False))
+        receipt_time = params.get('receipt_time', False)
+        df = get_sumo_data(query, search_from=from_time, search_to=to_time, by_receipt_time=receipt_time)
 
         return df

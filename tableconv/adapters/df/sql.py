@@ -48,7 +48,11 @@ class SQLAdapter(Adapter):
         table = None
         if parsed_uri.authority is None:
             # local file specified via path only (no hostname)
-            assert parsed_uri.path.endswith('.sqlite3') or parsed_uri.path.endswith('.sqlite') or parsed_uri.scheme in ('sqlite', 'sqlite3')
+            assert (
+                parsed_uri.path.endswith('.sqlite3')
+                or parsed_uri.path.endswith('.sqlite')
+                or parsed_uri.scheme in ('sqlite', 'sqlite3')
+            )
             alchemy_uri = f'sqlite:///{parsed_uri.path}'
         else:
             # Resolve scheme aliases
@@ -95,7 +99,8 @@ class SQLAdapter(Adapter):
                     raise InvalidURLError(*exc.args) from exc
                 raise
         else:
-            raise InvalidParamsError('Please pass a SELECT SQL query to run (-q <sql>), or include a `table` in the URI query string to dump a whole table.')
+            raise InvalidParamsError('Please pass a SELECT SQL query to run (-q <sql>), or include a `table` in the URI'
+                                     ' query string to dump a whole table.')
 
     @staticmethod
     def dump(df, uri):
@@ -103,7 +108,8 @@ class SQLAdapter(Adapter):
         parsed_uri = parse_uri(uri)
         engine, table = SQLAdapter._get_engine_and_table_from_uri(parsed_uri)
         if not table:
-            raise InvalidParamsError('Please pass table name, in format <engine>://<host>:<post>/<db>/<table> or <engine>://<host>:<post>/<db>?table=<table>')
+            raise InvalidParamsError('Please pass table name, in format <engine>://<host>:<post>/<db>/<table> or '
+                                     '<engine>://<host>:<post>/<db>?table=<table>')
         if 'if_exists' in parsed_uri.query:
             if_exists = parsed_uri.query['if_exists']
         elif 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false':

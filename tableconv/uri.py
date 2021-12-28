@@ -16,14 +16,22 @@ class URI:
 
 
 def parse_uri(uri_str: str) -> URI:
-    m = re.match(r'^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?(?P<path>[^?#]*)(?:\?(?P<query>[^#]*))?(?:#(?P<fragment>.*))?', uri_str)
+    m = re.match(
+        r'^(?:(?P<scheme>[^:/?#]+):)?'
+        r'(?://(?P<authority>[^/?#]*))?'
+        r'(?P<path>[^?#]*)'
+        r'(?:\?(?P<query>[^#]*))?'
+        r'(?:#(?P<fragment>.*))?',
+        uri_str
+    )
     if not m:
         raise InvalidURLSyntaxError(f'Unable to parse URI {uri_str}')
     scheme = m.group('scheme')
     authority = m.group('authority')
     if m.group('path') and not scheme and os.path.extsep in m.group('path'):
         scheme = os.path.splitext(m.group('path'))[1][1:]
-        # logger.warning(f'Inferring input is a {scheme} from file extension. To specify explicitly, use syntax {scheme}://{path}')
+        # logger.warning(f'Inferring input is a {scheme} from file extension. To specify explicitly, use syntax
+        # {scheme}://{path}')
         authority = None
     scheme = scheme.lower()
     query_dict_items = (kv.split('=') for kv in m.group('query').split('&')) if m.group('query') else []

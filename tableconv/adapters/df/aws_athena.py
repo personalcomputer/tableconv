@@ -163,7 +163,8 @@ class AWSAthenaAdapter(Adapter):
             presto_types.remove('double')
         if len(presto_types) > 1:
             if top_level:
-                logger.warning(f'Identified multiple conflicting types for {column_name}: {presto_types}. Picking one arbitrarily.')
+                logger.warning(f'Identified multiple conflicting types for {column_name}: {presto_types}. Picking one '
+                               'arbitrarily.')
             presto_types = {presto_types.pop()}
         if len(presto_types) == 0:
             if top_level:
@@ -237,7 +238,8 @@ class AWSAthenaAdapter(Adapter):
             schema_ddl, columns = AWSAthenaAdapter._gen_schema(df, data_format, table_name, s3_base_url)
 
             try:
-                table_metadata = athena_client.get_table_metadata(CatalogName=catalog, DatabaseName=database, TableName=table_name)
+                table_metadata = athena_client.get_table_metadata(
+                    CatalogName=catalog, DatabaseName=database, TableName=table_name)
                 table_exists = True
             except athena_client.exceptions.MetadataException as exc:
                 if 'EntityNotFoundException' in exc.response['Error']['Message']:
@@ -257,9 +259,11 @@ class AWSAthenaAdapter(Adapter):
                         existing_bucket = existing_uri.authority
                         existing_prefix = existing_uri.path.strip('/')
                         if existing_bucket != s3_bucket:
-                            raise AppendSchemeConflictError(f'Cannot append to existing table - s3 bucket mismatch (pre-existing location is {pre_existing_s3_base_url})')
+                            raise AppendSchemeConflictError('Cannot append to existing table - s3 bucket mismatch '
+                                                            f'(pre-existing location is {pre_existing_s3_base_url})')
                         if existing_prefix.startswith(s3_bucket_prefix):
-                            # Discovered prefix is more restrictive than our requested prefix - this is safe, we can just adopt it.
+                            # Discovered prefix is more restrictive than our requested prefix - this is safe, we can
+                            # just adopt it.
                             logger.warning(f'Appending to found pre-existing prefix at {existing_prefix}')
                             s3_bucket_prefix = existing_prefix
                             s3_base_url = f's3://{os.path.join(s3_bucket, s3_bucket_prefix)}'
@@ -268,15 +272,19 @@ class AWSAthenaAdapter(Adapter):
                     s3_bucket_prefix = os.path.join(s3_bucket_prefix, str(uuid.uuid4()))
                     s3_base_url = f's3://{os.path.join(s3_bucket, s3_bucket_prefix)}'
                     schema_ddl, _ = AWSAthenaAdapter._gen_schema(df, data_format, table_name, s3_base_url)
-                    logger.warning(f'Deleting table definition for {database}.{table_name}. Leaving old data behind and changing prefix to {s3_bucket_prefix}/.')
+                    logger.warning(
+                        f'Deleting table definition for {database}.{table_name}. Leaving old data behind and changing '
+                        'prefix to {s3_bucket_prefix}/.')
                     assert s3_base_url and schema_ddl and s3_bucket_prefix  # safety check
                     # time.sleep(5)  # give user time to abort if running from CLI
                     old_table_schema_query_result = AWSAthenaAdapter._run_athena_query(
                         query=f'SHOW CREATE TABLE `{table_name}`', return_results_raw=True,
                         aws_region=aws_region, catalog='AwsDataCatalog', database=database, athena_client=athena_client
                     )
-                    old_table_schema = '\n'.join([x['Data'][0]['VarCharValue'] for x in old_table_schema_query_result['Rows']])
-                    logger.debug('Backup of old table schema before deleting:\n' + textwrap.indent(old_table_schema, '  '))
+                    old_table_schema = '\n'.join([x['Data'][0]['VarCharValue']
+                                                 for x in old_table_schema_query_result['Rows']])
+                    logger.debug('Backup of old table schema before deleting:\n'
+                                 + textwrap.indent(old_table_schema, '  '))
                     AWSAthenaAdapter._run_athena_query(
                         query=f'DROP TABLE `{table_name}`',
                         aws_region=aws_region, catalog='AwsDataCatalog', database=database, athena_client=athena_client

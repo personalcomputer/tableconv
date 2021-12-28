@@ -100,7 +100,8 @@ def test_tsv_to_csv_files_inferred_scheme(tmp_path, capfd, monkeypatch):
 
 
 def test_tsv_query(capfd, monkeypatch):
-    stdout = invoke_cli(['tsv:-', '-q', 'SELECT COUNT(*) AS count FROM data', '-o', 'json:-'], stdin=EXAMPLE_TSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['tsv:-', '-q', 'SELECT COUNT(*) AS count FROM data', '-o', 'json:-'], stdin=EXAMPLE_TSV_RAW,
+                        capfd=capfd, monkeypatch=monkeypatch)
     assert json.loads(stdout) == [{'count': 3}]
 
 
@@ -126,9 +127,9 @@ def test_interactive(tmp_path):
     assert stdout_lines.pop(0) == '| 2023 |'
 
     # NOTE: this test is weak because it is not using a real TTY. The interactive mode only needs to work correctly on a
-    # real TTY. Here, we should have a linebreak between the end of the query output and the next prompt. However, lack of
-    # real TTY in this test can break tableconv and cause it to miss the linebreak. Not strictly a bug, but needs to be
-    # fixed so that this test can be completed (TODO).
+    # real TTY. Here, we should have a linebreak between the end of the query output and the next prompt. However, lack
+    # of real TTY in this test can break tableconv and cause it to miss the linebreak. Not strictly a bug, but needs to
+    # be fixed so that this test can be completed (TODO).
     # assert stdout_lines.pop(0) == '+------+'
     # assert re.match(r'/.{6}\[\.\.\.\]teractive0/test\.tsv=> ', stdout_lines.pop(0))
 
@@ -262,33 +263,39 @@ def test_full_roundtrip_file_adapters(tmp_path, capfd, monkeypatch):
 
 
 def test_sqlite_file_missing_table(tmp_path, capfd, monkeypatch):
-    _, stderr = invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3'], stdin=EXAMPLE_CSV_RAW, assert_nonzero_exit_code=True,
-                           capture_stderr=True, capfd=capfd, monkeypatch=monkeypatch)
+    _, stderr = invoke_cli(
+        ['csv://-', '-o', f'{tmp_path}/db.sqlite3'], stdin=EXAMPLE_CSV_RAW, assert_nonzero_exit_code=True,
+        capture_stderr=True, capfd=capfd, monkeypatch=monkeypatch)
     assert 'traceback' not in stderr.lower()
     assert 'error' in stderr.lower()
     assert 'table' in stderr.lower()
 
 
 def test_sqlite_file_roundtrip(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
     stdout = invoke_cli([f'{tmp_path}/db.sqlite3?table=test', '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
 def test_sqlite_roundtrip(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
     stdout = invoke_cli([f'sqlite://{tmp_path}//db.db?table=test', '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
 def test_sqlite_roundtrip_query(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
-    stdout = invoke_cli([f'sqlite://{tmp_path}//db.db', '-q', 'SELECT * FROM test ORDER BY id ASC', '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
+    stdout = invoke_cli([f'sqlite://{tmp_path}//db.db', '-q', 'SELECT * FROM test ORDER BY id ASC', '-o', 'csv:-'],
+                        capfd=capfd, monkeypatch=monkeypatch)
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
 def test_sqlite_query_and_filter(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+               monkeypatch=monkeypatch)
     stdout = invoke_cli([
         f'sqlite://{tmp_path}//db.db',
         '-q', 'SELECT * FROM test ORDER BY id ASC',
@@ -321,7 +328,8 @@ def test_array_to_table(capfd, monkeypatch):
 
 def test_table_to_array(capfd, monkeypatch):
     """Test table (csv) to to array (csa) conversion"""
-    stdout = invoke_cli(['csv:-', '-q', 'SELECT name from data', '-o', 'csa:-'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['csv:-', '-q', 'SELECT name from data', '-o', 'csa:-'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
+                        monkeypatch=monkeypatch)
     assert stdout == 'George,Steven,Rachel'
 
 
@@ -351,6 +359,8 @@ def test_packaging(tmp_path):
 
     # Verify the tableconv CLI can be ran within that container, and verify it knows its correct version number.
     cmd = ['tableconv', '--version']
-    cmd_output = subprocess.run(['docker', 'run', '-t', 'tableconv_test'] + cmd, capture_output=True, text=True, check=True).stdout
+    cmd_output = subprocess.run(
+        ['docker', 'run', '-t', 'tableconv_test'] + cmd, capture_output=True, text=True, check=True
+    ).stdout
     assert version_number in cmd_output
     assert 'tableconv' in cmd_output
