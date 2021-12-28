@@ -26,14 +26,10 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         python -m pip install --upgrade pip
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip"
-        export PATH=$PATH:"$PWD/.cache/localpip/bin"
         python setup.py install --prefix "$PWD/.cache/localpip"
         pip install -r requirements-dev.txt --target="$PWD/.cache/localpip"
     - name: Test
       run: |
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip"
-        export PATH=$PATH:"$PWD/.cache/localpip/bin"
-        make test-ci
+        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" &&make test-ci
 
 
