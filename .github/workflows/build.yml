@@ -16,21 +16,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
-    - name: Try to Cache Pip Dependencies
-      id: cache
-      uses: actions/cache@v2
-      with:
-        path: '.cache/localpip'
-        key: tableconv-1-${{ steps.setup-python.outputspython-version }}-${{ hashFiles('setup.py', 'requirements-dev.txt', '.github/workflows/build.yml') }}
     - name: Install Python Dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         python -m pip install --upgrade pip
-        mkdir -p "$PWD/.cache/localpip/lib/python3.8/site-packages/"
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && python setup.py install --prefix "$PWD/.cache/localpip"
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && pip install -r requirements-dev.txt --target="$PWD/.cache/localpip" --upgrade
+        python setup.py install
+        pip install -r requirements-dev.txt
     - name: Test
       run: |
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export MYPYPATH=$MYPYPATH:"$PWD/.cache/localpip" export PATH=$PATH:"$PWD/.cache/localpip/bin" && make test-ci
+        make test-ci
 
 
