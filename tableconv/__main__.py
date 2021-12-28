@@ -1,21 +1,20 @@
-import subprocess
-import shlex
-import shutil
-
 import argparse
+import io
 import logging
 import logging.config
 import os
 import readline
+import shlex
+import shutil
+import subprocess
 import sys
 import textwrap
-import io
-from typing import Union
+from typing import Optional, Union
 
 from .__version__ import __version__
 from .adapters.df import adapters, read_adapters, write_adapters
 from .adapters.df.base import NoConfigurationOptionsAvailable
-from .core import load_url, parse_source_url, resolve_query_arg, validate_coercion_schema
+from .core import IntermediateExchangeTable, load_url, parse_source_url, resolve_query_arg, validate_coercion_schema
 from .exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
 from .uri import parse_uri
 
@@ -157,6 +156,55 @@ def parse_dest_arg(args):
     return dest
 
 
+def handle_administrative_command(query: str, source: str, last_result: Optional[IntermediateExchangeTable]):
+    cmd_char = query[0]
+    cmd = query[1:].split(' ')
+    if cmd[0] in ('h', 'help', '?'):
+        print(
+            'Commands:\n'
+            f'  {cmd_char}dt (describe table)\n'
+            f'  {cmd_char}ds (describe table, sorted)\n'
+            f'  {cmd_char}export URL (save results)',
+        )
+    elif cmd[0] in ('schema', 'dt', 'dt+', 'ds', 'd', 'd+', 'describe', 'show'):
+        table = load_url(source)
+        print('Table "data":', file=sys.stderr)
+        columns = table.get_json_schema()['properties'].items()
+        if cmd[0] == 'ds':
+            columns = sorted(list(columns))
+        for column, column_data in columns:
+            if 'type' in column_data:
+                if isinstance(column_data["type"], str):
+                    types = [column_data["type"]]
+                elif isinstance(column_data["type"], list):
+                    types = column_data["type"]
+                else:
+                    raise AssertionError
+            else:
+                assert('anyOf' in column_data)
+                types = [i['type'] for i in column_data['anyOf']]
+            print(f'  "{column}" {", ".join(types)}')
+    elif cmd[0] in ('save', 'export', 'copy', 'out', 'o'):
+        if last_result is None:
+            print('Error: No results to export. Run a query first.', file=sys.stderr)
+            return
+        if len(cmd) < 2:
+            print('Error: Please specify export URL/path.', file=sys.stderr)
+            return
+        try:
+            url = cmd[1]
+            output = last_result.dump_to_url(url=url)
+        except (InvalidURLError, DataError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return
+        if not output:
+            output = url
+        print(f'(Wrote out {output})', file=sys.stderr)
+    else:
+        print(f'Unrecognized command {query}. For help, see {cmd_char}help',
+              file=sys.stderr)
+
+
 def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, open_dest: bool,
                           schema_coercion, restrict_schema) -> None:
     # shell_width, shell_height = shutil.get_terminal_size()
@@ -179,64 +227,25 @@ def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, 
         except (EOFError, KeyboardInterrupt):
             print(file=sys.stderr)
             break
-        source_query = raw_query.strip()
-        if not source_query:
+        query = raw_query.strip()
+        if not query:
             continue
         readline.append_history_file(1, INTERACTIVE_HIST_PATH)
-        if source_query[0] in ('\\', '.', '/'):
-            cmd_char = source_query[0]
-            cmd = source_query[1:].split(' ')
-            if cmd[0] in ('h', 'help', '?'):
-                print(
-                    'Commands:\n'
-                    f' - {cmd_char}dt (describe table)\n'
-                    f' - {cmd_char}ds (describe table, sorted)\n'
-                    f' - {cmd_char}export URL (save results)',
-                    file=sys.stderr
-                )
-            elif cmd[0] in ('schema', 'dt', 'dt+', 'ds', 'd', 'd+', 'describe', 'show'):
-                table = load_url(source)
-                print('Table "data":', file=sys.stderr)
-                columns = table.get_json_schema()['properties'].items()
-                if cmd[0] == 'ds':
-                    columns = sorted(list(columns))
-                for column, column_data in columns:
-                    if 'type' in column_data:
-                        if isinstance(column_data["type"], str):
-                            types = [column_data["type"]]
-                        elif isinstance(column_data["type"], list):
-                            types = column_data["type"]
-                        else:
-                            raise AssertionError
-                    else:
-                        assert('anyOf' in column_data)
-                        types = [i['type'] for i in column_data['anyOf']]
-                    print(f'  "{column}" {", ".join(types)}', file=sys.stderr)
-            elif cmd[0] in ('save', 'export', 'copy', 'out', 'o'):
-                if last_result is None:
-                    print('Error: No results to export. Run a query first.', file=sys.stderr)
-                    continue
-                if len(cmd) < 2:
-                    print('Error: Please specify export URL/path.', file=sys.stderr)
-                    continue
-                output = last_result.dump_to_url(url=cmd[1])
-                if output:
-                    print(f'Wrote out {output}', file=sys.stderr)
-            else:
-                print(f'Unrecognized command {source_query}. For help, see {cmd_char}help',
-                      file=sys.stderr)
+        if query[0] in ('\\', '.', '/'):
+            handle_administrative_command(query, source, last_result)
             continue
         try:
             # Load source
-            table = load_url(url=source, query=source_query, filter_sql=intermediate_filter_sql,
+            last_result = None
+            table = load_url(url=source, query=query, filter_sql=intermediate_filter_sql,
                              schema_coercion=schema_coercion, restrict_schema=restrict_schema)
+            last_result = table
             # Dump to destination
             output = table.dump_to_url(url=dest)
             if output:
-                print(f'Wrote out {output}', file=sys.stderr)
+                print(f'(Wrote out {output})', file=sys.stderr)
             if output and open_dest:
                 os_open(output)
-            last_result = table
         except EmptyDataError:
             print('(0 rows)', file=sys.stderr)
         except InvalidQueryError as exc:
