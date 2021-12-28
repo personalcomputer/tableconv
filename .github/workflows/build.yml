@@ -26,6 +26,7 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         python -m pip install --upgrade pip
+        mkdir -p "$PWD/.cache/localpip"
         python setup.py install --prefix "$PWD/.cache/localpip"
         pip install -r requirements-dev.txt --target="$PWD/.cache/localpip"
     - name: Test
