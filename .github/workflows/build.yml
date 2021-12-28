@@ -28,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         mkdir -p "$PWD/.cache/localpip/lib/python3.8/site-packages/"
         export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && python setup.py install --prefix "$PWD/.cache/localpip"
-        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && pip install -r requirements-dev.txt --target="$PWD/.cache/localpip"
+        export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && pip install -r requirements-dev.txt --target="$PWD/.cache/localpip" --upgrade
     - name: Test
       run: |
         export PYTHONPATH=$PYTHONPATH:"$PWD/.cache/localpip" && export PATH=$PATH:"$PWD/.cache/localpip/bin" && make test-ci

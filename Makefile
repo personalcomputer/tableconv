@@ -46,8 +46,7 @@ test-ci: lint
 	pytest -k test_cli
 
 test-packaging:
-	wasdwasd
-	#bash ./test_packaging_in_docker.sh
+	bash ./test_packaging_in_docker.sh
 
 coverage:
 	coverage run --source tableconv -m pytest
