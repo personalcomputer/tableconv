@@ -289,6 +289,7 @@ def main(argv=None):
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')  # noqa: E501
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')  # noqa: E501
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
+    parser.add_argument('--debug-shell', '--pandas-debug-shell', '--debug-pandas-shell', action='store_true', help=argparse.SUPPRESS)  # noqa: E501
 
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
         # Hidden feature to self test
@@ -337,6 +338,10 @@ def main(argv=None):
         # Load source
         table = load_url(url=args.SOURCE_URL, query=args.source_query, filter_sql=args.intermediate_filter_sql,
                          schema_coercion=schema_coercion, restrict_schema=args.restrict_schema)
+        if args.debug_shell:
+            df = table.as_pandas_df()  # noqa: F841
+            breakpoint()
+
         # Dump to destination
         output = table.dump_to_url(url=dest)
     except (DataError, InvalidQueryError, InvalidURLError) as exc:
