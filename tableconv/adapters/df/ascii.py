@@ -108,7 +108,6 @@ class ASCIIAdapter(FileAdapterMixin, Adapter):
             'moinmoinformat': 'moinmoin',
             'jiraformat': 'jira',
             'rst': 'rst',
-            'html': 'html',
             'latex': 'latex',
             'tex': 'latex',
         }

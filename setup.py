@@ -42,6 +42,7 @@ setup(
         'psycopg2-binary>=2.6.2',
         'python-dateutil',
         'PyYAML',
+        'lxml',
         'sqlalchemy',
         'tabulate',
         'xlrd',

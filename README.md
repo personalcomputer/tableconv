@@ -142,6 +142,7 @@ supported url schemes:
   example.feather 
   example.h5 
   example.hdf5 
+  example.html 
   example.json 
   example.jsonl 
   example.jsonlines 
@@ -157,7 +158,6 @@ supported url schemes:
   example.yaml 
   example.yml 
   gsheets://:new: 
-  html:- (dest only)
   jiracloud://mycorpname (source only)
   jiraformat:- (dest only)
   jsonarray:- 
