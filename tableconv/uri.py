@@ -25,7 +25,7 @@ def parse_uri(uri_str: str) -> URI:
         uri_str
     )
     if not m:
-        raise InvalidURLSyntaxError(f'Unable to parse URI {uri_str}')
+        raise InvalidURLSyntaxError(f'Unable to parse URI "{uri_str}"')
     scheme = m.group('scheme')
     authority = m.group('authority')
     if m.group('path') and not scheme and os.path.extsep in m.group('path'):
@@ -33,6 +33,8 @@ def parse_uri(uri_str: str) -> URI:
         # logger.warning(f'Inferring input is a {scheme} from file extension. To specify explicitly, use syntax
         # {scheme}://{path}')
         authority = None
+    if not scheme:
+        raise InvalidURLSyntaxError(f'Unable to parse URI "{uri_str}" scheme.')
     scheme = scheme.lower()
     query_dict_items = (kv.split('=') for kv in m.group('query').split('&')) if m.group('query') else []
     query = {k.lower(): v for k, v in query_dict_items}

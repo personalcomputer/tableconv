@@ -217,6 +217,19 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
     return df
 
 
+def warn_if_location_too_large(uri: str):
+    """
+    If we can determine in advance that the URL points to a large amount of data that is slow to parse, show a warning.
+    If we're not able to confirm, or don't know, do nothing. We only makes a weak heuristic attempt to detect and warn.
+    """
+    path = parse_uri(uri).path
+    if os.path.exists(path):
+        TWO_GIBIBYTES = 2 * (1024 ** 3)
+        if os.stat(path).st_size > TWO_GIBIBYTES:
+            # TODO: make this adapter specific
+            logger.warning('This looks like a huge table, expect heavy RAM and CPU usage.')
+
+
 def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_sql: str = None,
              schema_coercion: Dict[str, str] = None, restrict_schema: bool = False) -> IntermediateExchangeTable:
     """
@@ -271,6 +284,7 @@ def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_
 
     read_adapter_name = read_adapter.__qualname__  # type: ignore[attr-defined]
     logger.debug(f'Loading data in via {read_adapter_name} from {url}')
+    warn_if_location_too_large(url)
     try:
         df = read_adapter.load(url, query)
     except pd_EmptyDataError as exc:
