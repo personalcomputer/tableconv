@@ -24,3 +24,8 @@ EXAMPLE_LIST_RAW = textwrap.dedent('''
     b
     c
 ''').strip()
+EXAMPLE_RECORDS = [
+    {'id': 1, 'name': 'George', 'date': 2023},
+    {'id': 2, 'name': 'Steven', 'date': 1950},
+    {'id': 3, 'name': 'Rachel', 'date': 1995},
+]

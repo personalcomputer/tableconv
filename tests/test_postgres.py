@@ -3,7 +3,7 @@ import subprocess
 
 import pytest
 
-from tests.fixtures.simple import EXAMPLE_CSV_RAW, EXAMPLE_LIST_RAW
+from tests.fixtures.example_raw import EXAMPLE_CSV_RAW, EXAMPLE_LIST_RAW
 
 
 @pytest.fixture

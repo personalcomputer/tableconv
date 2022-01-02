@@ -1,5 +1,6 @@
 import ast
 import copy
+import filecmp
 import json
 import logging
 import os
@@ -11,7 +12,8 @@ import textwrap
 
 import pytest
 
-from tests.fixtures.simple import EXAMPLE_CSV_RAW, EXAMPLE_JSON_RAW, EXAMPLE_LIST_RAW, EXAMPLE_TSV_RAW
+from tests.conftest import FIXTURES_DIR
+from tests.fixtures.example_raw import EXAMPLE_CSV_RAW, EXAMPLE_JSON_RAW, EXAMPLE_LIST_RAW, EXAMPLE_TSV_RAW
 
 
 def test_csv_to_tsv(invoke_cli):
@@ -25,17 +27,13 @@ def test_tsv_to_csv(invoke_cli):
 
 
 def test_tsv_to_csv_files(tmp_path, invoke_cli):
-    with open(f'{tmp_path}/test.tsv', 'w') as f:
-        f.write(EXAMPLE_TSV_RAW)
-    invoke_cli([f'tsv://{tmp_path}/test.tsv', '-o', f'csv://{tmp_path}/test.csv'])
-    assert open(f'{tmp_path}/test.csv').read() == EXAMPLE_CSV_RAW + '\n'
+    invoke_cli([FIXTURES_DIR / 'example.tsv', '-o', f'csv://{tmp_path}/test.csv'])
+    assert filecmp.cmp(f'{tmp_path}/test.csv', FIXTURES_DIR / 'example.csv')
 
 
 def test_tsv_to_csv_files_inferred_scheme(tmp_path, invoke_cli):
-    with open(f'{tmp_path}/test.tsv', 'w') as f:
-        f.write(EXAMPLE_TSV_RAW)
-    invoke_cli([f'{tmp_path}/test.tsv', '-o', f'{tmp_path}/test.csv'])
-    assert open(f'{tmp_path}/test.csv').read() == EXAMPLE_CSV_RAW + '\n'
+    invoke_cli([FIXTURES_DIR / 'example.tsv', '-o', f'{tmp_path}/test.csv'])
+    assert filecmp.cmp(f'{tmp_path}/test.csv', FIXTURES_DIR / 'example.csv')
 
 
 def test_tsv_query(invoke_cli):
@@ -51,15 +49,13 @@ def test_inferred_numbers_from_ascii_format(invoke_cli):
 
 
 def test_interactive(tmp_path):
-    with open(f'{tmp_path}/test.tsv', 'w') as f:
-        f.write(EXAMPLE_TSV_RAW)
-    cmd = ['tableconv'] + [f'{tmp_path}/test.tsv', '-i', '-o', 'asciipretty:-']
+    cmd = ['tableconv'] + [str(FIXTURES_DIR / 'example.tsv'), '-i', '-o', 'asciipretty:-']
     logging.warning(f'Running cmd `{shlex.join(cmd)}`')
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 
     stdout, _ = proc.communicate('SELECT date FROM DATA WHERE date > \'2015\'\n', timeout=1)
     stdout_lines = stdout.splitlines()
-    assert re.match(r'/.{6}\[\.\.\.\]teractive0/test\.tsv=> ', stdout_lines.pop(0))
+    assert re.match(r'/.{6}\[\.\.\.\]ixtures/example\.tsv=> ', stdout_lines.pop(0))
     assert stdout_lines.pop(0) == '| date |'
     assert stdout_lines.pop(0) == '+------+'
     assert stdout_lines.pop(0) == '| 2023 |'

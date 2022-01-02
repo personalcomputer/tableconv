@@ -2,7 +2,8 @@ import logging
 import os
 import tempfile
 import urllib.parse
-from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import ciso8601
 import pandas as pd
@@ -231,7 +232,7 @@ def warn_if_location_too_large(uri: str):
             logger.warning('This looks like a huge table, expect heavy RAM and CPU usage.')
 
 
-def load_url(url: str, params: Optional[Dict[str, Any]] = None, query: Optional[str] = None,
+def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, query: Optional[str] = None,
              filter_sql: Optional[str] = None, schema_coercion: Optional[Dict[str, str]] = None,
              restrict_schema: bool = False) -> IntermediateExchangeTable:
     """
@@ -269,6 +270,8 @@ def load_url(url: str, params: Optional[Dict[str, Any]] = None, query: Optional[
     :raises tableconv.InvalidQueryError:
         Raised if the ``query`` is invalid.
     """
+    if isinstance(url, Path):
+        url = str(url)
     scheme = parse_uri(url).scheme
     if scheme in FSSPEC_SCHEMES:
         url = process_and_rewrite_remote_source_url(url)
