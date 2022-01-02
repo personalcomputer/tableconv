@@ -3,7 +3,8 @@ import subprocess
 
 import pytest
 
-from .test_cli import EXAMPLE_CSV_RAW, EXAMPLE_LIST_RAW, invoke_cli
+from tests.fixtures.simple import EXAMPLE_CSV_RAW, EXAMPLE_LIST_RAW
+from tests.test_cli import invoke_cli
 
 
 @pytest.fixture

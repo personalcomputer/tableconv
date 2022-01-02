@@ -40,7 +40,7 @@ def resolve_query_arg(query: Optional[str]) -> Optional[str]:
 
 
 class IntermediateExchangeTable:
-    def __init__(self, df=None, from_df: pd.DataFrame = None, from_dict_records: List[Dict[str, Any]] = None):
+    def __init__(self, df=None, from_df: pd.DataFrame = None, from_dict_records: Optional[List[Dict[str, Any]]] = None):
         """
         tableconv's abstract intermediate tabular data type.
 
@@ -67,7 +67,7 @@ class IntermediateExchangeTable:
         if self.df.empty:
             raise EmptyDataError
 
-    def dump_to_url(self, url: str, params: Dict[str, Any] = None) -> str:
+    def dump_to_url(self, url: str, params: Optional[Dict[str, Any]] = None) -> str:
         """
         Export the table in the format and location identified by url.
 
@@ -230,8 +230,9 @@ def warn_if_location_too_large(uri: str):
             logger.warning('This looks like a huge table, expect heavy RAM and CPU usage.')
 
 
-def load_url(url: str, params: Dict[str, Any] = None, query: str = None, filter_sql: str = None,
-             schema_coercion: Dict[str, str] = None, restrict_schema: bool = False) -> IntermediateExchangeTable:
+def load_url(url: str, params: Optional[Dict[str, Any]] = None, query: Optional[str] = None,
+             filter_sql: Optional[str] = None, schema_coercion: Optional[Dict[str, str]] = None,
+             restrict_schema: bool = False) -> IntermediateExchangeTable:
     """
     Load the data referenced by ``url`` into tableconv's abstract intermediate tabular data type
     (:ref:`IntermediateExchangeTable`).
