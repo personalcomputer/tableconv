@@ -27,7 +27,7 @@ def resolve_pgcli_uri_alias(dsn: str) -> Optional[str]:
 
 
 @register_adapter(['postgres', 'postgis', 'postgresql', 'sqlite', 'sqlite3', 'mysql', 'mssql', 'oracle'])
-class SQLAdapter(Adapter):
+class RDBMSAdapter(Adapter):
 
     @staticmethod
     def get_example_url(scheme):
@@ -84,7 +84,7 @@ class SQLAdapter(Adapter):
     def load(uri, query):
         import sqlalchemy.exc
         from sqlalchemy import text as sqlalchemy_text
-        engine, table = SQLAdapter._get_engine_and_table_from_uri(parse_uri(uri))
+        engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parse_uri(uri))
         if query:
             try:
                 return pd.read_sql(sqlalchemy_text(query), engine)
@@ -107,7 +107,7 @@ class SQLAdapter(Adapter):
     def dump(df, uri):
         import sqlalchemy.exc
         parsed_uri = parse_uri(uri)
-        engine, table = SQLAdapter._get_engine_and_table_from_uri(parsed_uri)
+        engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parsed_uri)
         if not table:
             raise InvalidParamsError('Please pass table name, in format <engine>://<host>:<post>/<db>/<table> or '
                                      '<engine>://<host>:<post>/<db>?table=<table>')
