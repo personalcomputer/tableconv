@@ -1,6 +1,5 @@
 import ast
 import copy
-import io
 import json
 import logging
 import os
@@ -12,77 +11,40 @@ import textwrap
 
 import pytest
 
-from tableconv.__main__ import main
 from tests.fixtures.simple import EXAMPLE_CSV_RAW, EXAMPLE_JSON_RAW, EXAMPLE_LIST_RAW, EXAMPLE_TSV_RAW
 
 
-def invoke_cli(args, stdin=None, capture_stderr=False, assert_nonzero_exit_code=False,
-               use_subprocess=False, capfd=None, monkeypatch=None):
-    if use_subprocess:
-        # Test by invoking a subprocess. This is extremely similar to how a user would experience tableconv from their
-        # terminal.
-        cmd = ['tableconv'] + args
-        logging.warning(f'Running cmd `{shlex.join(cmd)}`')
-        process = subprocess.run(cmd, capture_output=True, input=stdin, text=True)
-        if assert_nonzero_exit_code:
-            assert process.returncode != 0
-        else:
-            assert process.returncode == 0
-        if capture_stderr:
-            return process.stdout, process.sderr
-        else:
-            return process.stdout
-    else:
-        # Test by running the CLI within the same test thread. This is faster than a subprocess, but less realistic,
-        # testcases could be corrupted by e.g. global variables shared from test to test.
-        if stdin:
-            monkeypatch.setattr('sys.stdin', io.StringIO(stdin))
-        try:
-            main(args)
-        except SystemExit as sysexit:
-            if assert_nonzero_exit_code:
-                assert sysexit.code != 0
-            else:
-                assert sysexit.code == 0
-        stdout, stderr = capfd.readouterr()
-        if capture_stderr:
-            return stdout, stderr
-        else:
-            return stdout
-
-
-def test_csv_to_tsv(capfd, monkeypatch):
-    stdout = invoke_cli(['csv:-', '-o', 'tsv:-'], stdin=EXAMPLE_CSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+def test_csv_to_tsv(invoke_cli):
+    stdout = invoke_cli(['csv:-', '-o', 'tsv:-'], stdin=EXAMPLE_CSV_RAW)
     assert stdout == EXAMPLE_TSV_RAW + '\n'
 
 
-def test_tsv_to_csv(capfd, monkeypatch):
-    stdout = invoke_cli(['tsv:-', '-o', 'csv:-'], stdin=EXAMPLE_TSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+def test_tsv_to_csv(invoke_cli):
+    stdout = invoke_cli(['tsv:-', '-o', 'csv:-'], stdin=EXAMPLE_TSV_RAW)
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
-def test_tsv_to_csv_files(tmp_path, capfd, monkeypatch):
+def test_tsv_to_csv_files(tmp_path, invoke_cli):
     with open(f'{tmp_path}/test.tsv', 'w') as f:
         f.write(EXAMPLE_TSV_RAW)
-    invoke_cli([f'tsv://{tmp_path}/test.tsv', '-o', f'csv://{tmp_path}/test.csv'], capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli([f'tsv://{tmp_path}/test.tsv', '-o', f'csv://{tmp_path}/test.csv'])
     assert open(f'{tmp_path}/test.csv').read() == EXAMPLE_CSV_RAW + '\n'
 
 
-def test_tsv_to_csv_files_inferred_scheme(tmp_path, capfd, monkeypatch):
+def test_tsv_to_csv_files_inferred_scheme(tmp_path, invoke_cli):
     with open(f'{tmp_path}/test.tsv', 'w') as f:
         f.write(EXAMPLE_TSV_RAW)
-    invoke_cli([f'{tmp_path}/test.tsv', '-o', f'{tmp_path}/test.csv'], capfd=capfd, monkeypatch=monkeypatch)
+    invoke_cli([f'{tmp_path}/test.tsv', '-o', f'{tmp_path}/test.csv'])
     assert open(f'{tmp_path}/test.csv').read() == EXAMPLE_CSV_RAW + '\n'
 
 
-def test_tsv_query(capfd, monkeypatch):
-    stdout = invoke_cli(['tsv:-', '-q', 'SELECT COUNT(*) AS count FROM data', '-o', 'json:-'], stdin=EXAMPLE_TSV_RAW,
-                        capfd=capfd, monkeypatch=monkeypatch)
+def test_tsv_query(invoke_cli):
+    stdout = invoke_cli(['tsv:-', '-q', 'SELECT COUNT(*) AS count FROM data', '-o', 'json:-'], stdin=EXAMPLE_TSV_RAW)
     assert json.loads(stdout) == [{'count': 3}]
 
 
-def test_inferred_numbers_from_ascii_format(capfd, monkeypatch):
-    stdout = invoke_cli(['tsv:-', '-o', 'json:-'], stdin=EXAMPLE_TSV_RAW, capfd=capfd, monkeypatch=monkeypatch)
+def test_inferred_numbers_from_ascii_format(invoke_cli):
+    stdout = invoke_cli(['tsv:-', '-o', 'json:-'], stdin=EXAMPLE_TSV_RAW)
     id_val = json.loads(stdout)[0]['id']
     assert isinstance(id_val, int)
     assert id_val == 1
@@ -148,8 +110,8 @@ def test_interactive(tmp_path):
 #     proc.wait()
 #     assert proc.returncode == 0
 
-def help_test_util(capfd, use_subprocess=False):
-    stdout = invoke_cli(['-h'], use_subprocess=use_subprocess, capfd=capfd)
+def help_test_util(invoke_cli, use_subprocess=False):
+    stdout = invoke_cli(['-h'], use_subprocess=use_subprocess)
     MINIMUM_SUPPORED_SCHEMES = [
         'csv ', 'json ', 'jsonl ', 'python ', 'tsv ', 'xls ', 'ascii', 'gsheets'
     ]
@@ -160,58 +122,54 @@ def help_test_util(capfd, use_subprocess=False):
     assert '://' in stdout.lower()
 
 
-def test_help(capfd):
-    help_test_util(capfd=capfd)
+def test_help(invoke_cli):
+    help_test_util(invoke_cli)
 
 
-def test_launch_process(capfd):
-    help_test_util(use_subprocess=True, capfd=capfd)
+def test_launch_process(invoke_cli):
+    help_test_util(invoke_cli, use_subprocess=True)
 
 
-def test_no_arguments(capfd, monkeypatch):
-    _, stderr = invoke_cli([], assert_nonzero_exit_code=True,
-                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+def test_no_arguments(invoke_cli):
+    _, stderr = invoke_cli([], assert_nonzero_exit_code=True, capture_stderr=True)
     assert 'traceback' not in stderr.lower()
     assert 'usage:' in stderr.lower()
     assert 'error' in stderr.lower()
     assert 'arguments are required' in stderr.lower()
 
 
-def test_invalid_filename(capfd, monkeypatch):
-    _, stderr = invoke_cli(['/tmp/does_not_exist_c3b8c2ecd34a.csv'], assert_nonzero_exit_code=True,
-                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+def test_invalid_filename(invoke_cli):
+    _, stderr = invoke_cli(['/tmp/does_not_exist_c3b8c2ecd34a.csv'], assert_nonzero_exit_code=True, capture_stderr=True)
     assert 'traceback' not in stderr.lower()
     assert 'error' in stderr.lower()
     assert 'does_not_exist_c3b8c2ecd34a.csv' in stderr.lower()
     assert 'not found' in stderr.lower() or 'no such file' in stderr.lower()
 
 
-def test_no_data_file(tmp_path, capfd, monkeypatch):
+def test_no_data_file(tmp_path, invoke_cli):
     filename = f'{tmp_path}/test.tsv'
     with open(filename, 'w') as f:
         f.write('')
-    _, stderr = invoke_cli([filename], assert_nonzero_exit_code=True,
-                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+    _, stderr = invoke_cli([filename], assert_nonzero_exit_code=True, capture_stderr=True)
     assert 'traceback' not in stderr.lower()
     assert 'error' in stderr.lower()
     assert 'empty' in stderr.lower()
 
 
-def test_no_data_sqlite3(tmp_path, capfd, monkeypatch):
+def test_no_data_sqlite3(tmp_path, invoke_cli):
     path = f'{tmp_path}/test.sqlite3'
     conn = sqlite3.connect(path)
     cur = conn.cursor()
     cur.execute('CREATE TABLE wasd (name TEXT NOT NULL, id INT NOT NULL)')
     conn.close()
 
-    _, stderr = invoke_cli([f'{path}?table=wasd'], assert_nonzero_exit_code=True,
-                           capfd=capfd, monkeypatch=monkeypatch, capture_stderr=True)
+    _, stderr = invoke_cli([f'{path}?table=wasd'], assert_nonzero_exit_code=True, capture_stderr=True)
     assert 'traceback' not in stderr.lower()
     assert 'error' in stderr.lower()
     assert 'empty' in stderr.lower()
 
 
-def test_full_roundtrip_file_adapters(tmp_path, capfd, monkeypatch):
+def test_full_roundtrip_file_adapters(tmp_path, invoke_cli):
     """ Go from json -> tsv -> csv -> python -> yaml -> jsonl -> parquet -> xls -> json and verify the json at the end
     is semantically identical to the json we started with. """
     urls = [
@@ -233,68 +191,63 @@ def test_full_roundtrip_file_adapters(tmp_path, capfd, monkeypatch):
             stdin = EXAMPLE_JSON_RAW
         else:
             stdin = copy.copy(last_call_stdout)
-        last_call_stdout = invoke_cli([url_a, '-o', url_b], stdin=stdin, capfd=capfd, monkeypatch=monkeypatch)
+        last_call_stdout = invoke_cli([url_a, '-o', url_b], stdin=stdin)
 
     assert json.loads(EXAMPLE_JSON_RAW) == json.loads(last_call_stdout)
 
 
-def test_sqlite_file_missing_table(tmp_path, capfd, monkeypatch):
+def test_sqlite_file_missing_table(tmp_path, invoke_cli):
     _, stderr = invoke_cli(
         ['csv://-', '-o', f'{tmp_path}/db.sqlite3'], stdin=EXAMPLE_CSV_RAW, assert_nonzero_exit_code=True,
-        capture_stderr=True, capfd=capfd, monkeypatch=monkeypatch)
+        capture_stderr=True)
     assert 'traceback' not in stderr.lower()
     assert 'error' in stderr.lower()
     assert 'table' in stderr.lower()
 
 
-def test_sqlite_file_roundtrip(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
-               monkeypatch=monkeypatch)
-    stdout = invoke_cli([f'{tmp_path}/db.sqlite3?table=test', '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
+def test_sqlite_file_roundtrip(tmp_path, invoke_cli):
+    invoke_cli(['csv://-', '-o', f'{tmp_path}/db.sqlite3?table=test'], stdin=EXAMPLE_CSV_RAW)
+    stdout = invoke_cli([f'{tmp_path}/db.sqlite3?table=test', '-o', 'csv:-'])
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
-def test_sqlite_roundtrip(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
-               monkeypatch=monkeypatch)
-    stdout = invoke_cli([f'sqlite://{tmp_path}//db.db?table=test', '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
+def test_sqlite_roundtrip(tmp_path, invoke_cli):
+    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW)
+    stdout = invoke_cli([f'sqlite://{tmp_path}//db.db?table=test', '-o', 'csv:-'])
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
-def test_sqlite_roundtrip_query(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
-               monkeypatch=monkeypatch)
-    stdout = invoke_cli([f'sqlite://{tmp_path}//db.db', '-q', 'SELECT * FROM test ORDER BY id ASC', '-o', 'csv:-'],
-                        capfd=capfd, monkeypatch=monkeypatch)
+def test_sqlite_roundtrip_query(tmp_path, invoke_cli):
+    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW)
+    stdout = invoke_cli([f'sqlite://{tmp_path}//db.db', '-q', 'SELECT * FROM test ORDER BY id ASC', '-o', 'csv:-'])
     assert stdout == EXAMPLE_CSV_RAW + '\n'
 
 
-def test_sqlite_query_and_filter(tmp_path, capfd, monkeypatch):
-    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
-               monkeypatch=monkeypatch)
+def test_sqlite_query_and_filter(tmp_path, invoke_cli):
+    invoke_cli(['csv:-', '-o', f'sqlite://{tmp_path}/db.db?table=test'], stdin=EXAMPLE_CSV_RAW)
     stdout = invoke_cli([
         f'sqlite://{tmp_path}//db.db',
         '-q', 'SELECT * FROM test ORDER BY id ASC',
         '-F', 'SELECT COUNT(*) as zzzz FROM data WHERE name != \'Steven\'',
-        '-o', 'csv:-'], capfd=capfd, monkeypatch=monkeypatch)
+        '-o', 'csv:-'])
     assert stdout == 'zzzz\n2' + '\n'
 
 
-def test_array_formats(capfd, monkeypatch):
+def test_array_formats(invoke_cli):
     """Test conversions between the array types: list, jsonarray, csa, and pylist."""
-    stdout = invoke_cli(['list:-', '-o', 'jsonarray:-'], stdin=EXAMPLE_LIST_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['list:-', '-o', 'jsonarray:-'], stdin=EXAMPLE_LIST_RAW)
     assert json.loads(stdout) == ['a', 'b', 'c']
-    stdout = invoke_cli(['list:-', '-o', 'csa:-'], stdin=EXAMPLE_LIST_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['list:-', '-o', 'csa:-'], stdin=EXAMPLE_LIST_RAW)
     assert stdout == 'a,b,c'
-    stdout = invoke_cli(['list:-', '-o', 'pylist:-'], stdin=EXAMPLE_LIST_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['list:-', '-o', 'pylist:-'], stdin=EXAMPLE_LIST_RAW)
     assert ast.literal_eval(stdout) == ['a', 'b', 'c']
-    stdout = invoke_cli(['jsonarray:-', '-o', 'list:-'], stdin='["a","b","c"]', capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['jsonarray:-', '-o', 'list:-'], stdin='["a","b","c"]')
     assert stdout == 'a\nb\nc'
 
 
-def test_array_to_table(capfd, monkeypatch):
+def test_array_to_table(invoke_cli):
     """Test array (list) to table (json) conversion"""
-    stdout = invoke_cli(['list:-', '-o', 'json:-'], stdin=EXAMPLE_LIST_RAW, capfd=capfd, monkeypatch=monkeypatch)
+    stdout = invoke_cli(['list:-', '-o', 'json:-'], stdin=EXAMPLE_LIST_RAW)
     assert json.loads(stdout) == [
         {'value': 'a'},
         {'value': 'b'},
@@ -302,10 +255,9 @@ def test_array_to_table(capfd, monkeypatch):
     ]
 
 
-def test_table_to_array(capfd, monkeypatch):
+def test_table_to_array(invoke_cli):
     """Test table (csv) to to array (csa) conversion"""
-    stdout = invoke_cli(['csv:-', '-q', 'SELECT name from data', '-o', 'csa:-'], stdin=EXAMPLE_CSV_RAW, capfd=capfd,
-                        monkeypatch=monkeypatch)
+    stdout = invoke_cli(['csv:-', '-q', 'SELECT name from data', '-o', 'csa:-'], stdin=EXAMPLE_CSV_RAW)
     assert stdout == 'George,Steven,Rachel'
 
 
