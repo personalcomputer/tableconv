@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 
-from ...uri import parse_uri
+from tableconv.uri import parse_uri
 
 
 class FileAdapterMixin():

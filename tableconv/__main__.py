@@ -11,12 +11,13 @@ import sys
 import textwrap
 from typing import Optional, Union
 
-from .__version__ import __version__
-from .adapters.df import adapters, read_adapters, write_adapters
-from .adapters.df.base import NoConfigurationOptionsAvailable
-from .core import IntermediateExchangeTable, load_url, parse_source_url, resolve_query_arg, validate_coercion_schema
-from .exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
-from .uri import parse_uri
+from tableconv.__version__ import __version__
+from tableconv.adapters.df import adapters, read_adapters, write_adapters
+from tableconv.adapters.df.base import NoConfigurationOptionsAvailable
+from tableconv.core import (IntermediateExchangeTable, load_url, parse_source_url, resolve_query_arg,
+                            validate_coercion_schema)
+from tableconv.exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 

@@ -5,10 +5,11 @@ from typing import Optional
 
 import pandas as pd
 
-from ...exceptions import (AppendSchemeConflictError, InvalidParamsError, InvalidQueryError, InvalidURLError,
-                           TableAlreadyExistsError)
-from ...uri import parse_uri
-from .base import Adapter, register_adapter
+from tableconv.exceptions import (AppendSchemeConflictError, InvalidParamsError, InvalidQueryError, InvalidURLError,
+                                  TableAlreadyExistsError)
+from tableconv.uri import parse_uri
+
+from tableconv.adapters.df.base import Adapter, register_adapter
 
 logger = logging.getLogger(__name__)
 

@@ -8,11 +8,12 @@ import ciso8601
 import pandas as pd
 from pandas.errors import EmptyDataError as pd_EmptyDataError
 
-from .adapters.df import read_adapters, write_adapters
-from .adapters.df.base import Adapter
-from .exceptions import EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError, UnrecognizedFormatError
-from .in_memory_query import query_in_memory
-from .uri import parse_uri
+from tableconv.adapters.df import read_adapters, write_adapters
+from tableconv.adapters.df.base import Adapter
+from tableconv.exceptions import (EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError,
+                                  UnrecognizedFormatError)
+from tableconv.in_memory_query import query_in_memory
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 

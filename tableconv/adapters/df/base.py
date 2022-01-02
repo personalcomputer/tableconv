@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import pandas as pd
 
-from ...in_memory_query import query_in_memory
+from tableconv.in_memory_query import query_in_memory
 
 
 class NoConfigurationOptionsAvailable(Exception):

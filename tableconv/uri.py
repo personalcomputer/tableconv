@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from .exceptions import InvalidURLSyntaxError
+from tableconv.exceptions import InvalidURLSyntaxError
 
 
 @dataclass

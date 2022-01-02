@@ -12,9 +12,9 @@ import requests
 import yaml
 from dateutil.parser import parse as dateutil_parse
 
-from ...exceptions import InvalidParamsError
-from ...uri import parse_uri
-from .base import Adapter, register_adapter
+from tableconv.exceptions import InvalidParamsError
+from tableconv.uri import parse_uri
+from tableconv.adapters.df.base import Adapter, register_adapter
 
 logger = logging.getLogger(__name__)
 

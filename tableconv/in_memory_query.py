@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from .exceptions import InvalidQueryError
+from tableconv.exceptions import InvalidQueryError
 
 logger = logging.getLogger(__name__)
 

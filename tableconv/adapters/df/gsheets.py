@@ -7,10 +7,10 @@ import sys
 import numpy as np
 import pandas as pd
 
-from ...exceptions import (AppendSchemeConflictError, InvalidLocationReferenceError, InvalidParamsError,
-                           TableAlreadyExistsError)
-from ...uri import parse_uri
-from .base import Adapter, register_adapter
+from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.exceptions import (AppendSchemeConflictError, InvalidLocationReferenceError, InvalidParamsError,
+                                  TableAlreadyExistsError)
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +186,7 @@ class GoogleSheetsAdapter(Adapter):
 
     @staticmethod
     def dump(df, uri):
-        import googleapiclient.discovery
+        import googleapiclient
 
         parsed_uri = parse_uri(uri)
         if parsed_uri.authority is None:
@@ -242,7 +242,7 @@ class GoogleSheetsAdapter(Adapter):
                 if f'A sheet with the name "{sheet_name}" already exists' not in str(exc):
                     raise
                 if if_exists == 'fail':
-                    raise TableAlreadyExistsError(*exc.args) from exc
+                    raise TableAlreadyExistsError(exc.reason) from exc
                 new_sheet = False
             if not new_sheet:
                 if if_exists == 'replace':

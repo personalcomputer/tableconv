@@ -1,4 +1,4 @@
-from .base import write_adapters, read_adapters, adapters  # noqa: F401
+from tableconv.adapters.df.base import write_adapters, read_adapters, adapters  # noqa: F401
 
 # TODO: Register adapters in a cleaner way (dynamic adapter loading?). Just get rid of the `import *`.
 from .ascii import *  # noqa: F401 F403

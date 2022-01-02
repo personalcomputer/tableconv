@@ -1,4 +1,4 @@
-from .base import register_adapter, Adapter
+from tableconv.adapters.df.base import register_adapter, Adapter
 
 
 @register_adapter(['jiracloud'], read_only=True)

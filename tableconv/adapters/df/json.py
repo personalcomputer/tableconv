@@ -4,9 +4,9 @@ import sys
 
 import pandas as pd
 
-from ...exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
-from .base import Adapter, register_adapter
-from .file_adapter_mixin import FileAdapterMixin
+from tableconv.exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
+from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 
 @register_adapter(['json', 'jsonl', 'jsonlines', 'ldjson', 'ndjson'])

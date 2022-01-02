@@ -1,5 +1,5 @@
-from .base import Adapter, register_adapter
-from .file_adapter_mixin import FileAdapterMixin
+from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 
 def _render_value(value):

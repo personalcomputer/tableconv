@@ -6,10 +6,11 @@ import textwrap
 import time
 import uuid
 
-from ...exceptions import AppendSchemeConflictError, InvalidParamsError, TableAlreadyExistsError, InvalidQueryError
-from ...uri import parse_uri
-from .base import Adapter, register_adapter
-from .pandas_io import CSVAdapter, ParquetAdapter
+from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.adapters.df.pandas_io import CSVAdapter, ParquetAdapter
+from tableconv.exceptions import (AppendSchemeConflictError, InvalidParamsError, InvalidQueryError,
+                                  TableAlreadyExistsError)
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
