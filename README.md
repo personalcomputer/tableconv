@@ -121,6 +121,8 @@ optional arguments:
                         Show debug details, including API calls and error sources.
   --version             show program's version number and exit
   --quiet               Only display errors.
+  --print, --print-dest
+                        Print resulting URL/path to stdout, for chaining with other commands.
 
 supported url schemes:
   ascii:- (dest only)

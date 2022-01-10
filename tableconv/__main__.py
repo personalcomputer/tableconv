@@ -45,29 +45,33 @@ def set_up_logging():
         'version': 1,
         'disable_existing_loggers': False,
         'formatters': {
-            'standard': {
-                'format': '%(asctime)s [%(name)s](%(levelname)s) %(message)s',
-            }
+            'default': {
+                'format': '%(levelname)s: %(message)s',
+            },
+            'debug': {
+                'format': '%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+                'datefmt': '%Y-%m-%d %H:%M:%S %Z',
+            },
         },
         'handlers': {
             'default': {
                 'class': 'logging.StreamHandler',
                 'level': 'DEBUG',
-                'formatter': 'standard',
+                'formatter': 'debug',
                 'stream': 'ext://sys.stderr',
-            }
+            },
         },
         'loggers': {
-            '': {
-                'level': 'INFO',
-                'handlers': ['default'],
-            },
             'googleapiclient.discovery_cache': {
                 'level': 'ERROR',
             },
             'botocore': {
                 'level': 'WARNING',
             },
+        },
+        'root': {
+            'level': 'INFO',
+            'handlers': ['default'],
         },
     })
 
@@ -290,6 +294,7 @@ def main(argv=None):
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')  # noqa: E501
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')  # noqa: E501
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
+    parser.add_argument('--print', '--print-dest', action='store_true', help='Print resulting URL/path to stdout, for chaining with other commands.')  # noqa: E501
     parser.add_argument('--debug-shell', '--pandas-debug-shell', '--debug-pandas-shell', action='store_true', help=argparse.SUPPRESS)  # noqa: E501
 
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
@@ -350,6 +355,8 @@ def main(argv=None):
 
     if output:
         logger.info(f'Wrote out {output}')
+        if args.print:
+            print(output)
         if args.open_dest:
             os_open(output)
 
