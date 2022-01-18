@@ -40,8 +40,7 @@ def test_coerce_integers(invoke_cli):
     This test serves more as docummentation of existing behavior, rather than verifying there are no bugs. This is a
     bug...
 
-    Details at
-    https://github.com/personalcomputer/tableconv/blob/ /tableconv/core.py#L209
+    Details at https://github.com/personalcomputer/tableconv/blob/f9f9f3c/tableconv/core.py#L209
     """
     cmd = ['json:-', '--coerce-schema', '{id: int, name: str}', '-o', 'json:-']
     assert invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW) == jsmin(json.dumps([

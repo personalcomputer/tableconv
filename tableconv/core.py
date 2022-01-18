@@ -225,7 +225,8 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
                     lambda r: float(r[col]) if (r[col] not in (None, '') and not pd.isna(r[col])) else None, axis=1
                 )
         except (ValueError, TypeError) as exc:
-            raise SchemaCoercionError(f'Error in coercing schema: Error while coercing "{col}" to {schema[col]}: {exc.args[0]}') from exc
+            raise SchemaCoercionError(
+                f'Error in coercing schema: Error while coercing "{col}" to {schema[col]}: {exc.args[0]}') from exc
 
     if restrict_schema:
         # Drop all other columns
