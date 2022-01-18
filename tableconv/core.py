@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import tempfile
 import urllib.parse
 from pathlib import Path
@@ -12,7 +13,7 @@ from pandas.errors import EmptyDataError as pd_EmptyDataError
 from tableconv.adapters.df import read_adapters, write_adapters
 from tableconv.adapters.df.base import Adapter
 from tableconv.exceptions import (EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError,
-                                  UnrecognizedFormatError)
+                                  UnrecognizedFormatError, SchemaCoercionError)
 from tableconv.in_memory_query import query_in_memory
 from tableconv.uri import parse_uri
 
@@ -196,21 +197,35 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
 
     # Coerce the type of pre-existing columns
     for col in set(schema.keys()).intersection(set(df.columns)):
-        if schema[col] == 'datetime':
-            df[col] = df.apply(
-                lambda r: ciso8601.parse_datetime(r[col]) if r[col] not in (None, '') else None, axis=1
-            )
-        elif schema[col] == 'str':
-            df[col] = df[col].astype('string')
-        elif schema[col] == 'int':
-            df[col] = df.apply(
-                lambda r: int(r[col]) if r[col] not in (None, '') else None, axis=1
-            )
-            # df[col] = pd.to_numeric(df[col], downcast='integer')
-        elif schema[col] == 'float':
-            df[col] = df.apply(
-                lambda r: float(r[col]) if r[col] not in (None, '') else None, axis=1
-            )
+        try:
+            if schema[col] == 'datetime':
+                df[col] = df.apply(
+                    lambda r: ciso8601.parse_datetime(r[col]) if r[col] not in (None, '') else None, axis=1
+                )
+            elif schema[col] == 'str':
+                df[col] = df[col].astype('string')
+            elif schema[col] == 'int':
+                """
+                Important bug to be aware of: because of using pandas dataframes as the internal datastructure, if an
+                integer column contains any nulls, pandas forces it to actually be a float column so it can store the
+                nulls as NaNs.. So schema coercing to "int" won't actually always result in integers.
+                """
+                # Remove trailing 0s after decimal point (int() errors on '1.0' input)
+                re_decimal = re.compile(r'\.0*\s*$')
+                df[col] = df.apply(
+                    lambda r: (
+                        int(re_decimal.sub('', str(r[col])))
+                        if (r[col] not in (None, '') and not pd.isna(r[col]))
+                        else None),
+                    axis=1
+                )
+                # df[col] = pd.to_numeric(df[col], downcast='integer')
+            elif schema[col] == 'float':
+                df[col] = df.apply(
+                    lambda r: float(r[col]) if (r[col] not in (None, '') and not pd.isna(r[col])) else None, axis=1
+                )
+        except (ValueError, TypeError) as exc:
+            raise SchemaCoercionError(f'Error in coercing schema: Error while coercing "{col}" to {schema[col]}: {exc.args[0]}') from exc
 
     if restrict_schema:
         # Drop all other columns

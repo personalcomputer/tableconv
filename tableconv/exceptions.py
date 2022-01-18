@@ -43,6 +43,10 @@ class InvalidQueryError(RuntimeError):
     pass
 
 
+class SchemaCoercionError(InvalidQueryError):
+    pass
+
+
 # Data Errors
 
 class SuppliedDataError(RuntimeError):
