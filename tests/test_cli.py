@@ -3,14 +3,10 @@ import copy
 import filecmp
 import json
 import logging
-import os
 import re
 import shlex
 import sqlite3
 import subprocess
-import textwrap
-
-import pytest
 
 from tests.conftest import FIXTURES_DIR
 from tests.fixtures.example_raw import EXAMPLE_CSV_RAW, EXAMPLE_JSON_RAW, EXAMPLE_LIST_RAW, EXAMPLE_TSV_RAW
@@ -255,36 +251,3 @@ def test_table_to_array(invoke_cli):
     """Test table (csv) to to array (csa) conversion"""
     stdout = invoke_cli(['csv:-', '-q', 'SELECT name from data', '-o', 'csa:-'], stdin=EXAMPLE_CSV_RAW)
     assert stdout == 'George,Steven,Rachel'
-
-
-@pytest.mark.skip('slow')
-def test_packaging(tmp_path):
-    """
-    Test that tableconv is packaged correctly by installing it into a clean environment and then running it. Doing this
-    test vaguely confirms that the required dependencies are specified for installation correctly and that the CLI
-    entrypoint is specified correctly.
-    """
-    from tableconv.__version__ import __version__ as version_number
-    assert os.path.abspath(os.getcwd()) == os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-
-    # Build a new copy of tableconv package
-    subprocess.run(['rm', '-rf', 'dist'], check=True)
-    subprocess.run(['python', 'setup.py', 'sdist', 'bdist_wheel'], check=True)
-
-    # Install the build into an isolated docker container
-    dockerfile_path = os.path.join(tmp_path, 'Dockerfile')
-    with open(dockerfile_path, 'w') as f:
-        f.write(textwrap.dedent('''
-            FROM python:3.8
-            COPY dist/* /tmp/
-            RUN pip install /tmp/tableconv-*.tar.gz
-        ''').strip())
-    subprocess.run(['docker', 'build', '-t', 'tableconv_test', '-f', dockerfile_path, '.'], check=True)
-
-    # Verify the tableconv CLI can be ran within that container, and verify it knows its correct version number.
-    cmd = ['tableconv', '--version']
-    cmd_output = subprocess.run(
-        ['docker', 'run', '-t', 'tableconv_test'] + cmd, capture_output=True, text=True, check=True
-    ).stdout
-    assert version_number in cmd_output
-    assert 'tableconv' in cmd_output

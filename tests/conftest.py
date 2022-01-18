@@ -27,7 +27,7 @@ def invoke_cli(capfd, monkeypatch):
             else:
                 assert process.returncode == 0
             if capture_stderr:
-                return process.stdout, process.sderr
+                return process.stdout, process.stderr
             else:
                 return process.stdout
         else:
