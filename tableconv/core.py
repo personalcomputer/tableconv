@@ -185,7 +185,10 @@ def validate_coercion_schema(schema: Dict[str, str]) -> None:
     SCHEMA_COERCION_SUPPORTED_TYPES = {'datetime', 'str', 'int', 'float'}
     unsupported_schema_types = set(schema.values()) - SCHEMA_COERCION_SUPPORTED_TYPES
     if unsupported_schema_types:
-        raise ValueError(f'Unsupported schema type(s): {", ".join(unsupported_schema_types)}')
+        raise ValueError(
+            f'Unsupported schema type(s): {", ".join((str(item) for item in unsupported_schema_types))}. '
+            + f'Please specify one of the supported types: {", ".join(SCHEMA_COERCION_SUPPORTED_TYPES)}.'
+        )
 
 
 def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: bool) -> pd.DataFrame:

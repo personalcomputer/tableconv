@@ -69,7 +69,7 @@ class AWSAthenaAdapter(Adapter):
         aws_account_id = sts.get_caller_identity()['Account']
         output_s3_bucket = f'aws-athena-query-results-{aws_account_id}-{aws_region}'
 
-        logger.debug(f'Querying.. aws_region={aws_region}, catalog={catalog}, output_s3_bucket={output_s3_bucket}')
+        logger.debug(f'Querying.. aws_region={aws_region}, catalog={catalog}, output_s3_bucket={output_s3_bucket}.')
         query_execution_context = {'Catalog': catalog}
         if database:
             query_execution_context['Database'] = database
@@ -261,7 +261,7 @@ class AWSAthenaAdapter(Adapter):
                         existing_prefix = existing_uri.path.strip('/')
                         if existing_bucket != s3_bucket:
                             raise AppendSchemeConflictError('Cannot append to existing table - s3 bucket mismatch '
-                                                            f'(pre-existing location is {pre_existing_s3_base_url})')
+                                                            + f'(pre-existing location is {pre_existing_s3_base_url})')
                         if existing_prefix.startswith(s3_bucket_prefix):
                             # Discovered prefix is more restrictive than our requested prefix - this is safe, we can
                             # just adopt it.
@@ -275,9 +275,8 @@ class AWSAthenaAdapter(Adapter):
                     schema_ddl, _ = AWSAthenaAdapter._gen_schema(df, data_format, table_name, s3_base_url)
                     logger.warning(
                         f'Deleting table definition for {database}.{table_name}. Leaving old data behind and changing '
-                        'prefix to {s3_bucket_prefix}/.')
+                        + f'prefix to {s3_bucket_prefix}/.')
                     assert s3_base_url and schema_ddl and s3_bucket_prefix  # safety check
-                    # time.sleep(5)  # give user time to abort if running from CLI
                     old_table_schema_query_result = AWSAthenaAdapter._run_athena_query(
                         query=f'SHOW CREATE TABLE `{table_name}`', return_results_raw=True,
                         aws_region=aws_region, catalog='AwsDataCatalog', database=database, athena_client=athena_client

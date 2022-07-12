@@ -113,6 +113,8 @@ class RDBMSAdapter(Adapter):
                                      '<engine>://<host>:<post>/<db>?table=<table>')
         if 'if_exists' in parsed_uri.query:
             if_exists = parsed_uri.query['if_exists']
+            if if_exists == 'error':
+                if_exists = 'fail'
         elif 'append' in parsed_uri.query and parsed_uri.query['append'].lower() != 'false':
             if_exists = 'append'
         elif 'overwrite' in parsed_uri.query and parsed_uri.query['overwrite'].lower() != 'false':

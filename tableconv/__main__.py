@@ -3,28 +3,19 @@ import io
 import logging
 import logging.config
 import os
-import readline
-import shlex
-import shutil
-import subprocess
 import sys
 import textwrap
-from typing import Optional, Union
+from typing import Union
 
 from tableconv.__version__ import __version__
 from tableconv.adapters.df import adapters, read_adapters, write_adapters
 from tableconv.adapters.df.base import NoConfigurationOptionsAvailable
-from tableconv.core import (IntermediateExchangeTable, load_url, parse_source_url, resolve_query_arg,
-                            validate_coercion_schema)
-from tableconv.exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
+from tableconv.core import load_url, parse_source_url, resolve_query_arg, validate_coercion_schema
+from tableconv.exceptions import DataError, InvalidQueryError, InvalidURLError
+from tableconv.interactive import os_open, run_interactive_shell
 from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
-
-INTERACTIVE_HIST_PATH = os.path.join(os.path.expanduser("~"), ".tableconv_history")
-INTERACTIVE_PAGER_BIN = os.environ.get('PAGER', 'less')
-INTERACTIVE_PAGER_CMD = \
-    [INTERACTIVE_PAGER_BIN, '-S', '--shift', '10'] if INTERACTIVE_PAGER_BIN == 'less' else [INTERACTIVE_PAGER_BIN]
 
 
 def get_supported_schemes_list_str() -> str:
@@ -127,15 +118,22 @@ def parse_schema_coercion_arg(args):
     if not args.schema_coercion:
         return None
     import yaml
+
     iostr = io.StringIO()
     iostr.write(resolve_query_arg(args.schema_coercion))
     iostr.seek(0)
+    FORMAT_ERR_MSG = (
+        "Coercion schema must be specified as a valid YAML map of field names (string) to type names (string)"
+    )
     try:
         schema_coercion = yaml.safe_load(iostr)
     except yaml.YAMLError:
-        raise_argparse_style_error('Coercion schema must be specified as a valid YAML mapping')
+        raise_argparse_style_error(FORMAT_ERR_MSG)
     if not isinstance(schema_coercion, dict):
-        raise_argparse_style_error('Coercion schema must be specified as a valid YAML mapping')
+        raise_argparse_style_error(FORMAT_ERR_MSG)
+    for val in list(schema_coercion.values()) + list(schema_coercion.keys()):
+        if not isinstance(val, str):
+            raise_argparse_style_error(FORMAT_ERR_MSG)
     try:
         validate_coercion_schema(schema_coercion)
     except ValueError as exc:
@@ -159,112 +157,6 @@ def parse_dest_arg(args):
         dest = 'ascii:-'
     logger.debug(f'No output destination specified, defaulting to {parse_uri(dest).scheme} output to stdout')
     return dest
-
-
-def handle_administrative_command(query: str, source: str, last_result: Optional[IntermediateExchangeTable]):
-    cmd_char = query[0]
-    cmd = query[1:].split(' ')
-    if cmd[0] in ('h', 'help', '?'):
-        print(
-            'Commands:\n'
-            f'  {cmd_char}dt (describe table)\n'
-            f'  {cmd_char}ds (describe table, sorted)\n'
-            f'  {cmd_char}export URL (save results)',
-        )
-    elif cmd[0] in ('schema', 'dt', 'dt+', 'ds', 'd', 'd+', 'describe', 'show'):
-        table = load_url(source)
-        print('Table "data":', file=sys.stderr)
-        columns = table.get_json_schema()['properties'].items()
-        if cmd[0] == 'ds':
-            columns = sorted(list(columns))
-        for column, column_data in columns:
-            if 'type' in column_data:
-                if isinstance(column_data["type"], str):
-                    types = [column_data["type"]]
-                elif isinstance(column_data["type"], list):
-                    types = column_data["type"]
-                else:
-                    raise AssertionError
-            else:
-                assert('anyOf' in column_data)
-                types = [i['type'] for i in column_data['anyOf']]
-            print(f'  "{column}" {", ".join(types)}')
-    elif cmd[0] in ('save', 'export', 'copy', 'out', 'o'):
-        if last_result is None:
-            print('Error: No results to export. Run a query first.', file=sys.stderr)
-            return
-        if len(cmd) < 2:
-            print('Error: Please specify export URL/path.', file=sys.stderr)
-            return
-        try:
-            url = cmd[1]
-            output = last_result.dump_to_url(url=url)
-        except (InvalidURLError, DataError) as exc:
-            print(f'Error: {exc}', file=sys.stderr)
-            return
-        if not output:
-            output = url
-        print(f'(Wrote out {output})', file=sys.stderr)
-    else:
-        print(f'Unrecognized command {query}. For help, see {cmd_char}help',
-              file=sys.stderr)
-
-
-def run_interactive_shell(source: str, dest: str, intermediate_filter_sql: str, open_dest: bool,
-                          schema_coercion, restrict_schema) -> None:
-    # shell_width, shell_height = shutil.get_terminal_size()
-    try:
-        readline.read_history_file(INTERACTIVE_HIST_PATH)
-    except FileNotFoundError:
-        open(INTERACTIVE_HIST_PATH, 'wb').close()
-    readline.set_history_length(1000)
-
-    if len(source) <= (7 + 5 + 19):
-        prompt = f'{source}=> '
-    else:
-        prompt = f'{source[:7]}[...]{source[-19:]}=> '
-
-    last_result = None
-
-    while True:
-        try:
-            raw_query = input(prompt)
-        except (EOFError, KeyboardInterrupt):
-            print(file=sys.stderr)
-            break
-        query = raw_query.strip()
-        if not query:
-            continue
-        readline.append_history_file(1, INTERACTIVE_HIST_PATH)
-        if query[0] in ('\\', '.', '/'):
-            handle_administrative_command(query, source, last_result)
-            continue
-        try:
-            # Load source
-            last_result = None
-            table = load_url(url=source, query=query, filter_sql=intermediate_filter_sql,
-                             schema_coercion=schema_coercion, restrict_schema=restrict_schema)
-            last_result = table
-            # Dump to destination
-            output = table.dump_to_url(url=dest)
-            if output:
-                print(f'(Wrote out {output})', file=sys.stderr)
-            if output and open_dest:
-                os_open(output)
-        except EmptyDataError:
-            print('(0 rows)', file=sys.stderr)
-        except InvalidQueryError as exc:
-            print(str(exc).strip(), file=sys.stderr)
-
-
-def os_open(url: str):
-    for opener in {'xdg-open', 'open', 'start', 'Invoke-Item'}:
-        if shutil.which(opener):
-            opener_cmd = [opener, url]
-            logger.debug(f'Opening via `{shlex.join(opener_cmd)}`')
-            subprocess.run(opener_cmd)
-            return
-    raise RuntimeError(f'Not sure how to open files/urls on {sys.platform}')
 
 
 def main(argv=None):
@@ -298,7 +190,7 @@ def main(argv=None):
     parser.add_argument('--debug-shell', '--pandas-debug-shell', '--debug-pandas-shell', action='store_true', help=argparse.SUPPRESS)  # noqa: E501
 
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
-        # Hidden feature to self test
+        # Hidden feature to self test. Only works if installed from GitHub; testcases aren't included in PyPI package.
         os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.exit(os.system('flake8 --ignore E501,F403,W503 tests tableconv setup.py; pytest'))
     if argv and argv[0] in ('configure', '--configure'):
