@@ -121,8 +121,23 @@ class ParquetAdapter(FileAdapterMixin, Adapter):
         return pd.read_parquet(path, **params)
 
     @staticmethod
+    def _normalize_column_types(df):
+        """
+        Pandas to_parquet cannot handle derived classes of str, requires literal strings for column names or it outputs
+        corrupt parquet files (!!).
+        """
+        # example error log, for reference:
+        # TypeError: Expected unicode, got quoted_name
+        # Exception ignored in: 'fastparquet.cencoding.write_list'
+        # Traceback (most recent call last):
+        #   File "fastparquet/writer.py", line 888, in write_simple
+        #     foot_size = f.write(fmd.to_bytes())
+        df.columns = [str(c) for c in df.columns]
+
+    @staticmethod
     def dump_file(df, scheme, path, params):
         params['index'] = params.get('index', False)
+        ParquetAdapter._normalize_column_types(df)
         df.to_parquet(path, **params)
 
 
