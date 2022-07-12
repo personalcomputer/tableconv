@@ -113,7 +113,12 @@ class ASCIIAdapter(FileAdapterMixin, Adapter):
         }
         if scheme in TABULATE_TABLEFMT:
             from tabulate import tabulate
-            return tabulate(df.values.tolist(), list(df.columns), tablefmt=TABULATE_TABLEFMT[scheme])
+            return tabulate(
+                df.values.tolist(),
+                list(df.columns),
+                tablefmt=TABULATE_TABLEFMT[scheme],
+                disable_numparse=True,
+            )
         elif scheme == 'asciilite':
             return render_asciilite(list(df.columns), df.to_dict('records'))
         elif scheme == 'asciibox':
