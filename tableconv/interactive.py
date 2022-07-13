@@ -13,10 +13,6 @@ from tableconv.exceptions import DataError, EmptyDataError, InvalidQueryError, I
 logger = logging.getLogger(__name__)
 
 INTERACTIVE_HIST_PATH = os.path.join(os.path.expanduser("~"), ".tableconv_history")
-INTERACTIVE_PAGER_BIN = os.environ.get('PAGER', 'less')
-INTERACTIVE_PAGER_CMD = \
-    [INTERACTIVE_PAGER_BIN, '-S', '--shift', '10'] if INTERACTIVE_PAGER_BIN == 'less' else [INTERACTIVE_PAGER_BIN]
-
 
 multiline = False
 
