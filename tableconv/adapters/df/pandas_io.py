@@ -77,7 +77,8 @@ class HTMLAdapter(FileAdapterMixin, Adapter):
         if newlines_workaround:
             # Replace the breaks with a unique passthrough sentinel value, in the raw HTML.
             NEWLINE_PLACHOLDER = '010__NEWLINE_REPLACE_ME__010'
-            data = open(path).read()
+            with open(path) as fd:
+                data = fd.read()
             data = re.sub(r'\n', '', data)  # counteract pandas doing its newline to space conversion.
             data = re.sub(r'<br\s*?/?>', NEWLINE_PLACHOLDER, data)
             if consider_p_as_break:

@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import logging
 import os
@@ -108,10 +109,8 @@ class AWSAthenaAdapter(Adapter):
                 s3.download_file(output_s3_bucket, output_s3_key, local_filename)
                 df = CSVAdapter.load(f'csv://{local_filename}', None)
             finally:
-                try:
+                with contextlib.suppress(FileNotFoundError):
                     os.remove(local_filename)
-                except FileNotFoundError:
-                    pass
             return df
 
     @staticmethod
@@ -165,7 +164,7 @@ class AWSAthenaAdapter(Adapter):
         if len(presto_types) > 1:
             if top_level:
                 logger.warning(f'Identified multiple conflicting types for {column_name}: {presto_types}. Picking one '
-                               'arbitrarily.')
+                               + 'arbitrarily.')
             presto_types = {presto_types.pop()}
         if len(presto_types) == 0:
             if top_level:

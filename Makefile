@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help lint test release
+.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help lint test rev_version release
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -64,6 +64,9 @@ docs: ## Generate Sphinx HTML documentation, including API docs
 
 servedocs: docs ## Autoreload docs
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
+
+rev_version:
+	python rev_version.py
 
 release: dist ## Build and release to PyPI
 	twine upload dist/*

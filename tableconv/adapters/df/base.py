@@ -45,6 +45,11 @@ write_adapters = {}
 
 
 def register_adapter(schemes: List[str], write_only: bool = False, read_only: bool = False):
+    """
+        TODO: better decorator api proposal:
+        @register_write_adapter(
+            protocol='sql_values', aliases=[], parameters={}, example_url='', text_based=True, file_based=True)
+    """
     def decorator(cls):
         global read_adapters
         global write_adapters

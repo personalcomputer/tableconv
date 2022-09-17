@@ -202,8 +202,16 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
     for col in set(schema.keys()).intersection(set(df.columns)):
         try:
             if schema[col] == 'datetime':
+                def coerce_datetime(item):
+                    if item in (None, ''):
+                        return None
+                    if isinstance(item, str):
+                        return ciso8601.parse_datetime(item)
+                    if isinstance(item, pd.Timestamp):
+                        return item.to_pydatetime()
+                    raise TypeError(item)
                 df[col] = df.apply(
-                    lambda r: ciso8601.parse_datetime(r[col]) if r[col] not in (None, '') else None, axis=1
+                    lambda r: coerce_datetime(r[col]), axis=1
                 )
             elif schema[col] == 'str':
                 df[col] = df[col].astype('string')

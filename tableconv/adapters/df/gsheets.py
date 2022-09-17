@@ -216,7 +216,7 @@ class GoogleSheetsAdapter(Adapter):
         rows = len(df.values)
         new_sheet = None
         start_row = 1
-        if parsed_uri.authority == ':new:':
+        if parsed_uri.authority.lower().strip() == ':new:':
             if if_exists != 'fail':
                 raise InvalidParamsError('only if_exists=fail supported for new spreadsheets')
             spreadsheet_name = params.get('name', f'Untitled {datetime.datetime.utcnow().isoformat()[:-7]}')

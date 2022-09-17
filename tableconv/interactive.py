@@ -54,7 +54,14 @@ def handle_administrative_command(query: str, source: str, last_result: Optional
                     raise AssertionError
             else:
                 assert('anyOf' in column_data)
-                types = [i['type'] for i in column_data['anyOf']]
+                types = []
+                for i in column_data['anyOf']:
+                    if isinstance(i['type'], str):
+                        types.append(i['type'])
+                    elif isinstance(i['type'], list):
+                        types.extend(i['type'])
+                    else:
+                        raise AssertionError
             print(f'  "{column}" {", ".join(types)}')
     elif cmd[0] in ('m', 'multiline'):
         global multiline
