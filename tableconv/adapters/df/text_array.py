@@ -35,10 +35,12 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
             }[scheme]
             if separator[-1] == '\n' and data[-1] == '\n':
                 data = data[:-1]
-            array = [(item,) for item in data.split(separator)]
+            array = ((item,) for item in data.split(separator))
+            if params.get('strip_whitespace', True):
+                array = ((item[0].strip(),) for item in array)
         else:
             raise AssertionError
-        return pd.DataFrame.from_records(array, columns=['value'])
+        return pd.DataFrame.from_records(list(array), columns=['value'])
 
     @staticmethod
     def dump_text_data(df, scheme, params):
