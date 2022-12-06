@@ -1,5 +1,7 @@
+import csv
 import io
 import logging
+import os
 import re
 
 """ File for all Adapters that are just minimal wrappers of pandas supported io formats """
@@ -27,7 +29,24 @@ class CSVAdapter(FileAdapterMixin, Adapter):
     def dump_file(df, scheme, path, params):
         params['index'] = params.get('index', False)
         params['sep'] = params.get('sep', '\t' if scheme == 'tsv' else ',')
-        df.to_csv(path, **params)
+        path_or_buf = path
+        if 'if_exists' in params:
+            if_exists = params.pop('if_exists')
+            if os.path.exists(path):
+                if if_exists == 'replace':
+                    path_or_buf = open(path, 'w')
+                elif if_exists == 'append':
+                    with open(path) as f:
+                        existing_columns = next(csv.reader(f, delimiter=params['sep']))
+                    if list(existing_columns) != list(df.columns):
+                        raise ValueError(f'Cannot append to {path}, existing schema does not match. '
+                                         + f'(existing: {existing_columns}. new: {df.columns}))')
+                    params['header'] = False
+                    path_or_buf = open(path, 'a')
+                else:
+                    assert if_exists == 'fail'
+                    # (continue, df.to_csv will fail)
+        df.to_csv(path_or_buf, **params)
 
 
 def normalize_pandas_multiindex(df, nesting_sep: str, truncate_redundant_hierarchy: bool) -> None:
@@ -124,10 +143,10 @@ class ParquetAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def _normalize_column_types(df):
         """
-        Pandas to_parquet cannot handle derived classes of str, requires literal strings for column names or it outputs
-        corrupt parquet files (!!).
+        Pandas to_parquet cannot handle derived classes of str, requires literal strings for column names or it can
+        output corrupt parquet files or simply crash.
         """
-        # example error log, for reference:
+        # example crash log, for reference:
         # TypeError: Expected unicode, got quoted_name
         # Exception ignored in: 'fastparquet.cencoding.write_list'
         # Traceback (most recent call last):
