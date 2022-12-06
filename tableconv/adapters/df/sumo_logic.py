@@ -10,10 +10,10 @@ from typing import Any, Dict, List, Optional, Union
 import pandas as pd
 import requests
 import yaml
-from dateutil.parser import parse as dateutil_parse
 
 from tableconv.exceptions import InvalidParamsError
 from tableconv.uri import parse_uri
+from tableconv.parse_time import parse_input_time
 from tableconv.adapters.df.base import Adapter, register_adapter
 
 logger = logging.getLogger(__name__)
@@ -127,20 +127,6 @@ def get_sumo_data(search_query: str,
     sumo.delete_search_job(search_job_id)
 
     return pd.DataFrame.from_records(raw_results)
-
-
-def parse_input_time(val: str) -> Union[datetime.timedelta, datetime.datetime]:
-    hms_match = re.match(r'^\-?(\d\d):(\d\d):(\d\d)$', val)
-    if hms_match:
-        seconds = int(hms_match.group(1))*60*60 + int(hms_match.group(2))*60 + int(hms_match.group(3))  # noqa: E226
-        return datetime.timedelta(seconds=seconds)
-    elif re.match(r'-?\d+$', val):
-        return datetime.timedelta(seconds=abs(int(val)))
-    else:
-        dt = dateutil_parse(val)
-        if not dt.tzinfo:
-            raise ValueError('Must include the timezone when specifying a datetime')
-        return dt
 
 
 @register_adapter(['sumologic'], read_only=True)
