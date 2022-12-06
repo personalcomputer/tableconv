@@ -173,6 +173,13 @@ class HDF5Adapter(FileAdapterMixin, Adapter):
         df.to_hdf(path, **params)
 
 
+@register_adapter(['fwf', 'fixedwidth'], read_only=True)
+class FWFAdapter(FileAdapterMixin, Adapter):
+    @staticmethod
+    def load_file(scheme, path, params):
+        return pd.read_fwf(path, **params)
+
+
 @register_adapter(['feather'])
 class FeatherAdapter(FileAdapterMixin, Adapter):
     @staticmethod
