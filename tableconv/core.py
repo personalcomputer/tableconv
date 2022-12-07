@@ -274,7 +274,7 @@ def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, que
          :ref:Adapters documentation for details.
     :param query:
         To extract only some of the data, provide a query here, to run on the data. This will need to be written in the
-        native query language of whatever ddata format you are extracting data from (e.g. SQL for a SQL database), or
+        native query language of whatever data format you are extracting data from (e.g. SQL for a SQL database), or
         for formats without a native query language (e.g. CSV), the DuckDB SQL syntax is normally supported. Refer to
         the :ref:Adapters documentation for details.
     :param fiter_sql:
@@ -282,9 +282,9 @@ def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, que
         Transformations are powered by DuckDB and uses the DuckDB SQL syntax. Reference the table named ``data`` for
         the raw imported data.
     :param schema_coercion:
-        This is an experimental feature. Subject to change. Docummentation unavailable.
+        This is an experimental feature. Subject to change. Documentation unavailable.
     :param restrict_schema:
-        This is an experimental feature. Subject to change. Docummentation unavailable.
+        This is an experimental feature. Subject to change. Documentation unavailable.
 
     :raises tableconv.InvalidURLError:
         Raised if the provided URL cannot be accessed. (anything from an unsupported/unrecognized data format, an
@@ -333,7 +333,7 @@ def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, que
     # Run in-memory filters
     if filter_sql:
         logger.debug('Running intermediate filter sql query in-memory')
-        df = query_in_memory(df, filter_sql)
+        df = query_in_memory([('data', df)], filter_sql)
 
     if df.empty:
         raise EmptyDataError('No rows returned by intermediate filter sql query')

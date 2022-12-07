@@ -23,7 +23,7 @@ class Adapter:
     @classmethod
     def _query_in_memory(cls, df, query):
         if query:
-            return query_in_memory(df, query)
+            return query_in_memory([('data', df)], query)
         return df
 
     @classmethod

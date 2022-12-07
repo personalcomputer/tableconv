@@ -1,4 +1,5 @@
 import logging
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -29,11 +30,37 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
         logger.warning(f'Flattened some columns into strings for in-memory query: {", ".join(flattened)}')
 
 
-def query_in_memory(df: pd.DataFrame, query: str) -> pd.DataFrame:
+def pre_process(dfs, query) -> Tuple:
+    """
+    Very weak hack to add support for a new type of transformation within the existing language of SQL: gives us very
+    weak version of a `transpose()` function. Warning: this actually mutates `df`s.
+    """
+    if "transpose(data)" not in query:
+        return dfs, query
+
+    ANTI_CONFLICT_STR = "2kMC"  # (random text)
+    transposed_data_table_name = f"transposed_data_{ANTI_CONFLICT_STR}"
+    query = query.replace("transpose(data)", f'"{transposed_data_table_name}"')
+    for table_name, df in dfs:
+        if table_name == "data":
+            data_df = df
+            break
+    transposed_data_df = data_df.transpose(copy=True).reset_index()
+    # By default pandas seems to call the post-transpose columns as "index" and "0", so let's rename them to be
+    # something slightly better.
+    transposed_data_df.columns = ['name', 'value']
+    dfs.append((transposed_data_table_name, transposed_data_df))
+    return dfs, query
+
+
+def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataFrame:
+    """Warning: Has a side effect of mutating the dfs"""
     import duckdb
-    flatten_arrays_for_duckdb(df)
     duck_conn = duckdb.connect(database=':memory:', read_only=False)
-    duck_conn.register('data', df)
+    dfs, query = pre_process(dfs, query)
+    for table_name, df in dfs:
+        flatten_arrays_for_duckdb(df)
+        duck_conn.register(table_name, df)
     try:
         duck_conn.execute(query)
     except RuntimeError as exc:
