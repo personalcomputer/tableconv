@@ -46,9 +46,6 @@ def pre_process(dfs, query) -> Tuple:
             data_df = df
             break
     transposed_data_df = data_df.transpose(copy=True).reset_index()
-    # By default pandas seems to call the post-transpose columns as "index" and "0", so let's rename them to be
-    # something slightly better.
-    transposed_data_df.columns = ['name', 'value']
     dfs.append((transposed_data_table_name, transposed_data_df))
     return dfs, query
 
