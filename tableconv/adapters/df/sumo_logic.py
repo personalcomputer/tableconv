@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 import os
-import re
 import sys
 import time
 from typing import Any, Dict, List, Optional, Union
@@ -11,10 +10,10 @@ import pandas as pd
 import requests
 import yaml
 
-from tableconv.exceptions import InvalidParamsError
-from tableconv.uri import parse_uri
-from tableconv.parse_time import parse_input_time
 from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.exceptions import InvalidParamsError
+from tableconv.parse_time import parse_input_time
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +28,7 @@ class SumoLogicClient():
     """
     Derivative of https://github.com/SumoLogic/sumologic-python-sdk
     """
+
     def __init__(self, accessId, accessKey):
         self.session = requests.Session()
         self.session.auth = (accessId, accessKey)
@@ -105,7 +105,7 @@ def get_sumo_data(search_query: str,
     while True:
         status = sumo.search_job_status(search_job_id)
         if status['state'] != 'GATHERING RESULTS':
-            assert(status['state'] == 'DONE GATHERING RESULTS')
+            assert (status['state'] == 'DONE GATHERING RESULTS')
             break
         time.sleep(SUMO_API_RESULTS_POLLING_INTERVAL.total_seconds())
 
@@ -118,11 +118,11 @@ def get_sumo_data(search_query: str,
         while offset < message_count:
             search_output = sumo.search_job_messages(
                 search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset)['messages']
-            assert(search_output)
+            assert (search_output)
             raw_results.extend((r['map'] for r in search_output))
             offset += len(search_output)
             logger.debug(f'Sumo message download {round(100*offset/message_count)}% complete')
-    assert(len(raw_results) == message_count)
+    assert (len(raw_results) == message_count)
 
     sumo.delete_search_job(search_job_id)
 

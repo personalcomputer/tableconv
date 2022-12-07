@@ -53,7 +53,7 @@ def handle_administrative_command(query: str, source: str, last_result: Optional
                 else:
                     raise AssertionError
             else:
-                assert('anyOf' in column_data)
+                assert ('anyOf' in column_data)
                 types = []
                 for i in column_data['anyOf']:
                     if isinstance(i['type'], str):

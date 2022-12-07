@@ -133,7 +133,7 @@ class AWSAthenaAdapter(Adapter):
             if isinstance(json_schema['type'], str):
                 json_types = {json_schema['type']}
             else:
-                assert(isinstance(json_schema['type'], list))
+                assert (isinstance(json_schema['type'], list))
                 json_types = json_schema['type']
             for json_type in json_types:
                 if json_type == 'array':
@@ -153,7 +153,7 @@ class AWSAthenaAdapter(Adapter):
                         'object': 'string',
                     }[json_type])
         else:
-            assert('anyOf' in json_schema)
+            assert ('anyOf' in json_schema)
             for sub_definition in json_schema['anyOf']:
                 presto_types.add(AWSAthenaAdapter.resolve_presto_type(sub_definition))
         if 'null' in presto_types and presto_types != {'null'}:

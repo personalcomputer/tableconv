@@ -71,8 +71,9 @@ class NoExitArgParser(argparse.ArgumentParser):
     """
     Py <= 3.8 polyfill for `exit_on_error=False`
     """
+
     def __init__(self, *args, **kwargs):
-        assert(kwargs['exit_on_error'] is False)
+        assert (kwargs['exit_on_error'] is False)
         del kwargs['exit_on_error']
         super().__init__(*args, **kwargs)
 
