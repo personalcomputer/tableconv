@@ -39,7 +39,7 @@ setup(
         'oauth2client',
         'python-dateutil',
         'PyYAML',
-        'pymysql'
+        'pymysql',
         'tabulate',
         'pandas',
         # pandas io deps below. ref: https://pandas.pydata.org/docs/getting_started/install.html#optional-dependencies
@@ -52,7 +52,7 @@ setup(
         'psycopg2-binary>=2.6.2',
         'sqlalchemy',
         'pyarrow',
-        'PyTables',
+        # 'tables',  # needed for hd5
     ],
     extras_require={},
     include_package_data=True,
