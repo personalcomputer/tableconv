@@ -1,6 +1,6 @@
 # tableconv
 
-tableconv converts tabular data from any format to any format.
+tableconv is a prototype of software to convert tabular data from any format to any format.
 
 ## Install
 
@@ -50,7 +50,7 @@ Copy a few columns from one CSV into a new CSV.
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o output.csv
 ```
 
-Append a Few Columns From a CSV Into MySQL
+Append a few columns from a CSV into MySQL
 ```sh
 tableconv test.csv -q 'SELECT time, name FROM data ORDER BY time DESC' -o mysql://localhost:3306/test_db/my_table?if_exists=append
 ```
@@ -89,7 +89,7 @@ pbpaste | tableconv list:- -o csv:-
 
 As a prototype, tableconv is usable as a quick and dirty CLI ETL tool for converting data between any of the formats, or usable for performing basic bulk data transformations and joins defined in a unified language (SQL) but operating across disparate data in wildly different formats. That is the immediate value proposition of tableconv, but it was created within the mental framework of a larger vision: The tableconv vision of computing is that all software fundamentally interfaces via data tables; that all UIs and APIs can be interpreted as data frames or data tables. Instead of requiring power users to learn interface after interface and build their own bespoke tooling to extract and manipulate the data at scale in each interface, the world needs a highly interoperable operating system level client for power users to directly interact with, join, and manipulate the data with SQL (or similar) using the universal "table" abstraction provided in a consistent UI across each service. Tableconv is that tool. It is meant to have adapters written to support any/all services and data formats.
 
-However, this is just a prototype. The software is slow in all ways and memory+cpu intensive. It has no streaming support and loads all data into memory before converting it. Its most efficient adapters cannot handle tables over 10 million cells, and the least efficient cannot handle over 100000 cells. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre and inconsistent. Most obscure adapter options are untested. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is weak and _no_ documentation has been written to document the standard options available for each adapter, nor documentation of any adapter-specific options.
+However, this is just a prototype. The software is slow in all ways and memory+cpu intensive. It has no streaming support and loads all data into memory before converting it. Its most efficient adapters cannot handle tables over 10 million cells, and the least efficient cannot handle over 100000 cells. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre, inconsistent, and bug-prone. Most obscure adapter options are untested. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is so weak that _no_ documentation exists documenting the standard options available for adapters adapter, nor documentation of any adapter-specific options.
 
 ## Usage
 
