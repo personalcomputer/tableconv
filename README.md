@@ -144,8 +144,8 @@ supported url schemes:
   example.csv 
   example.dta 
   example.feather 
-  example.fixedwidth (source only)
-  example.fwf (source only)
+  example.fixedwidth 
+  example.fwf 
   example.h5 
   example.hdf5 
   example.html 
