@@ -99,9 +99,9 @@ usage: tableconv SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]
 positional arguments:
   SOURCE_URL            Specify the data source URL.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -q SOURCE_QUERY, --query SOURCE_QUERY
+  -q SOURCE_QUERY, -Q SOURCE_QUERY, --query SOURCE_QUERY
                         Query to run on the source. Even for non-SQL datasources (e.g. csv or
                         json), SQL querying is still supported, try `SELECT * FROM data`.
   -F INTERMEDIATE_FILTER_SQL, --filter INTERMEDIATE_FILTER_SQL
@@ -113,13 +113,14 @@ optional arguments:
   -i, --interactive     Enter interactive REPL query mode.
   --open                Open resulting file/url in the operating system desktop environment (not
                         supported for all destination types)
-  -s SCHEMA_COERCION, --schema SCHEMA_COERCION, --coerce-schema SCHEMA_COERCION
-                        Coerce source schema (experimental feature)
-  --restrict-schema     Exclude all columns not included in the schema definition (experimental
+  --schema SCHEMA_COERCION, --coerce-schema SCHEMA_COERCION
+                        Coerce source schema according to a schema definition (experimental
                         feature)
+  --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition
+                        (experimental feature)
   -v, --verbose, --debug
                         Show debug details, including API calls and error sources.
-  --version             show program's version number and exit
+  --version             Show version number and exit
   --quiet               Only display errors.
   --print, --print-dest
                         Print resulting URL/path to stdout, for chaining with other commands.
@@ -138,10 +139,13 @@ supported url schemes:
   asciisimple:- (dest only)
   awsathena://eu-central-1 
   awsdynamodb://eu-central-1/example_table (source only)
+  awslogs://eu-central-1//aws/lambda/example-function (source only)
   csa:- 
   example.csv 
   example.dta 
   example.feather 
+  example.fixedwidth (source only)
+  example.fwf (source only)
   example.h5 
   example.hdf5 
   example.html 

@@ -309,8 +309,11 @@ def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, que
     filter_sql = resolve_query_arg(filter_sql)
 
     if params:
-        # TODO: This is a total hack! Implementing real structured table references, including structured passing of
-        # params to adapters, is still pending. Right now everything is stringly-typed internally.
+        # TODO: This is a total hack! This was added just to be able to play with better Python API ideas quickly,
+        # before committing to a design and spending huge effort to refactor internally. Implementing real structured
+        # table references, including structured passing of params to adapters, is still pending. Right now params are
+        # totally stringly-typed internally, and are not even consistently represented within strings (nor even URL-spec
+        # compliant!).
         assert '?' not in url
         url += f'?{urllib.parse.urlencode(params)}'
 

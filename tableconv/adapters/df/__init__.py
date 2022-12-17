@@ -2,6 +2,7 @@ from tableconv.adapters.df.base import write_adapters, read_adapters, adapters  
 from .ascii import *  # noqa: F401 F403
 from .aws_athena import *  # noqa: F401 F403
 from .aws_dynamodb import *  # noqa: F401 F403
+from .aws_logs import *  # noqa: F401 F403
 from .gsheets import *  # noqa: F401 F403
 from .jira import *  # noqa: F401 F403
 from .json import *  # noqa: F401 F403

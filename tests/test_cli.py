@@ -8,6 +8,8 @@ import shlex
 import sqlite3
 import subprocess
 
+import pytest
+
 from tests.conftest import FIXTURES_DIR
 from tests.fixtures.example_raw import EXAMPLE_CSV_RAW, EXAMPLE_JSON_RAW, EXAMPLE_LIST_RAW, EXAMPLE_TSV_RAW
 
@@ -42,6 +44,23 @@ def test_inferred_numbers_from_ascii_format(invoke_cli):
     id_val = json.loads(stdout)[0]['id']
     assert isinstance(id_val, int)
     assert id_val == 1
+
+
+@pytest.mark.skip
+def test_join(invoke_cli):
+    stdout = invoke_cli([
+        f'{FIXTURES_DIR / "example.tsv"} AS tab1, {FIXTURES_DIR / "example_2.csv"} AS tab2',
+        '-F', 'SELECT name, preference FROM tab1 JOIN tab2 ON tab2.id=tab1.id ORDER BY id',
+        '-o', 'json:-',
+    ])
+    assert json.loads(stdout) == [
+        {'name': 'George', 'preference': 'Strawberry'},
+        {'name': 'Steven', 'preference': 'Chocolate'},
+        {'name': 'Rachel', 'preference': 'Vanilla'},
+    ]
+
+    # tc 'example.tsv AS tab1, example2.tsv AS tab2' \
+    # -F 'SELECT name, preference FROM tab1 JOIN tab2 ON tab2.id=tab1.id ORDER BY id'
 
 
 def test_interactive(tmp_path):
