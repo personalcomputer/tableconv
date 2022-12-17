@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 @register_adapter(['awslogs'], read_only=True)
 class AWSLogs(Adapter):
+    """ AWS Cloudwatch Logs (Disclaimer: Only supports Logs Insights queries for now) """
     @staticmethod
     def get_example_url(scheme):
         return f'{scheme}://eu-central-1//aws/lambda/example-function'

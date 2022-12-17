@@ -20,7 +20,7 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
     """
     flattened = set()
     for col_name, dtype in zip(df.dtypes.index, df.dtypes):
-        if dtype == np.dtype('O'):
+        if dtype == np.dtype("O"):
             # "Object" type. anything non-numeric, or of mixed-type, is type Object in pandas. So we need to further
             # specifically inspect for arrays.
             if df[col_name].apply(lambda x: isinstance(x, list)).any():
@@ -32,13 +32,13 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
 
 def pre_process(dfs, query) -> Tuple:
     """
-    Very weak hack to add support for a new type of transformation within the existing language of SQL: gives us very
+    Very weak hack to add support for a new type of transformation within the existing language of SQL: Gives us very
     weak version of a `transpose()` function. Warning: this actually mutates `df`s.
     """
     if "transpose(data)" not in query:
         return dfs, query
 
-    ANTI_CONFLICT_STR = "2kMC"  # (random text)
+    ANTI_CONFLICT_STR = "027eade341cf"  # (random text)
     transposed_data_table_name = f"transposed_data_{ANTI_CONFLICT_STR}"
     query = query.replace("transpose(data)", f'"{transposed_data_table_name}"')
     for table_name, df in dfs:
@@ -53,7 +53,8 @@ def pre_process(dfs, query) -> Tuple:
 def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataFrame:
     """Warning: Has a side effect of mutating the dfs"""
     import duckdb
-    duck_conn = duckdb.connect(database=':memory:', read_only=False)
+
+    duck_conn = duckdb.connect(database=":memory:", read_only=False)
     dfs, query = pre_process(dfs, query)
     for table_name, df in dfs:
         flatten_arrays_for_duckdb(df)

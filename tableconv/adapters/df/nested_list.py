@@ -8,6 +8,7 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 @register_adapter(['nestedlist'], read_only=True)
 class NestedListAdapter(FileAdapterMixin, Adapter):
+    """ This is a super strange adapter. Much more experimental. It converts structured nested lists into tables. """
     text_based = True
 
     @staticmethod
@@ -29,7 +30,7 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def load_text_data(scheme, data, params):
-        document = marko.parse(data.strip())
+        document = marko.parse(data.strip())  # Parse the list hierarchy in using markdown.
         if len(document.children) != 1 or not isinstance(document.children[0], marko.block.List):
             raise SourceParseError('Unable to parse nested list')
 

@@ -173,11 +173,20 @@ class HDF5Adapter(FileAdapterMixin, Adapter):
         df.to_hdf(path, **params)
 
 
-@register_adapter(['fwf', 'fixedwidth'], read_only=True)
+@register_adapter(['fwf', 'fixedwidth'])
 class FWFAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def load_file(scheme, path, params):
         return pd.read_fwf(path, **params)
+
+    def dump_text_data(df, scheme, params):
+        from tabulate import tabulate
+        return tabulate(
+            df.values.tolist(),
+            list(df.columns),
+            tablefmt='plain',  # (same as asciiplain)
+            disable_numparse=True,
+        )
 
 
 @register_adapter(['feather'])

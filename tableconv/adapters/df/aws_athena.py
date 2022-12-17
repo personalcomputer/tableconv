@@ -159,7 +159,8 @@ class AWSAthenaAdapter(Adapter):
         if 'null' in presto_types and presto_types != {'null'}:
             presto_types.remove('null')
         if 'double' in presto_types and presto_types != {'double'}:
-            # hide NaN corruption added by pandas
+            # hide NaN corruption added by pandas (pandas converts nulls to NaN, which then cause the column to get
+            # misidentified (or so I argue) as containing doubles)
             presto_types.remove('double')
         if len(presto_types) > 1:
             if top_level:

@@ -90,7 +90,8 @@ class IntermediateExchangeTable:
         try:
             write_adapter = write_adapters[scheme]
         except KeyError:
-            raise UnrecognizedFormatError(f'Unsupported scheme {scheme}.')
+            raise UnrecognizedFormatError(
+                f'Unsupported scheme {scheme}. Supported schemes: {", ".join(write_adapters.keys())}')
 
         if params:
             # TODO: This is a total hack! Implementing real structured table references, including structured passing of
@@ -152,7 +153,8 @@ def parse_source_url(url: str) -> Tuple[str, Adapter]:
     try:
         read_adapter = read_adapters[source_scheme]
     except KeyError:
-        raise UnrecognizedFormatError(f'Unsupported scheme {source_scheme}.')
+        raise UnrecognizedFormatError(
+            f'Unsupported scheme {source_scheme}. Supported schemes: {", ".join(read_adapters.keys())}')
 
     return source_scheme, read_adapter
 
