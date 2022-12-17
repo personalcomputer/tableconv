@@ -49,7 +49,7 @@ setup(
         'psycopg2-binary>=2.9.5',
         'pyarrow>=10.0.1',
         'PyMySQL>=1.0.2',
-        'SQLAlchemy>=1.4.44',
+        'SQLAlchemy>=1.4.44,<2.0.0',
         'xlrd>=2.0.1',
         'XlsxWriter>=3.0.3',
         'xlwt>=1.3.0',
