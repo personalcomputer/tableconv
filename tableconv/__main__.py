@@ -193,7 +193,7 @@ def main(argv=None):
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
         # Hidden feature to self test. Only works if installed from GitHub; testcases aren't included in PyPI package.
         os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        sys.exit(os.system('flake8 --ignore E501,F403,W503 tests tableconv setup.py; pytest'))
+        sys.exit(os.system('make test'))
     if argv and argv[0] in ('configure', '--configure'):
         run_configuration_mode(argv)
         sys.exit(0)
