@@ -19,7 +19,7 @@ class YAMLAdapter(FileAdapterMixin, Adapter):
             path = open(path)
         raw_array = yaml.safe_load(path)
         if not isinstance(raw_array, list):
-            raise SourceParseError('Input must be a YAML sequence (list/array)')
+            raise SourceParseError('Input must be a YAML sequence ("list"/"array")')
         for i, item in enumerate(raw_array):
             if not isinstance(item, dict):
                 if isinstance(item, int) or isinstance(item, float):
@@ -31,7 +31,7 @@ class YAMLAdapter(FileAdapterMixin, Adapter):
                 else:
                     yaml_type = str(type(item))
                 raise SourceParseError(
-                    f'Every element of the input {scheme} must be a YAML mapping (dictionary). '
+                    f'Every element of the input {scheme} must be a YAML mapping ("dictionary"). '
                     f'(element {i + 1} in input was a YAML {yaml_type})')
         return pd.json_normalize(raw_array)
 

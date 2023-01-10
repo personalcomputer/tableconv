@@ -5,8 +5,9 @@ tableconv is a prototype of software to convert tabular data from any format to 
 ## Install
 
 ```sh
-pip install tableconv
+pipx install tableconv
 ```
+(or: `pip install tableconv`)
 
 ## Examples
 

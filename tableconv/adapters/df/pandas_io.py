@@ -95,7 +95,7 @@ class HTMLAdapter(FileAdapterMixin, Adapter):
         consider_p_as_break = params.pop('experimental_consider_p_as_break', 'false').lower() == 'true'
         if newlines_workaround:
             # Replace the breaks with a unique passthrough sentinel value, in the raw HTML.
-            NEWLINE_PLACHOLDER = '010__NEWLINE_REPLACE_ME__010'
+            NEWLINE_PLACHOLDER = '027eade341cf__NEWLINE_REPLACE_ME__'
             with open(path) as fd:
                 data = fd.read()
             data = re.sub(r'\n', '', data)  # counteract pandas doing its newline to space conversion.
@@ -184,7 +184,7 @@ class FWFAdapter(FileAdapterMixin, Adapter):
         return tabulate(
             df.values.tolist(),
             list(df.columns),
-            tablefmt='plain',  # (same as asciiplain)
+            tablefmt='plain',
             disable_numparse=True,
         )
 
