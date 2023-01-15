@@ -112,13 +112,13 @@ options:
                         Specify the data destination URL. If this destination already exists, be
                         aware that the default behavior is to overwrite.
   -i, --interactive     Enter interactive REPL query mode.
-  --open                Open resulting file/url in the operating system desktop environment (not
+  --open                Open resulting file/url in the operating system desktop environment. (not
                         supported for all destination types)
   --schema SCHEMA_COERCION, --coerce-schema SCHEMA_COERCION
-                        Coerce source schema according to a schema definition (experimental
-                        feature)
-  --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition
-                        (experimental feature)
+                        Coerce source schema according to a schema definition. (WARNING:
+                        experimental feature)
+  --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
+                        (WARNING: experimental feature)
   -v, --verbose, --debug
                         Show debug details, including API calls and error sources.
   --version             Show version number and exit

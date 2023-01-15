@@ -162,11 +162,7 @@ def parse_dest_arg(args):
 
 def main(argv=None):
     set_up_logging()
-
     # Process arguments
-    if argv is None:
-        argv = sys.argv[1:]
-
     parser = NoExitArgParser(
         usage='%(prog)s SOURCE_URL [-q QUERY_SQL] [-o DEST_URL]',
         formatter_class=argparse.RawDescriptionHelpFormatter,  # Necessary for \n in epilog
@@ -181,14 +177,15 @@ def main(argv=None):
     parser.add_argument('-F', '--filter', dest='intermediate_filter_sql', default=None, help='Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.')  # noqa: E501
     parser.add_argument('-o', '--dest', '--out', dest='DEST_URL', type=str, help='Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.')  # noqa: E501
     parser.add_argument('-i', '--interactive', action='store_true', help='Enter interactive REPL query mode.')  # noqa: E501
-    parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url in the operating system desktop environment (not supported for all destination types)')  # noqa: E501
-    parser.add_argument('--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema according to a schema definition (experimental feature)')  # noqa: E501
-    parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the SCHEMA_COERCION definition (experimental feature)')  # noqa: E501
+    parser.add_argument('--open', dest='open_dest', action='store_true', help='Open resulting file/url in the operating system desktop environment. (not supported for all destination types)')  # noqa: E501
+    parser.add_argument('--schema', '--coerce-schema', dest='schema_coercion', default=None, help='Coerce source schema according to a schema definition. (WARNING: experimental feature)')  # noqa: E501
+    parser.add_argument('--restrict-schema', dest='restrict_schema', action='store_true', help='Exclude all columns not included in the SCHEMA_COERCION definition. (WARNING: experimental feature)')  # noqa: E501
     parser.add_argument('-v', '--verbose', '--debug', dest='verbose', action='store_true', help='Show debug details, including API calls and error sources.')  # noqa: E501
     parser.add_argument('--version', action='version', help='Show version number and exit', version=f'%(prog)s {__version__}')  # noqa: E501
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
     parser.add_argument('--print', '--print-dest', action='store_true', help='Print resulting URL/path to stdout, for chaining with other commands.')  # noqa: E501
     parser.add_argument('--debug-shell', '--pandas-debug-shell', '--debug-pandas-shell', action='store_true', help=argparse.SUPPRESS)  # noqa: E501
+    # parser.add_argument('--daemon', action='store_true', help='Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)')  # noqa: E501
 
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
         # Hidden feature to self test. Only works if installed from GitHub; testcases aren't included in PyPI package.
@@ -254,5 +251,5 @@ def main(argv=None):
             os_open(output)
 
 
-if __name__ == '__main__':
-    main()
+def main_wrapper():
+    main(sys.argv[1:])

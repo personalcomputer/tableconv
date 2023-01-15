@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tableconv.__main__ import main
+from tableconv.main import main
 
 FIXTURES_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / 'fixtures'
 

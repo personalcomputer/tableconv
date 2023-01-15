@@ -24,7 +24,10 @@ setup(
     url='https://github.com/personalcomputer/tableconv',
     packages=find_packages(include=['tableconv', 'tableconv.*']),
     entry_points={
-        'console_scripts': ['tableconv=tableconv.__main__:main'],
+        'console_scripts': [
+            'tableconv=tableconv.main:main_wrapper'
+            # 'tableconv=tableconv_daemon:main_wrapper:',  # uncomment to support WIP daemon features.
+        ],
     },
     install_requires=[
         'black>=22.10.0',
