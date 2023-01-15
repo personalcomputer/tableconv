@@ -8,8 +8,8 @@ import sys
 import time
 import traceback
 
-SOCKET_ADDR = '/tmp/tableconv-daemon.sock'
 SELF_NAME = os.path.basename(sys.argv[0])
+SOCKET_ADDR = '/tmp/tableconv-daemon.sock'
 
 
 def handle_daemon_supervisor_request(daemon_proc, client_conn) -> None:
@@ -19,13 +19,13 @@ def handle_daemon_supervisor_request(daemon_proc, client_conn) -> None:
     try:
         request_data = None
         while not request_data:
-            request_data = client_conn.recv(1024**2)
+            request_data = client_conn.recv(4096)
 
         daemon_proc.sendline(request_data)
         _ = daemon_proc.readline()  # ignore stdin playback (?)
         while True:
             with contextlib.suppress(pexpect.exceptions.TIMEOUT):
-                response = daemon_proc.read_nonblocking(1024**2, timeout=0.05)
+                response = daemon_proc.read_nonblocking(4096, timeout=0.05)
                 if response:
                     client_conn.sendall(response)
                 if response[-1] == 0:
@@ -86,7 +86,7 @@ def client_process_request_by_daemon(raw_data: bytes):
     try:
         sock.sendall(raw_data)
         while True:
-            response_part = sock.recv(1024**2)
+            response_part = sock.recv(4096)
             sys.stdout.write(response_part.decode())
             sys.stdout.flush()
             if not response_part or response_part[-1] == '\0':
@@ -106,9 +106,13 @@ def main_wrapper():
     **To view the "real" tableconv entrypoint, the real main(), check tableconv.main.main.**
     """
     argv = sys.argv[1:]
-    if argv in [['--spawn-daemon-supervisor'], ['--daemon']]:
+    if set(argv) & {'--spawn-daemon-supervisor', '--daemon'}:
+        if len(argv) > 1:
+            raise ValueError('ERROR: --daemon cannot be combined with any other options')
         return run_daemon_supervisor()
     if argv == ['!!you-are-a-daemon!!']:
+        # TODO use a alternative entry_point console_script instead of this sentinel value? I don't want to pollute the
+        # end-user's PATH with another command though, this is not something an end user should ever directly run.
         return run_daemon()
 
     status = client_process_request_by_daemon(json.dumps({
