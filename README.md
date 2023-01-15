@@ -125,6 +125,10 @@ options:
   --quiet               Only display errors.
   --print, --print-dest
                         Print resulting URL/path to stdout, for chaining with other commands.
+  --daemon              Tableconv startup time (python startup time) is slow. To mitigate that,
+                        you can first run tableconv as a daemon, and then all future invocations
+                        (while daemon is still alive) will be fast. (WARNING: experimental
+                        feature)
 
 supported url schemes:
   ascii:- (dest only)

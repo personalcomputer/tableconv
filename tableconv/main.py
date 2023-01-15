@@ -185,7 +185,7 @@ def main(argv=None):
     parser.add_argument('--quiet', action='store_true', help='Only display errors.')
     parser.add_argument('--print', '--print-dest', action='store_true', help='Print resulting URL/path to stdout, for chaining with other commands.')  # noqa: E501
     parser.add_argument('--debug-shell', '--pandas-debug-shell', '--debug-pandas-shell', action='store_true', help=argparse.SUPPRESS)  # noqa: E501
-    # parser.add_argument('--daemon', action='store_true', help='Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)')  # noqa: E501
+    parser.add_argument('--daemon', action='store_true', help='Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)')  # noqa: E501
 
     if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
         # Hidden feature to self test. Only works if installed from GitHub; testcases aren't included in PyPI package.

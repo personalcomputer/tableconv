@@ -25,8 +25,7 @@ setup(
     packages=find_packages(include=['tableconv', 'tableconv.*']),
     entry_points={
         'console_scripts': [
-            'tableconv=tableconv.main:main_wrapper'
-            # 'tableconv=tableconv_daemon:main_wrapper:',  # uncomment to support WIP daemon features.
+            'tableconv=tableconv_daemon:main_wrapper',
         ],
     },
     install_requires=[

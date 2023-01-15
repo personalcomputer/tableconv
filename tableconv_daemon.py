@@ -99,7 +99,7 @@ def client_process_request_by_daemon(raw_data: bytes):
 
 def main_wrapper():
     """
-    This is _technically_ an entrypoint for tableconv if running from the CLI. However, everything in this file is
+    This is _technically_ the entrypoint for tableconv if running from the CLI. However, everything in this file is
     merely just wrapper code that lets tableconv optionally preload its Python libraries via a background daemon (to
     improve startup time).
 
