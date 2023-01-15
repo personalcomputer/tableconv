@@ -44,6 +44,7 @@ setup(
         'python-dateutil',  # >=2.8.2',
         'PyYAML',  # >=5.4.1',
         'tabulate',  # >=0.8.10',
+        'pexpect',  # >=4.8.0',
         # pandas io deps below. ref: https://pandas.pydata.org/docs/getting_started/install.html#optional-dependencies
         'fastparquet',  # >=2022.11.0',
         'lxml',  # >=4.9.1',
