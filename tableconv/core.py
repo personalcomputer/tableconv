@@ -12,8 +12,13 @@ from pandas.errors import EmptyDataError as pd_EmptyDataError
 
 from tableconv.adapters.df import read_adapters, write_adapters
 from tableconv.adapters.df.base import Adapter
-from tableconv.exceptions import (EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError,
-                                  UnrecognizedFormatError, SchemaCoercionError)
+from tableconv.exceptions import (
+    EmptyDataError,
+    InvalidLocationReferenceError,
+    InvalidURLSyntaxError,
+    UnrecognizedFormatError,
+    SchemaCoercionError,
+)
 from tableconv.in_memory_query import query_in_memory
 from tableconv.uri import parse_uri
 
@@ -24,12 +29,12 @@ def resolve_query_arg(query: Optional[str]) -> Optional[str]:
     if not query:
         return None
 
-    if query.startswith('file://'):
+    if query.startswith("file://"):
         # Note: python 3.9+ has str.removeprefix. Is there a backport/polyfill?
-        query = query[len('file://'):]
+        query = query[len("file://"):]
 
     potential_snippet_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'snippets', query
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "snippets", query
     )
     if os.path.exists(potential_snippet_path):
         with open(potential_snippet_path) as f:
@@ -60,7 +65,7 @@ class IntermediateExchangeTable:
             Raised if the supplied datasource is empty.
         """
         if sum([df is not None, from_df is not None, from_dict_records is not None]) != 1:
-            raise ValueError('Please pass one and only one of either df, from_df, or from_dict_records')
+            raise ValueError("Please pass one and only one of either df, from_df, or from_dict_records")
         if df is not None:
             self.df = df
         if from_df is not None:
@@ -91,15 +96,16 @@ class IntermediateExchangeTable:
             write_adapter = write_adapters[scheme]
         except KeyError:
             raise UnrecognizedFormatError(
-                f'Unsupported scheme {scheme}. Supported schemes: {", ".join(write_adapters.keys())}')
+                f'Unsupported scheme {scheme}. Supported schemes: {", ".join(write_adapters.keys())}'
+            )
 
         if params:
             # TODO: This is a total hack! Implementing real structured table references, including structured passing of
             # params to adapters, is still pending. Right now everything is stringly-typed internally.
-            assert '?' not in url
-            url += f'?{urllib.parse.urlencode(params)}'
+            assert "?" not in url
+            url += f"?{urllib.parse.urlencode(params)}"
         write_adapter_name = write_adapter.__qualname__  # type: ignore[attr-defined]
-        logger.debug(f'Exporting data out via {write_adapter_name} to {url}')
+        logger.debug(f"Exporting data out via {write_adapter_name} to {url}")
         return write_adapter.dump(self.df, url)
 
     def get_json_schema(self):
@@ -108,9 +114,10 @@ class IntermediateExchangeTable:
         """
         # Consider instead using https://github.com/pandas-dev/pandas/blob/v1.3.2/pandas/io/json/_table_schema.py
         from genson import SchemaBuilder
+
         builder = SchemaBuilder()
-        builder.add_schema({'type': 'object', 'properties': {}})
-        for row in self.df.to_dict(orient='records'):
+        builder.add_schema({"type": "object", "properties": {}})
+        for row in self.df.to_dict(orient="records"):
             builder.add_object(row)
         return builder.to_schema()
 
@@ -122,7 +129,7 @@ class IntermediateExchangeTable:
         """
         Expose the loaded data as a List of Dict records.
         """
-        return self.as_pandas_df().to_dict(orient='records')
+        return self.as_pandas_df().to_dict(orient="records")
 
     def as_pandas_df(self) -> pd.DataFrame:
         """
@@ -136,11 +143,11 @@ class IntermediateExchangeTable:
         return self.df
 
 
-FSSPEC_SCHEMES = {'https', 'http', 'ftp', 's3', 'gcs', 'sftp', 'scp', 'abfs'}
+FSSPEC_SCHEMES = {"https", "http", "ftp", "s3", "gcs", "sftp", "scp", "abfs"}
 
 
 def parse_source_url(url: str) -> Tuple[str, Adapter]:
-    """ Returns source_scheme, read_adapter """
+    """Returns source_scheme, read_adapter"""
     parsed_url = parse_uri(url)
     source_scheme = parsed_url.scheme
 
@@ -154,7 +161,8 @@ def parse_source_url(url: str) -> Tuple[str, Adapter]:
         read_adapter = read_adapters[source_scheme]
     except KeyError:
         raise UnrecognizedFormatError(
-            f'Unsupported scheme {source_scheme}. Supported schemes: {", ".join(read_adapters.keys())}')
+            f'Unsupported scheme {source_scheme}. Supported schemes: {", ".join(read_adapters.keys())}'
+        )
 
     return source_scheme, read_adapter
 
@@ -168,23 +176,24 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     Note: This implementation is pretty hacky.
     """
     import fsspec
-    logger.info('Source URL is a remote file - attempting to create local copy (via fsspec)')
+
+    logger.info("Source URL is a remote file - attempting to create local copy (via fsspec)")
     temp_file = tempfile.NamedTemporaryFile()
     parsed_url = parse_uri(url)
-    with fsspec.open(f'{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}') as network_file:
+    with fsspec.open(f"{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}") as network_file:
         temp_file.write(network_file.read())
     temp_file.flush()
     if parsed_url.query:
-        encoded_query_params = '?' + '&'.join((f'{key}={value}' for key, value in parsed_url.query.items()))
+        encoded_query_params = "?" + "&".join((f"{key}={value}" for key, value in parsed_url.query.items()))
     else:
-        encoded_query_params = ''
-    new_url = f'{os.path.splitext(parsed_url.path)[1][1:]}://{temp_file.name}{encoded_query_params}'
-    logger.info(f'Cached remote file as {new_url}')
+        encoded_query_params = ""
+    new_url = f"{os.path.splitext(parsed_url.path)[1][1:]}://{temp_file.name}{encoded_query_params}"
+    logger.info(f"Cached remote file as {new_url}")
     return new_url
 
 
 def validate_coercion_schema(schema: Dict[str, str]) -> None:
-    SCHEMA_COERCION_SUPPORTED_TYPES = {'datetime', 'str', 'int', 'float'}
+    SCHEMA_COERCION_SUPPORTED_TYPES = {"datetime", "str", "int", "float"}
     unsupported_schema_types = set(schema.values()) - SCHEMA_COERCION_SUPPORTED_TYPES
     if unsupported_schema_types:
         raise ValueError(
@@ -203,43 +212,45 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
     # Coerce the type of pre-existing columns
     for col in set(schema.keys()).intersection(set(df.columns)):
         try:
-            if schema[col] == 'datetime':
+            if schema[col] == "datetime":
+
                 def coerce_datetime(item):
-                    if item in (None, ''):
+                    if item in (None, ""):
                         return None
                     if isinstance(item, str):
                         return ciso8601.parse_datetime(item)
                     if isinstance(item, pd.Timestamp):
                         return item.to_pydatetime()
                     raise TypeError(item)
-                df[col] = df.apply(
-                    lambda r: coerce_datetime(r[col]), axis=1
-                )
-            elif schema[col] == 'str':
-                df[col] = df[col].astype('string')
-            elif schema[col] == 'int':
+
+                df[col] = df.apply(lambda r: coerce_datetime(r[col]), axis=1)
+            elif schema[col] == "str":
+                df[col] = df[col].astype("string")
+            elif schema[col] == "int":
                 """
                 Important bug to be aware of: because of using pandas dataframes as the internal datastructure, if an
                 integer column contains any nulls, pandas forces it to actually be a float column so it can store the
                 nulls as NaNs.. So schema coercing to "int" won't actually always result in integers.
                 """
                 # Remove trailing 0s after decimal point (int() errors on '1.0' input)
-                re_decimal = re.compile(r'\.0*\s*$')
+                re_decimal = re.compile(r"\.0*\s*$")
                 df[col] = df.apply(
                     lambda r: (
-                        int(re_decimal.sub('', str(r[col])))
-                        if (r[col] not in (None, '') and not pd.isna(r[col]))
-                        else None),
-                    axis=1
+                        int(re_decimal.sub("", str(r[col])))
+                        if (r[col] not in (None, "") and not pd.isna(r[col]))
+                        else None
+                    ),
+                    axis=1,
                 )
                 # df[col] = pd.to_numeric(df[col], downcast='integer')
-            elif schema[col] == 'float':
+            elif schema[col] == "float":
                 df[col] = df.apply(
-                    lambda r: float(r[col]) if (r[col] not in (None, '') and not pd.isna(r[col])) else None, axis=1
+                    lambda r: float(r[col]) if (r[col] not in (None, "") and not pd.isna(r[col])) else None, axis=1
                 )
         except (ValueError, TypeError) as exc:
             raise SchemaCoercionError(
-                f'Error in coercing schema: Error while coercing "{col}" to {schema[col]}: {exc.args[0]}') from exc
+                f'Error in coercing schema: Error while coercing "{col}" to {schema[col]}: {exc.args[0]}'
+            ) from exc
 
     if restrict_schema:
         # Drop all other columns
@@ -255,15 +266,20 @@ def warn_if_location_too_large(uri: str):
     """
     path = parse_uri(uri).path
     if os.path.exists(path):
-        TWO_GIBIBYTES = 2 * (1024 ** 3)
+        TWO_GIBIBYTES = 2 * (1024**3)
         if os.stat(path).st_size > TWO_GIBIBYTES:
             # TODO: make this adapter specific
-            logger.warning('This looks like a huge table, expect heavy RAM and CPU usage.')
+            logger.warning("This looks like a huge table, expect heavy RAM and CPU usage.")
 
 
-def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, query: Optional[str] = None,
-             filter_sql: Optional[str] = None, schema_coercion: Optional[Dict[str, str]] = None,
-             restrict_schema: bool = False) -> IntermediateExchangeTable:
+def load_url(
+    url: Union[str, Path],
+    params: Optional[Dict[str, Any]] = None,
+    query: Optional[str] = None,
+    filter_sql: Optional[str] = None,
+    schema_coercion: Optional[Dict[str, str]] = None,
+    restrict_schema: bool = False,
+) -> IntermediateExchangeTable:
     """
     Load the data referenced by ``url`` into tableconv's abstract intermediate tabular data type
     (:ref:`IntermediateExchangeTable`).
@@ -316,20 +332,20 @@ def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, que
         # table references, including structured passing of params to adapters, is still pending. Right now params are
         # totally stringly-typed internally, and are not even consistently represented within strings (nor even URL-spec
         # compliant!).
-        assert '?' not in url
-        url += f'?{urllib.parse.urlencode(params)}'
+        assert "?" not in url
+        url += f"?{urllib.parse.urlencode(params)}"
 
     read_adapter_name = read_adapter.__qualname__  # type: ignore[attr-defined]
-    logger.debug(f'Loading data in via {read_adapter_name} from {url}')
+    logger.debug(f"Loading data in via {read_adapter_name} from {url}")
     warn_if_location_too_large(url)
     try:
         df = read_adapter.load(url, query)
     except pd_EmptyDataError as exc:
-        raise EmptyDataError(f'Empty data source {url}: {str(exc)}') from exc
+        raise EmptyDataError(f"Empty data source {url}: {str(exc)}") from exc
     except FileNotFoundError as exc:
-        raise InvalidLocationReferenceError(f'{url} not found: {str(exc)}') from exc
+        raise InvalidLocationReferenceError(f"{url} not found: {str(exc)}") from exc
     if df.empty:
-        raise EmptyDataError(f'Empty data source {url}')
+        raise EmptyDataError(f"Empty data source {url}")
 
     # Schema coercion
     if schema_coercion:
@@ -337,11 +353,11 @@ def load_url(url: Union[str, Path], params: Optional[Dict[str, Any]] = None, que
 
     # Run in-memory filters
     if filter_sql:
-        logger.debug('Running intermediate filter sql query in-memory')
-        df = query_in_memory([('data', df)], filter_sql)
+        logger.debug("Running intermediate filter sql query in-memory")
+        df = query_in_memory([("data", df)], filter_sql)
 
     if df.empty:
-        raise EmptyDataError('No rows returned by intermediate filter sql query')
+        raise EmptyDataError("No rows returned by intermediate filter sql query")
 
     table = IntermediateExchangeTable(df)
 

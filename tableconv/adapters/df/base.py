@@ -23,12 +23,12 @@ class Adapter:
     @classmethod
     def _query_in_memory(cls, df, query):
         if query:
-            return query_in_memory([('data', df)], query)
+            return query_in_memory([("data", df)], query)
         return df
 
     @classmethod
     def get_example_url(cls, scheme: str) -> str:
-        raise NotImplementedError(f'get_example_url not defined for {scheme}')
+        raise NotImplementedError(f"get_example_url not defined for {scheme}")
 
     @classmethod
     def load(cls, uri: str, query: Optional[str]) -> pd.DataFrame:
@@ -46,10 +46,11 @@ write_adapters = {}
 
 def register_adapter(schemes: List[str], write_only: bool = False, read_only: bool = False):
     """
-        TODO: better decorator api proposal:
-        @register_write_adapter(
-            protocol='sql_values', aliases=[], parameters={}, example_url='', text_based=True, file_based=True)
+    TODO: better decorator api proposal:
+    @register_write_adapter(
+        protocol='sql_values', aliases=[], parameters={}, example_url='', text_based=True, file_based=True)
     """
+
     def decorator(cls):
         global read_adapters
         global write_adapters
@@ -60,4 +61,5 @@ def register_adapter(schemes: List[str], write_only: bool = False, read_only: bo
             if not read_only:
                 write_adapters[scheme] = cls
         return cls
+
     return decorator

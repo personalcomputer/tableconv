@@ -6,14 +6,15 @@ from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 
-@register_adapter(['nestedlist'], read_only=True)
+@register_adapter(["nestedlist"], read_only=True)
 class NestedListAdapter(FileAdapterMixin, Adapter):
-    """ This is a super strange adapter. Much more experimental. It converts structured nested lists into tables. """
+    """This is a super strange adapter. Much more experimental. It converts structured nested lists into tables."""
+
     text_based = True
 
     @staticmethod
     def get_example_url(scheme):
-        return f'{scheme}:-'
+        return f"{scheme}:-"
 
     @staticmethod
     def _traverse(list_elem, heritage):
@@ -32,7 +33,7 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
     def load_text_data(scheme, data, params):
         document = marko.parse(data.strip())  # Parse the list hierarchy in using markdown.
         if len(document.children) != 1 or not isinstance(document.children[0], marko.block.List):
-            raise SourceParseError('Unable to parse nested list')
+            raise SourceParseError("Unable to parse nested list")
 
         # nesting_sep = params.get('nesting_sep', 'columns')
         # if nesting_sep == 'columns':
@@ -43,4 +44,4 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
 
         records = NestedListAdapter._traverse(document.children[0].children, [])
         max_depth = max([len(record) for record in records])
-        return pd.DataFrame.from_records(records, columns=[f'level{i}' for i in range(max_depth)])
+        return pd.DataFrame.from_records(records, columns=[f"level{i}" for i in range(max_depth)])
