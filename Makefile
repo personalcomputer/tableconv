@@ -38,6 +38,8 @@ lint:
 	mypy --ignore-missing-imports --show-error-codes tableconv tests
 
 test: lint
+	tableconv --kill-daemon
+	unset TABLECONV_AUTO_DAEMON
 	pytest
 	update_readme_usage --check
 

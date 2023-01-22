@@ -37,9 +37,6 @@ def set_up_logging():
         'disable_existing_loggers': False,
         'formatters': {
             'default': {
-                'format': '%(levelname)s: %(message)s',
-            },
-            'debug': {
                 'format': '%(asctime)s [%(name)s] %(levelname)s: %(message)s',
                 'datefmt': '%Y-%m-%d %H:%M:%S %Z',
             },
@@ -48,7 +45,7 @@ def set_up_logging():
             'default': {
                 'class': 'logging.StreamHandler',
                 'level': 'DEBUG',
-                'formatter': 'debug',
+                'formatter': 'default',
                 'stream': 'ext://sys.stderr',
             },
         },
@@ -187,10 +184,6 @@ def main(argv=None):
     parser.add_argument('--debug-shell', '--pandas-debug-shell', '--debug-pandas-shell', action='store_true', help=argparse.SUPPRESS)  # noqa: E501
     parser.add_argument('--daemon', action='store_true', help='Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)')  # noqa: E501
 
-    if argv and argv[0] in ('self-test', 'selftest', '--self-test', '--selftest'):
-        # Hidden feature to self test. Only works if installed from GitHub; testcases aren't included in PyPI package.
-        os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        sys.exit(os.system('make test'))
     if argv and argv[0] in ('configure', '--configure'):
         run_configuration_mode(argv)
         sys.exit(0)
