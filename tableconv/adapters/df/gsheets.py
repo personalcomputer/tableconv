@@ -225,7 +225,8 @@ class GoogleSheetsAdapter(Adapter):
         if parsed_uri.authority.lower().strip() == ":new:":
             if if_exists != "fail":
                 raise InvalidParamsError("only if_exists=fail supported for new spreadsheets")
-            spreadsheet_name = params.get("name", f"Untitled {datetime.datetime.utcnow().isoformat()[:-7]}")
+            datetime_formatted = datetime.datetime.now(tz=datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+            spreadsheet_name = params.get("name", f"Untitled {datetime_formatted}")
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
                 googlesheets, spreadsheet_name, sheet_name, columns, rows
             )

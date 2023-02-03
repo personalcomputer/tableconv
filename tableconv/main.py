@@ -262,6 +262,8 @@ def main(argv=None):
         if args.open_dest:
             os_open(output)
 
+    return 0
+
 
 def main_wrapper():
-    main(sys.argv[1:])
+    return main(sys.argv[1:])

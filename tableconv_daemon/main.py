@@ -116,7 +116,7 @@ def client_process_request_by_daemon(argv):
     finally:
         sock.close()
 
-    return True
+    return 0  # process status code 0
 
 
 def kill_daemon():
@@ -220,4 +220,4 @@ def main_wrapper():
     # Runinng as daemon client failed, so run tableconv normally, run within this process.
     from tableconv.main import main
 
-    return main(argv)
+    sys.exit(main(argv))

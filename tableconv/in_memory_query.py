@@ -27,7 +27,8 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
                 df[col_name] = df[col_name].astype(str)
                 flattened.add(col_name)
     if flattened:
-        logger.warning(f'Flattened some columns into strings for in-memory query: {", ".join(flattened)}')
+        flattened_display = ", ".join([str(column) for column in flattened])
+        logger.warning(f'Flattened some columns into strings for in-memory query: {flattened_display}')
 
 
 def pre_process(dfs, query) -> Tuple:
