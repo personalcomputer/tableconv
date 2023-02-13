@@ -124,10 +124,13 @@ def kill_daemon():
         with open(PIDFILE_PATH, "r") as f:
             pid = int(f.read().strip())
     except FileNotFoundError:
+        if os.path.exists(SOCKET_ADDR):
+            raise RuntimeError("Daemon appears to be running (unix domain socket found), but PID file not found! Failed to kill.")
         logger.error("Daemon does not appear to be running (PID file not found).")
         return
-    os.system(f"kill -INT {pid}")
-    logger.info(f"Sent SIGINT to daemon, PID {pid}")
+    else:
+        os.system(f"kill -INT {pid}")
+        logger.info(f"Sent SIGINT to daemon, PID {pid}")
 
 
 def run_daemonize(log=True):
