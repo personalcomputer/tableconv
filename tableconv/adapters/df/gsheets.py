@@ -178,10 +178,14 @@ class GoogleSheetsAdapter(Adapter):
         for i, row in enumerate(serialized_records):
             for j, obj in enumerate(row):
                 if isinstance(obj, datetime.datetime):
-                    if obj.tzinfo is not None:
-                        obj = obj.astimezone(datetime.timezone.utc)
-                    # WARNING: In effect, this line is causing naive datetimes to be reinterpreted as UTC.
-                    serialized_records[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S")
+                    if type(obj) == type(pd.NaT):
+                        # Not A Time. i.e. NULL.
+                        serialized_records[i][j] = ""
+                    else:
+                        if obj.tzinfo is not None:
+                            obj = obj.astimezone(datetime.timezone.utc)
+                        # WARNING: In effect, this line is causing naive datetimes to be reinterpreted as UTC.
+                        serialized_records[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S")
                 elif isinstance(obj, list) or isinstance(obj, dict):
                     serialized_records[i][j] = str(obj)
                 elif hasattr(obj, "dtype"):
