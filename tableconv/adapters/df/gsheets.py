@@ -178,7 +178,7 @@ class GoogleSheetsAdapter(Adapter):
         for i, row in enumerate(serialized_records):
             for j, obj in enumerate(row):
                 if isinstance(obj, datetime.datetime):
-                    if type(obj) == type(pd.NaT):
+                    if type(obj) == type(pd.NaT):  # noqa: E721
                         # Not A Time. i.e. NULL.
                         serialized_records[i][j] = ""
                     else:
@@ -229,7 +229,7 @@ class GoogleSheetsAdapter(Adapter):
         if parsed_uri.authority.lower().strip() == ":new:":
             if if_exists != "fail":
                 raise InvalidParamsError("only if_exists=fail supported for new spreadsheets")
-            datetime_formatted = datetime.datetime.now(tz=datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+            datetime_formatted = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             spreadsheet_name = params.get("name", f"Untitled {datetime_formatted}")
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
                 googlesheets, spreadsheet_name, sheet_name, columns, rows

@@ -34,6 +34,8 @@ clean-test:
 
 lint:
 	flake8 tableconv tests setup.py
+	black tableconv --exclude 'main\.py' --line-length 120 --check
+	update_readme_usage --check
 	codespell --check-filenames 'tests/**.py' tableconv setup.py README.md Makefile docs --skip '**/_build'
 	mypy --ignore-missing-imports --show-error-codes tableconv tests
 
@@ -41,7 +43,6 @@ test: lint
 	tableconv --kill-daemon
 	unset TABLECONV_AUTO_DAEMON
 	pytest
-	update_readme_usage --check
 
 test-ci: lint
 	# Smaller testsuite for CI until I bother to fix the CI environment to run postgres etc.

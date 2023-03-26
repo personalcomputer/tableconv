@@ -31,7 +31,7 @@ def resolve_query_arg(query: Optional[str]) -> Optional[str]:
 
     if query.startswith("file://"):
         # Note: python 3.9+ has str.removeprefix. Is there a backport/polyfill?
-        query = query[len("file://"):]
+        query = query[len("file://") :]
 
     potential_snippet_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "snippets", query
