@@ -5,6 +5,7 @@ import logging.config
 import os
 import shlex
 import socket
+import subprocess
 import sys
 import time
 import traceback
@@ -125,12 +126,27 @@ def kill_daemon():
             pid = int(f.read().strip())
     except FileNotFoundError:
         if os.path.exists(SOCKET_ADDR):
-            raise RuntimeError("Daemon appears to be running (unix domain socket found), but PID file not found! Failed to kill.")
+            raise RuntimeError(
+                "Daemon appears to be running (unix domain socket found), but PID file not found! Failed to kill."
+            )
         logger.error("Daemon does not appear to be running (PID file not found).")
         return
     else:
-        os.system(f"kill -INT {pid}")
-        logger.info(f"Sent SIGINT to daemon, PID {pid}")
+        try:
+            subprocess.run(["kill", "-INT", str(pid)], stderr=subprocess.PIPE, stdout=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError as e:
+            err = e.stderr.decode()
+            if "No such process" in err:
+                clean_sock = os.path.exists(SOCKET_ADDR)
+                logger.info(
+                    f"Tried to send SIGINT to daemon, PID {pid}, but process is already dead. "
+                    f"Cleaning up stale PID file{' and socket file' if clean_sock else ''}."
+                )
+                os.unlink(PIDFILE_PATH)
+                if clean_sock:
+                    os.unlink(SOCKET_ADDR)
+        else:
+            logger.info(f"Sent SIGINT to daemon, PID {pid}...")
 
 
 def run_daemonize(log=True):
@@ -202,7 +218,7 @@ def main_wrapper():
         # daemon supervisor and the daemon beneath it simply as the "daemon", but within the code you can see that what
         # we actually run is the supervisor, which then runs the daemon. (Also: if you invoke via --daemonize, you
         # actually get 4 processes!)
-    if argv == ["--daemonize"]:  # Undocumented feature
+    if argv in [["--daemonize"], ["--spawn-daemon"]]:  # Undocumented feature
         return run_daemonize()
     if argv == ["--kill-daemon"]:  # Undocumented feature
         return kill_daemon()
