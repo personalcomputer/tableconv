@@ -159,6 +159,7 @@ supported url schemes:
   example.jsonlines 
   example.ldjson 
   example.ndjson 
+  example.numbers (source only)
   example.orc (source only)
   example.parquet 
   example.py 
