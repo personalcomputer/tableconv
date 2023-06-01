@@ -47,10 +47,10 @@ def pre_process(dfs, query) -> Tuple:
                 break
         transposed_data_df = data_df.transpose(copy=True).reset_index()
         dfs.append((transposed_data_table_name, transposed_data_df))
-    if re.search(r"\bunix\(", query):
-        for match in re.finditer(r"\bunix\((.+?)\)", query):
-            replacement = f"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds({match.group(1)}))"
-            query = query[: match.span()[0]] + replacement + query[match.span()[1] :]
+
+    query = re.sub(r"\bunix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query)
+    query = re.sub(r"\biso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query)
+    # re.sub(r"\biso8601\((.+?)\)", r"strptime(\1, '2023-04-01T18:36:01.200234+00:00')", query)
 
     return dfs, query
 
