@@ -167,7 +167,7 @@ def main(argv=None):
         formatter_class=argparse.RawDescriptionHelpFormatter,  # Necessary for \n in epilog
         epilog=(
             f"supported url schemes:\n{get_supported_schemes_list_str()}\n\n"
-            "help & support:\n  https://github.com/personalcomputer/tableconv/issues"
+            "help & support:\n  https://github.com/personalcomputer/tableconv/issues/new"
         ),
         exit_on_error=False,
     )
