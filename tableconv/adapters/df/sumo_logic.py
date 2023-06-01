@@ -107,7 +107,7 @@ def get_sumo_data(
     while True:
         status = sumo.search_job_status(search_job_id)
         if status["state"] != "GATHERING RESULTS":
-            assert status["state"] == "DONE GATHERING RESULTS"
+            assert status["state"] == "DONE GATHERING RESULTS", status["state"]
             break
         time.sleep(SUMO_API_RESULTS_POLLING_INTERVAL.total_seconds())
 
