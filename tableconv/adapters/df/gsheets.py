@@ -109,8 +109,8 @@ class GoogleSheetsAdapter(Adapter):
             .execute()
         )
 
-        header = raw_data["values"][0]
-        num_columns = len(header)
+        num_columns = max(*[len(r) for r in  raw_data["values"]])
+        header = list_ljust(raw_data["values"][0], num_columns)
         values = [list_ljust(row, num_columns) for row in raw_data["values"][1:]]
         return pd.DataFrame(values, columns=header)
 
