@@ -87,8 +87,8 @@ class GoogleSheetsAdapter(Adapter):
 
         return googleapiclient.discovery.build(service, version, http=http)
 
-    @staticmethod
-    def load(uri, query):
+    @classmethod
+    def load(cls, uri, query):
         parsed_uri = parse_uri(uri)
         spreadsheet_id = parsed_uri.authority
         sheet_name = parsed_uri.path.strip("/")
@@ -112,7 +112,8 @@ class GoogleSheetsAdapter(Adapter):
         num_columns = max(*[len(r) for r in  raw_data["values"]])
         header = list_ljust(raw_data["values"][0], num_columns)
         values = [list_ljust(row, num_columns) for row in raw_data["values"][1:]]
-        return pd.DataFrame(values, columns=header)
+        df = pd.DataFrame(values, columns=header)
+        return cls._query_in_memory(df, query)
 
     @staticmethod
     def _create_spreadsheet(googlesheets, spreadsheet_name, first_sheet_name, columns, rows):
