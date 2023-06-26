@@ -106,7 +106,8 @@ class IntermediateExchangeTable:
             url += f"?{urllib.parse.urlencode(params)}"
         write_adapter_name = write_adapter.__qualname__  # type: ignore[attr-defined]
         logger.debug(f"Exporting data out via {write_adapter_name} to {url}")
-        return write_adapter.dump(self.df, url)
+        with pd.option_context('display.float_format', str):
+            return write_adapter.dump(self.df, url)
 
     def get_json_schema(self):
         """
