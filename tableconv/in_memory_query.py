@@ -66,7 +66,11 @@ def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataF
         duck_conn.register(table_name, df)
     try:
         duck_conn.execute(query)
-    except RuntimeError as exc:
+    except (RuntimeError, duckdb.ParserException) as exc:
         raise InvalidQueryError(*exc.args) from exc
+    except duckdb.StandardException as exc:
+        if 'Parser Error' in exc.args[0]:
+            raise InvalidQueryError(*exc.args) from exc
+        raise
     result_df = duck_conn.fetchdf()
     return result_df
