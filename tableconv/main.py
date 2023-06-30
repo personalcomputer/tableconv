@@ -1,11 +1,15 @@
 import argparse
+import ast
 import io
+import json
 import logging
 import logging.config
 import os
 import sys
 import textwrap
 from typing import Union
+
+import yaml
 
 from tableconv.__version__ import __version__
 from tableconv.adapters.df import adapters, read_adapters, write_adapters
@@ -159,6 +163,32 @@ def parse_dest_arg(args):
     return dest
 
 
+def parse_yaml_config_args(filename, args, parser):
+    file_ext = os.path.splitext(filename)[1][1:]
+    with open(filename, 'r') as f:
+        if file_ext in ('yaml', 'yml'):
+            config_dict = yaml.safe_load(f)
+        elif file_ext == 'json':
+            config_dict = json.load(f)
+        elif file_ext == 'py':
+            config_dict = ast.literal_eval(f.read())
+        else:
+            raise argparse.ArgumentError(None, f'Unrecognized file type: ".{file_ext}"')
+
+    for action in parser._actions:
+        option_name_variations = [opt_str.strip('-') for opt_str in action.option_strings]
+        option_name_variations += [action.dest.lower(), action.dest]
+        for option_name_variation in option_name_variations:
+            if option_name_variation in config_dict:
+                setattr(args, action.dest, config_dict[option_name_variation])
+                del config_dict[option_name_variation]
+                break
+    if config_dict:
+        unrecognized_str = ', '.join((f'"{arg}"' for arg in set(config_dict.keys())))
+        raise argparse.ArgumentError(None, f'configuration file has unrecognized arguments: {unrecognized_str}')
+    return args
+
+
 def main(argv=None):
     set_up_logging()
     # Process arguments
@@ -174,7 +204,7 @@ def main(argv=None):
     parser.add_argument("SOURCE_URL", type=str, help="Specify the data source URL.")
     parser.add_argument("-q", "-Q", "--query", dest="source_query", default=None, help="Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still supported, try `SELECT * FROM data`.")  # noqa: E501
     parser.add_argument("-F", "--filter", dest="intermediate_filter_sql", default=None, help="Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.")  # noqa: E501
-    parser.add_argument("-o", "--dest", "--out", dest="DEST_URL", type=str, help="Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.")  # noqa: E501
+    parser.add_argument("-o", "--dest", "--out", "--output", dest="DEST_URL", type=str, help="Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.")  # noqa: E501
     parser.add_argument("-i", "--interactive", action="store_true", help="Enter interactive REPL query mode.")  # noqa: E501
     parser.add_argument("--open", dest="open_dest", action="store_true", help="Open resulting file/url in the operating system desktop environment. (not supported for all destination types)")  # noqa: E501
     parser.add_argument("--schema", "--coerce-schema", dest="schema_coercion", default=None, help="Coerce source schema according to a schema definition. (WARNING: experimental feature)")  # noqa: E501
@@ -185,6 +215,7 @@ def main(argv=None):
     parser.add_argument("--print", "--print-dest", action="store_true", help="Print resulting URL/path to stdout, for chaining with other commands.")  # noqa: E501
     parser.add_argument("--debug-shell", "--pandas-debug-shell", "--debug-pandas-shell", action="store_true", help=argparse.SUPPRESS)  # noqa: E501
     parser.add_argument("--daemon", action="store_true", help="Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)")  # noqa: E501
+    parser.add_argument("--config", help="[experimental/unsupported] Instead of passing all arguments via CLI, pass some via a provided YAML/JSON/Python file.")
 
     if argv and argv[0] in ("configure", "--configure"):
         run_configuration_mode(argv)
@@ -192,6 +223,8 @@ def main(argv=None):
 
     try:
         args = parser.parse_args(argv)
+        if args.config:
+            args = parse_yaml_config_args(args.config, args, parser)
         if args.quiet and args.verbose:
             raise argparse.ArgumentError(
                 None, "Options --verbose and --quiet are incompatible, cannot specify both at once."
