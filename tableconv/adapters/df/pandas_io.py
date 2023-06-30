@@ -41,7 +41,7 @@ class CSVAdapter(FileAdapterMixin, Adapter):
                     if list(existing_columns) != list(df.columns):
                         raise ValueError(
                             f"Cannot append to {path}, existing schema does not match. "
-                            + f"(existing: {existing_columns}. new: {df.columns}))"
+                            + f"(existing: {list(existing_columns)}. new: {list(df.columns)}))"
                         )
                     params["header"] = False
                     path_or_buf = open(path, "a")
