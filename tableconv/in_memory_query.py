@@ -48,8 +48,8 @@ def pre_process(dfs, query) -> Tuple:
         transposed_data_df = data_df.transpose(copy=True).reset_index()
         dfs.append((transposed_data_table_name, transposed_data_df))
 
-    query = re.sub(r"\bunix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query)
-    query = re.sub(r"\biso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query)
+    query = re.sub(r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query)
+    query = re.sub(r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query)
     # re.sub(r"\biso8601\((.+?)\)", r"strptime(\1, '2023-04-01T18:36:01.200234+00:00')", query)
 
     return dfs, query
