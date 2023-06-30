@@ -34,11 +34,15 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
 
 def pre_process(dfs, query) -> Tuple:
     """
-    Very weak hack to add support for a new type of transformation within the existing language of SQL: Gives us very
-    weak version of a `transpose()` function. Warning: this actually mutates `df`s.
+    Preprocess the SQL query, to allow us to extend the DuckDB query language. Supported extensions:
+    - transpose()
+    - from_unix()
+    - from_iso8601()
+
+    Warning: this function preprocesses both the query and the dfs, i.e. it actually mutates `dfs` too!
     """
     if "transpose(data)" in query:
-        ANTI_CONFLICT_STR = "027eade341cf"  # (random text)
+        ANTI_CONFLICT_STR = "027eade341cf"  # (random text to avoid name conflicts)
         transposed_data_table_name = f"transposed_data_{ANTI_CONFLICT_STR}"
         query = query.replace("transpose(data)", f'"{transposed_data_table_name}"')
         for table_name, df in dfs:
@@ -50,7 +54,6 @@ def pre_process(dfs, query) -> Tuple:
 
     query = re.sub(r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query)
     query = re.sub(r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query)
-    # re.sub(r"\biso8601\((.+?)\)", r"strptime(\1, '2023-04-01T18:36:01.200234+00:00')", query)
 
     return dfs, query
 
