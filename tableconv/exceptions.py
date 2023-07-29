@@ -10,6 +10,12 @@ class InvalidURLError(RuntimeError):
     pass
 
 
+class URLInaccessibleError(InvalidURLError):
+    """the uri is not accessible, perhaps because of permissions errors, missing authentication information, etc"""
+
+    pass
+
+
 class InvalidParamsError(InvalidURLError):
     """the parameters passed in are invalid/unsupported/unrecognized"""
 

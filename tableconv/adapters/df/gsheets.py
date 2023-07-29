@@ -13,6 +13,7 @@ from tableconv.exceptions import (
     InvalidLocationReferenceError,
     InvalidParamsError,
     TableAlreadyExistsError,
+    URLInaccessibleError,
 )
 from tableconv.uri import parse_uri
 
@@ -60,7 +61,13 @@ class GoogleSheetsAdapter(Adapter):
         from oauth2client import client, tools
         from oauth2client.file import Storage
 
-        store = Storage(os.path.expanduser("~/.tableconv-gsheets-credentials"))
+        creds_path = os.path.expanduser("~/.tableconv-gsheets-credentials")
+        if not os.path.exists(creds_path):
+            raise URLInaccessibleError(
+                'gsheets integration requires configuring Google Sheets API authentication credentials. '
+                'Please run `tableconv configure gsheets --help` for help.'
+            )
+        store = Storage(creds_path)
         credentials = store.get()
         sys.argv = [""]
         if not credentials or credentials.invalid:
