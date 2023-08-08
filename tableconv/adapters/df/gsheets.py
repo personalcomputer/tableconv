@@ -166,11 +166,11 @@ class GoogleSheetsAdapter(Adapter):
         return response["replies"][0]["addSheet"]["properties"]["sheetId"]
 
     @staticmethod
-    def _extend_sheet(googlesheets, spreadsheet_id, sheet_id, new_total_rows):
+    def _reshape_sheet(googlesheets, spreadsheet_id, sheet_id, columns, rows):
         request = {
             "updateSheetProperties": {
                 "properties": {
-                    "gridProperties": {"rowCount": new_total_rows},
+                    "gridProperties": {"columnCount": columns, "rowCount": rows},
                     "sheetId": sheet_id,
                 },
                 "fields": "gridProperties.rowCount",
@@ -233,10 +233,11 @@ class GoogleSheetsAdapter(Adapter):
         columns = len(df.columns)
         rows = len(df.values)
         new_sheet = None
+        reformat = True
         start_row = 1
         if parsed_uri.authority.lower().strip() == ":new:":
             if if_exists != "fail":
-                raise InvalidParamsError("only if_exists=fail supported for new spreadsheets")
+                raise InvalidParamsError("only if_exists=fail supported for :new: spreadsheets")
             datetime_formatted = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             spreadsheet_name = params.get("name", f"Untitled {datetime_formatted}")
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
@@ -264,26 +265,28 @@ class GoogleSheetsAdapter(Adapter):
                     raise TableAlreadyExistsError(exc.reason) from exc
                 new_sheet = False
             if not new_sheet:
+                spreadsheet_data = googlesheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+                sheet = get_sheet_properties(spreadsheet_data, sheet_name=sheet_name)
+                sheet_id = sheet["sheetId"]
                 if if_exists == "replace":
+                    GoogleSheetsAdapter._reshape_sheet(googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=rows)
                     # delete it..
-                    raise NotImplementedError("Sheet if_exists=replace not implemented yet")
+                    # raise NotImplementedError("Sheet if_exists=replace not implemented yet")
                 elif if_exists == "append":
-                    spreadsheet_data = googlesheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-                    sheet = get_sheet_properties(spreadsheet_data, sheet_name=sheet_name)
+                    reformat = False
                     existing_rows = sheet["gridProperties"]["rowCount"]
                     existing_columns = sheet["gridProperties"]["columnCount"]
                     if existing_columns != columns:
                         raise AppendSchemeConflictError(f"Cannot append to {sheet_name} - columns don't match")
-                    sheet_id = sheet["sheetId"]
-                    total_rows = existing_rows + columns
-                    GoogleSheetsAdapter._extend_sheet(googlesheets, spreadsheet_id, sheet_id, new_total_rows=total_rows)
+                    total_rows = existing_rows + rows
+                    GoogleSheetsAdapter._reshape_sheet(googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=total_rows)
                     start_row = existing_rows + 1
                 else:
                     raise AssertionError
 
         # Insert data
         serialized_cells = serialized_records
-        if new_sheet:
+        if reformat:
             serialized_cells = serialized_header + serialized_records
         googlesheets.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
@@ -293,7 +296,7 @@ class GoogleSheetsAdapter(Adapter):
         ).execute()
 
         # Format
-        if new_sheet:
+        if reformat:
             googlesheets.spreadsheets().batchUpdate(
                 spreadsheetId=spreadsheet_id,
                 body={

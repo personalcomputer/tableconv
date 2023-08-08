@@ -96,7 +96,7 @@ class IntermediateExchangeTable:
             write_adapter = write_adapters[scheme]
         except KeyError:
             raise UnrecognizedFormatError(
-                f'Unsupported scheme {scheme}. Supported schemes: {", ".join(write_adapters.keys())}'
+                f'Unsupported scheme "{scheme}". Supported schemes: {", ".join(write_adapters.keys())}'
             )
 
         if params:
