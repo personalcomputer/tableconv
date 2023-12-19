@@ -6,6 +6,7 @@ from .aws_logs import *  # noqa: F401 F403
 from .gsheets import *  # noqa: F401 F403
 from .jira import *  # noqa: F401 F403
 from .json import *  # noqa: F401 F403
+from .leveldb import *  # noqa: F401 F403
 from .nested_list import *  # noqa: F401 F403
 from .numbers import *  # noqa: F401 F403
 from .pandas_io import *  # noqa: F401 F403
