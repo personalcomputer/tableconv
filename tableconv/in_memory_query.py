@@ -40,6 +40,7 @@ def pre_process(dfs, query) -> Tuple:
     - from_iso8601()
 
     Warning: this function preprocesses both the query and the dfs, i.e. it actually mutates `dfs` too!
+    Warning: this is very poorly implemented! Uses ultra-basic parsing to match parenthesis and find arguments.
     """
     if "transpose(data)" in query:
         ANTI_CONFLICT_STR = "027eade341cf"  # (random text to avoid name conflicts)
@@ -52,8 +53,10 @@ def pre_process(dfs, query) -> Tuple:
         transposed_data_df = data_df.transpose(copy=True).reset_index()
         dfs.append((transposed_data_table_name, transposed_data_df))
 
-    query = re.sub(r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query)
-    query = re.sub(r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query)
+    query = re.sub(
+        r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query, flags=re.IGNORECASE)
+    query = re.sub(
+        r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query, flags=re.IGNORECASE)
 
     return dfs, query
 

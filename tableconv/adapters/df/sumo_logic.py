@@ -106,10 +106,18 @@ def get_sumo_data(
     time.sleep((SUMO_API_RESULTS_POLLING_INTERVAL / 2).total_seconds())
     while True:
         status = sumo.search_job_status(search_job_id)
-        if status["state"] != "GATHERING RESULTS":
-            assert status["state"] == "DONE GATHERING RESULTS", status["state"]
-            break
-        time.sleep(SUMO_API_RESULTS_POLLING_INTERVAL.total_seconds())
+        STATES_THAT_MEAN_QUERY_STILL_IN_PROGRESS = [
+            'GATHERING RESULTS',
+            'DONE GATHERING HISTOGRAM',
+            'GATHERING RESULTS FROM SUBQUERIES',
+        ]
+
+        if status["state"] in STATES_THAT_MEAN_QUERY_STILL_IN_PROGRESS:
+            time.sleep(SUMO_API_RESULTS_POLLING_INTERVAL.total_seconds())
+            continue
+
+        assert status["state"] == "DONE GATHERING RESULTS", status["state"]
+        break
 
     message_count = status["messageCount"]
     logger.info(f"Downloading sumo results (message count: {message_count})")
