@@ -8,6 +8,10 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 class LevelDBLogAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
+    def get_example_url(scheme):
+        return f"{scheme}:output-0"
+
+    @staticmethod
     def load_file(scheme, path, params):
         from leveldb_export import parse_leveldb_documents
         docs = list(parse_leveldb_documents(path))
