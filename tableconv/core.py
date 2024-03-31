@@ -1,5 +1,8 @@
+import hashlib
+import json
 import logging
 import os
+import pathlib
 import re
 import tempfile
 import urllib.parse
@@ -9,16 +12,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import ciso8601
 import pandas as pd
 from pandas.errors import EmptyDataError as pd_EmptyDataError
+from platformdirs import user_cache_dir
 
 from tableconv.adapters.df import read_adapters, write_adapters
 from tableconv.adapters.df.base import Adapter
-from tableconv.exceptions import (
-    EmptyDataError,
-    InvalidLocationReferenceError,
-    InvalidURLSyntaxError,
-    UnrecognizedFormatError,
-    SchemaCoercionError,
-)
+from tableconv.exceptions import (EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError,
+                                  SchemaCoercionError, UnrecognizedFormatError)
 from tableconv.in_memory_query import query_in_memory
 from tableconv.uri import parse_uri
 
@@ -273,6 +272,47 @@ def warn_if_location_too_large(uri: str):
             logger.warning("This looks like a huge table, expect heavy RAM and CPU usage.")
 
 
+def get_cache_key(read_adapter_name, url, query):
+    key_bits = json.dumps([read_adapter_name, url, query])
+    key = hashlib.md5(key_bits.encode()).hexdigest()
+    logger.debug(f'Cache key: {key} ({key_bits})')
+    return key
+
+
+CACHE_DIR = user_cache_dir('tableconv', 'tableconv')
+
+
+def get_cache_file_path(read_adapter_name, url, query):
+    key = get_cache_key(read_adapter_name, url, query)
+    return os.path.join(CACHE_DIR, f'autocachev1/{key}.pickledf')
+
+
+def infer_if_url_is_local(url):
+    if os.path.exists(parse_uri(url).path):
+        return True
+    if 'localhost' in url or '127.0.0.1' in url:
+        return True
+    if 'http' not in url and not re.search(r':\d\d+', url):
+        return True
+    return False
+
+
+def load_from_cache(read_adapter_name, url, query) -> pd.DataFrame:
+    path = get_cache_file_path(read_adapter_name, url, query)
+    if not os.path.exists(path):
+        return None
+    return pd.read_pickle(path)
+
+
+def save_to_cache(read_adapter_name, url, query, df):
+    if infer_if_url_is_local(url):
+        # Don't cache local data
+        return
+    path = get_cache_file_path(read_adapter_name, url, query)
+    pathlib.Path(os.path.dirname(path)).mkdir(parents=True, exist_ok=True)  # ensure cache directory exists
+    df.to_pickle(path)
+
+
 def load_url(
     url: Union[str, Path],
     params: Optional[Dict[str, Any]] = None,
@@ -280,6 +320,7 @@ def load_url(
     filter_sql: Optional[str] = None,
     schema_coercion: Optional[Dict[str, str]] = None,
     restrict_schema: bool = False,
+    autocache: bool = False,
 ) -> IntermediateExchangeTable:
     """
     Load the data referenced by ``url`` into tableconv's abstract intermediate tabular data type
@@ -337,16 +378,26 @@ def load_url(
         url += f"?{urllib.parse.urlencode(params)}"
 
     read_adapter_name = read_adapter.__qualname__  # type: ignore[attr-defined]
-    logger.debug(f"Loading data in via {read_adapter_name} from {url}")
+    using_cache_statement = ''
     warn_if_location_too_large(url)
-    try:
-        df = read_adapter.load(url, query)
-    except pd_EmptyDataError as exc:
-        raise EmptyDataError(f"Empty data source {url}: {str(exc)}") from exc
-    except FileNotFoundError as exc:
-        raise InvalidLocationReferenceError(f"{url} not found: {str(exc)}") from exc
-    if df.empty:
-        raise EmptyDataError(f"Empty data source {url}")
+    df = None
+    if autocache:
+        df = load_from_cache(read_adapter_name, url, query)
+        if df is not None:
+            using_cache_statement = ' (LOCALLY CACHED COPY)'
+            logger.info("Using cached data")
+    logger.debug(f"Loading data in via {read_adapter_name} from {url}{using_cache_statement}")
+    if df is None:
+        try:
+            df = read_adapter.load(url, query)
+        except pd_EmptyDataError as exc:
+            raise EmptyDataError(f"Empty data source {url}: {str(exc)}") from exc
+        except FileNotFoundError as exc:
+            raise InvalidLocationReferenceError(f"{url} not found: {str(exc)}") from exc
+        if df.empty:
+            raise EmptyDataError(f"Empty data source {url}")
+        if autocache:
+            save_to_cache(read_adapter_name, url, query, df)
 
     # Schema coercion
     if schema_coercion:

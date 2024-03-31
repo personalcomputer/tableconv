@@ -57,6 +57,9 @@ def set_up_logging():
                 "botocore": {
                     "level": "WARNING",
                 },
+                "thrift.transport.TSocket": {
+                    "level": "CRITICAL",
+                },
             },
             "root": {
                 "level": "INFO",
@@ -179,6 +182,7 @@ def main(argv=None):
     parser.add_argument("--open", dest="open_dest", action="store_true", help="Open resulting file/url in the operating system desktop environment. (not supported for all destination types)")  # noqa: E501
     parser.add_argument("--schema", "--coerce-schema", dest="schema_coercion", default=None, help="Coerce source schema according to a schema definition. (WARNING: experimental feature)")  # noqa: E501
     parser.add_argument("--restrict-schema", dest="restrict_schema", action="store_true", help="Exclude all columns not included in the SCHEMA_COERCION definition. (WARNING: experimental feature)")  # noqa: E501
+    parser.add_argument("--autocache", "--cache", action="store_true", help="Cache network data, and reuse cached data.")  # noqa: E501
     parser.add_argument("-v", "--verbose", "--debug", dest="verbose", action="store_true", help="Show debug details, including API calls and error sources.")  # noqa: E501
     parser.add_argument("--version", action="version", help="Show version number and exit", version=f"%(prog)s {__version__}")  # noqa: E501
     parser.add_argument("--quiet", action="store_true", help="Only display errors.")
@@ -235,6 +239,7 @@ def main(argv=None):
                 args.open_dest,
                 schema_coercion,
                 args.restrict_schema,
+                args.autocache,
             )
             return
 
@@ -245,6 +250,7 @@ def main(argv=None):
             filter_sql=args.intermediate_filter_sql,
             schema_coercion=schema_coercion,
             restrict_schema=args.restrict_schema,
+            autocache=args.autocache,
         )
         if args.debug_shell:
             df = table.as_pandas_df()  # noqa: F841

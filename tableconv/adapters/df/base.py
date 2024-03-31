@@ -39,9 +39,9 @@ class Adapter:
         raise NotImplementedError
 
 
-adapters = {}
-read_adapters = {}
-write_adapters = {}
+adapters: dict[str, Adapter] = {}
+read_adapters: dict[str, Adapter] = {}
+write_adapters: dict[str, Adapter] = {}
 
 
 def register_adapter(schemes: List[str], write_only: bool = False, read_only: bool = False):

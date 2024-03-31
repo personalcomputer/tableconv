@@ -92,7 +92,7 @@ def create_empty_file(path):
 
 
 def run_interactive_shell(
-    source: str, dest: str, intermediate_filter_sql: str, open_dest: bool, schema_coercion, restrict_schema
+    source: str, dest: str, intermediate_filter_sql: str, open_dest: bool, schema_coercion, restrict_schema, autocache
 ) -> None:
     # shell_width, shell_height = shutil.get_terminal_size()
     try:
@@ -155,6 +155,7 @@ def run_interactive_shell(
                 filter_sql=intermediate_filter_sql,
                 schema_coercion=schema_coercion,
                 restrict_schema=restrict_schema,
+                autocache=autocache,
             )
             last_result = table
             # Dump to destination
