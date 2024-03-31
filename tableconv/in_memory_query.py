@@ -74,7 +74,7 @@ def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataF
         duck_conn.execute(query)
     except (RuntimeError, duckdb.ParserException, duckdb.CatalogException) as exc:
         raise InvalidQueryError(*exc.args) from exc
-    except duckdb.StandardException as exc:
+    except duckdb.StandardException as exc:  # type: ignore[attr-defined]  # needed for backwards-compat with old duckdb
         if "Parser Error" in exc.args[0]:
             raise InvalidQueryError(*exc.args) from exc
         raise
