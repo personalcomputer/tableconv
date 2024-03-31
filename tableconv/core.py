@@ -16,8 +16,13 @@ from platformdirs import user_cache_dir
 
 from tableconv.adapters.df import read_adapters, write_adapters
 from tableconv.adapters.df.base import Adapter
-from tableconv.exceptions import (EmptyDataError, InvalidLocationReferenceError, InvalidURLSyntaxError,
-                                  SchemaCoercionError, UnrecognizedFormatError)
+from tableconv.exceptions import (
+    EmptyDataError,
+    InvalidLocationReferenceError,
+    InvalidURLSyntaxError,
+    SchemaCoercionError,
+    UnrecognizedFormatError,
+)
 from tableconv.in_memory_query import query_in_memory
 from tableconv.uri import parse_uri
 
@@ -74,7 +79,7 @@ class IntermediateExchangeTable:
         if self.df.empty:
             raise EmptyDataError
 
-    def dump_to_url(self, url: str, params: Optional[Dict[str, Any]] = None) -> str:
+    def dump_to_url(self, url: str, params: Optional[Dict[str, Any]] = None) -> Optional[str]:
         """
         Export the table in the format and location identified by url.
 
@@ -105,7 +110,7 @@ class IntermediateExchangeTable:
             url += f"?{urllib.parse.urlencode(params)}"
         write_adapter_name = write_adapter.__qualname__  # type: ignore[attr-defined]
         logger.debug(f"Exporting data out via {write_adapter_name} to {url}")
-        with pd.option_context('display.float_format', str):
+        with pd.option_context("display.float_format", str):
             return write_adapter.dump(self.df, url)
 
     def get_json_schema(self):
@@ -275,24 +280,24 @@ def warn_if_location_too_large(uri: str):
 def get_cache_key(read_adapter_name, url, query):
     key_bits = json.dumps([read_adapter_name, url, query])
     key = hashlib.md5(key_bits.encode()).hexdigest()
-    logger.debug(f'Cache key: {key} ({key_bits})')
+    logger.debug(f"Cache key: {key} ({key_bits})")
     return key
 
 
-CACHE_DIR = user_cache_dir('tableconv', 'tableconv')
+CACHE_DIR = user_cache_dir("tableconv", "tableconv")
 
 
 def get_cache_file_path(read_adapter_name, url, query):
     key = get_cache_key(read_adapter_name, url, query)
-    return os.path.join(CACHE_DIR, f'autocachev1/{key}.pickledf')
+    return os.path.join(CACHE_DIR, f"autocachev1/{key}.pickledf")
 
 
 def infer_if_url_is_local(url):
     if os.path.exists(parse_uri(url).path):
         return True
-    if 'localhost' in url or '127.0.0.1' in url:
+    if "localhost" in url or "127.0.0.1" in url:
         return True
-    if 'http' not in url and not re.search(r':\d\d+', url):
+    if "http" not in url and not re.search(r":\d\d+", url):
         return True
     return False
 
@@ -378,13 +383,13 @@ def load_url(
         url += f"?{urllib.parse.urlencode(params)}"
 
     read_adapter_name = read_adapter.__qualname__  # type: ignore[attr-defined]
-    using_cache_statement = ''
+    using_cache_statement = ""
     warn_if_location_too_large(url)
     df = None
     if autocache:
         df = load_from_cache(read_adapter_name, url, query)
         if df is not None:
-            using_cache_statement = ' (LOCALLY CACHED COPY)'
+            using_cache_statement = " (LOCALLY CACHED COPY)"
             logger.info("Using cached data")
     logger.debug(f"Loading data in via {read_adapter_name} from {url}{using_cache_statement}")
     if df is None:

@@ -14,6 +14,7 @@ class LevelDBLogAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def load_file(scheme, path, params):
         from leveldb_export import parse_leveldb_documents
+
         docs = list(parse_leveldb_documents(path))
         # breakpoint()
         return pd.DataFrame.from_records(docs)

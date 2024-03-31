@@ -108,7 +108,7 @@ options:
   -F INTERMEDIATE_FILTER_SQL, --filter INTERMEDIATE_FILTER_SQL
                         Filter (i.e. transform) the input data using a SQL query operating on the
                         dataset in memory using DuckDB SQL.
-  -o DEST_URL, --dest DEST_URL, --out DEST_URL
+  -o DEST_URL, --dest DEST_URL, --out DEST_URL, --output DEST_URL
                         Specify the data destination URL. If this destination already exists, be
                         aware that the default behavior is to overwrite.
   -i, --interactive     Enter interactive REPL query mode.
@@ -119,6 +119,7 @@ options:
                         experimental feature)
   --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
                         (WARNING: experimental feature)
+  --autocache, --cache  Cache network data, and reuse cached data.
   -v, --verbose, --debug
                         Show debug details, including API calls and error sources.
   --version             Show version number and exit
@@ -162,6 +163,7 @@ supported url schemes:
   example.numbers (source only)
   example.orc (source only)
   example.parquet 
+  example.pickledf 
   example.py 
   example.python 
   example.tsv 
@@ -170,10 +172,11 @@ supported url schemes:
   example.yaml 
   example.yml 
   gsheets://:new: 
-  jiracloud://mycorpname (source only)
+  jc://ls -l (source only)
   jiraformat:- (dest only)
   jsonarray:- 
   latex:- (dest only)
+  leveldblog:output-0 (source only)
   list:- 
   markdown:- (dest only)
   md:- (dest only)
@@ -183,6 +186,7 @@ supported url schemes:
   mysql://127.0.0.1:5432/example_db 
   nestedlist:- (source only)
   oracle://127.0.0.1:5432/example_db 
+  osquery://processes (source only)
   postgis://127.0.0.1:5432/example_db 
   postgres://127.0.0.1:5432/example_db 
   postgresql://127.0.0.1:5432/example_db 
@@ -190,6 +194,7 @@ supported url schemes:
   pythonlist:- 
   rst:- (dest only)
   smartsheet://SHEET_ID (source only)
+  sql_literal:- (dest only)
   sql_values:- (dest only)
   sqlite3:///tmp/example.db 
   sqlite:///tmp/example.db 
@@ -198,7 +203,7 @@ supported url schemes:
   yamlsequence:- 
 
 help & support:
-  https://github.com/personalcomputer/tableconv/issues
+  https://github.com/personalcomputer/tableconv/issues/new
 ```
 
 ## Python API

@@ -64,8 +64,8 @@ class GoogleSheetsAdapter(Adapter):
         creds_path = os.path.expanduser("~/.tableconv-gsheets-credentials")
         if not os.path.exists(creds_path):
             raise URLInaccessibleError(
-                'gsheets integration requires configuring Google Sheets API authentication credentials. '
-                'Please run `tableconv configure gsheets --help` for help.'
+                "gsheets integration requires configuring Google Sheets API authentication credentials. "
+                "Please run `tableconv configure gsheets --help` for help."
             )
         store = Storage(creds_path)
         credentials = store.get()
@@ -116,7 +116,7 @@ class GoogleSheetsAdapter(Adapter):
             .execute()
         )
 
-        num_columns = max(*[len(r) for r in  raw_data["values"]])
+        num_columns = max(*[len(r) for r in raw_data["values"]])
         header = list_ljust(raw_data["values"][0], num_columns)
         values = [list_ljust(row, num_columns) for row in raw_data["values"][1:]]
         df = pd.DataFrame(values, columns=header)
@@ -269,7 +269,9 @@ class GoogleSheetsAdapter(Adapter):
                 sheet = get_sheet_properties(spreadsheet_data, sheet_name=sheet_name)
                 sheet_id = sheet["sheetId"]
                 if if_exists == "replace":
-                    GoogleSheetsAdapter._reshape_sheet(googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=rows)
+                    GoogleSheetsAdapter._reshape_sheet(
+                        googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=rows
+                    )
                     # delete it..
                     # raise NotImplementedError("Sheet if_exists=replace not implemented yet")
                 elif if_exists == "append":
@@ -279,7 +281,9 @@ class GoogleSheetsAdapter(Adapter):
                     if existing_columns != columns:
                         raise AppendSchemeConflictError(f"Cannot append to {sheet_name} - columns don't match")
                     total_rows = existing_rows + rows
-                    GoogleSheetsAdapter._reshape_sheet(googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=total_rows)
+                    GoogleSheetsAdapter._reshape_sheet(
+                        googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=total_rows
+                    )
                     start_row = existing_rows + 1
                 else:
                     raise AssertionError

@@ -107,9 +107,9 @@ def get_sumo_data(
     while True:
         status = sumo.search_job_status(search_job_id)
         STATES_THAT_MEAN_QUERY_STILL_IN_PROGRESS = [
-            'GATHERING RESULTS',
-            'DONE GATHERING HISTOGRAM',
-            'GATHERING RESULTS FROM SUBQUERIES',
+            "GATHERING RESULTS",
+            "DONE GATHERING HISTOGRAM",
+            "GATHERING RESULTS FROM SUBQUERIES",
         ]
 
         if status["state"] in STATES_THAT_MEAN_QUERY_STILL_IN_PROGRESS:

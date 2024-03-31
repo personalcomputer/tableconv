@@ -29,11 +29,12 @@ class JC(Adapter):
     @staticmethod
     def _get_magic_parser(cmd):
         import jc
+
         magic_dict = {}
         for entry in jc.all_parser_info():
-            magic_dict.update({mc: entry['argument'] for mc in entry.get('magic_commands', [])})
+            magic_dict.update({mc: entry["argument"] for mc in entry.get("magic_commands", [])})
         one_word_command = cmd[0]
-        two_word_command = ' '.join(cmd[0:2])
+        two_word_command = " ".join(cmd[0:2])
         return magic_dict.get(two_word_command, magic_dict.get(one_word_command))
 
     @staticmethod
@@ -45,8 +46,10 @@ class JC(Adapter):
 
         parser_name = JC._get_magic_parser(cmd)
         if not parser_name:
-            raise ValueError('Not able to guess jc parser. Try using jc manually from the command line instead, and'
-                             ' piping to tableconv.')
+            raise ValueError(
+                "Not able to guess jc parser. Try using jc manually from the command line instead, and"
+                " piping to tableconv."
+            )
 
         cmd_output = subprocess.check_output(cmd, text=True)
         data = jc.parse(parser_name, cmd_output)

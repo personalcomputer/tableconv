@@ -54,9 +54,9 @@ def pre_process(dfs, query) -> Tuple:
         dfs.append((transposed_data_table_name, transposed_data_df))
 
     query = re.sub(
-        r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query, flags=re.IGNORECASE)
-    query = re.sub(
-        r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query, flags=re.IGNORECASE)
+        r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query, flags=re.IGNORECASE
+    )
+    query = re.sub(r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query, flags=re.IGNORECASE)
 
     return dfs, query
 
@@ -75,11 +75,11 @@ def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataF
     except (RuntimeError, duckdb.ParserException, duckdb.CatalogException) as exc:
         raise InvalidQueryError(*exc.args) from exc
     except duckdb.StandardException as exc:
-        if 'Parser Error' in exc.args[0]:
+        if "Parser Error" in exc.args[0]:
             raise InvalidQueryError(*exc.args) from exc
         raise
     except duckdb.BinderException as exc:
-        if 'No function matches the given name' in exc.args[0]:
+        if "No function matches the given name" in exc.args[0]:
             raise InvalidQueryError(*exc.args) from exc
         raise
     result_df = duck_conn.fetchdf()
