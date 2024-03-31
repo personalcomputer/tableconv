@@ -225,3 +225,14 @@ class StataAdapter(FileAdapterMixin, Adapter):
     def dump_file(df, scheme, path, params):
         params["write_index"] = params.get("write_index", False)
         df.to_stata(path, **params)
+
+
+@register_adapter(["pickledf"])
+class PicklePandasAdapter(FileAdapterMixin, Adapter):
+    @staticmethod
+    def load_file(scheme, path, params):
+        return pd.read_pickle(path, **params)
+
+    @staticmethod
+    def dump_file(df, scheme, path, params):
+        return df.to_pickle(path, **params)
