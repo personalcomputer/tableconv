@@ -4,11 +4,13 @@ from .aws_athena import *  # noqa: F401 F403
 from .aws_dynamodb import *  # noqa: F401 F403
 from .aws_logs import *  # noqa: F401 F403
 from .gsheets import *  # noqa: F401 F403
+from .jc import *  # noqa: F401 F403
 from .jira import *  # noqa: F401 F403
 from .json import *  # noqa: F401 F403
 from .leveldb import *  # noqa: F401 F403
 from .nested_list import *  # noqa: F401 F403
 from .numbers import *  # noqa: F401 F403
+from .osquery import *  # noqa: F401 F403
 from .pandas_io import *  # noqa: F401 F403
 from .python import *  # noqa: F401 F403
 from .rdbms import *  # noqa: F401 F403
