@@ -2,7 +2,7 @@ from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 
-@register_adapter(["sql_values"], write_only=True)
+@register_adapter(["sql_values", "sql_literal"], write_only=True)
 class SQLLiteralAdapter(FileAdapterMixin, Adapter):
     """Currently only supports the PostgreSQL-flavored VALUES syntax"""
 
