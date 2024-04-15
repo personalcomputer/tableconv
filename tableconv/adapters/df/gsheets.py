@@ -195,6 +195,8 @@ class GoogleSheetsAdapter(Adapter):
     @staticmethod
     def _serialize_df(df):
         serialized_records = [list(record) for record in df.values]
+
+        MAX_CELL_SIZE = 50000
         oversize_cells = []
 
         df = df.replace({np.nan: None})
@@ -225,7 +227,6 @@ class GoogleSheetsAdapter(Adapter):
                     serialized_records[i][j] = obj.item()
                 if isinstance(serialized_records[i][j], float) and math.isnan(serialized_records[i][j]):
                     serialized_records[i][j] = None
-                MAX_CELL_SIZE = 50000
                 if isinstance(serialized_records[i][j], str) and len(serialized_records[i][j]) > MAX_CELL_SIZE:
                     serialized_records[i][j] = serialized_records[i][j][:MAX_CELL_SIZE]
                     oversize_cells.append((i, j))
@@ -247,8 +248,8 @@ class GoogleSheetsAdapter(Adapter):
                 example_cells_str = " (Ex: " + (", ".join(coord_strs)) + ", and more)"
 
             logger.warning(
-                f"Truncated {len(oversize_cells)} cell{plural}{example_cells_str} to their first 50000 characters to "
-                + " fit within Google Sheets max cell size limit."
+                f"Truncated {len(oversize_cells)} cell{plural}{example_cells_str} to their first {MAX_CELL_SIZE} "
+                + " characters to fit within Google Sheets max cell size limit."
             )
         return serialized_records
 
