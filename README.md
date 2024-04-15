@@ -161,6 +161,7 @@ supported url schemes:
   example.ldjson 
   example.ndjson 
   example.numbers (source only)
+  example.ods 
   example.orc (source only)
   example.parquet 
   example.pickledf 

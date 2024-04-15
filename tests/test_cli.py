@@ -147,7 +147,7 @@ def help_test_util(invoke_cli, use_subprocess=False):
         "jsonl ",
         "python ",
         "tsv ",
-        "xls ",
+        "xlsx ",
         "ascii",
         "gsheets",
     ]
@@ -210,7 +210,7 @@ def test_no_data_sqlite3(tmp_path, invoke_cli):
 
 
 def test_full_roundtrip_file_adapters(tmp_path, invoke_cli):
-    """Go from json -> tsv -> csv -> python -> yaml -> jsonl -> parquet -> xls -> json and verify the json at the end
+    """Go from json -> tsv -> csv -> python -> yaml -> jsonl -> parquet -> xlsx -> json and verify the json at the end
     is semantically identical to the json we started with."""
     urls = [
         "json://-",
@@ -220,7 +220,7 @@ def test_full_roundtrip_file_adapters(tmp_path, invoke_cli):
         "yaml://-",
         "jsonl://-",
         f"{tmp_path}/test.parquet",
-        f"{tmp_path}/test.xls",
+        f"{tmp_path}/test.xlsx",
         "json://-",
     ]
     last_call_stdout = None

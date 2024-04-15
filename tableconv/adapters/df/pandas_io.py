@@ -126,7 +126,7 @@ class HTMLAdapter(FileAdapterMixin, Adapter):
         df.to_html(path, **params)
 
 
-@register_adapter(["xls", "xlsx"])
+@register_adapter(["xls", "xlsx", "ods"])
 class ExcelAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def load_file(scheme, path, params):
