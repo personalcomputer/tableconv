@@ -7,6 +7,9 @@ import sys
 import textwrap
 from typing import Union
 
+from duckdb import __version__ as DUCKDB_VERSION_STR
+from pandas import __version__ as PD_VERSION_STR
+
 from tableconv.__version__ import __version__
 from tableconv.adapters.df import adapters, read_adapters, write_adapters
 from tableconv.adapters.df.base import NoConfigurationOptionsAvailable
@@ -16,6 +19,9 @@ from tableconv.interactive import os_open, run_interactive_shell
 from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
+
+PROG = os.path.basename(sys.argv[0])
+PY_VERSION_STR = f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}'
 
 
 def get_supported_schemes_list_str() -> str:
@@ -85,7 +91,7 @@ class NoExitArgParser(argparse.ArgumentParser):
 
 def raise_argparse_style_error(error: Union[str, Exception], usage=None):
     if usage:
-        print(f"usage: {usage % dict(prog=os.path.basename(sys.argv[0]))}", file=sys.stderr)
+        print(f"usage: {usage % dict(prog=PROG)}", file=sys.stderr)
     if isinstance(error, Exception):
         logger.debug(error, exc_info=True)
     print(f"error: {error}", file=sys.stderr)
@@ -184,13 +190,14 @@ def main(argv=None):
     parser.add_argument("--restrict-schema", dest="restrict_schema", action="store_true", help="Exclude all columns not included in the SCHEMA_COERCION definition. (WARNING: experimental feature)")  # noqa: E501
     parser.add_argument("--autocache", "--cache", action="store_true", help="Cache network data, and reuse cached data.")  # noqa: E501
     parser.add_argument("-v", "--verbose", "--debug", dest="verbose", action="store_true", help="Show debug details, including API calls and error sources.")  # noqa: E501
-    parser.add_argument("--version", action="version", help="Show version number and exit", version=f"%(prog)s {__version__}")  # noqa: E501
+    parser.add_argument("--version", action='version', help="Show version number and exit", version=f"{PROG} {__version__} (Python {PY_VERSION_STR}, DuckDB {DUCKDB_VERSION_STR}, Pandas {PD_VERSION_STR})")  # noqa: E501
     parser.add_argument("--quiet", action="store_true", help="Only display errors.")
     parser.add_argument("--print", "--print-dest", action="store_true", help="Print resulting URL/path to stdout, for chaining with other commands.")  # noqa: E501
-    parser.add_argument("--debug-shell", "--pandas-debug-shell", "--debug-pandas-shell", action="store_true", help=argparse.SUPPRESS)  # noqa: E501
+    parser.add_argument("--debug-shell", "--pandas-debug-shell", "--debug-pandas-shell", "--debug_shell", action="store_true", help=argparse.SUPPRESS)  # noqa: E501
     parser.add_argument("--daemon", action="store_true", help="Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)")  # noqa: E501
 
     if argv and argv[0] in ("configure", "--configure"):
+        # This is a hidden feature because it is very incomplete right now.
         run_configuration_mode(argv)
         sys.exit(0)
 
