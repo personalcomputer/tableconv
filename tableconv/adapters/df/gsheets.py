@@ -24,6 +24,20 @@ def list_ljust(ls, n, fill_value=None):
     return ls + [fill_value] * (n - len(ls))
 
 
+def integer_to_spreadsheet_column_str(i):
+    i += 1
+    result = ""
+    while i > 0:
+        i -= 1
+        result = chr(i % 26 + ord("A")) + result
+        i //= 26
+    return result
+
+
+def coords_to_spreadsheet_cell_str(coord):
+    return f"{integer_to_spreadsheet_column_str(coord[1])}{coord[2]}"
+
+
 def get_sheet_properties(spreadsheet_data, sheet_name):
     for sheet in spreadsheet_data["sheets"]:
         if sheet["properties"]["title"] == sheet_name:
@@ -181,6 +195,7 @@ class GoogleSheetsAdapter(Adapter):
     @staticmethod
     def _serialize_df(df):
         serialized_records = [list(record) for record in df.values]
+        oversize_cells = []
 
         df = df.replace({np.nan: None})
         for i, row in enumerate(serialized_records):
@@ -200,6 +215,31 @@ class GoogleSheetsAdapter(Adapter):
                     serialized_records[i][j] = obj.item()
                 if isinstance(serialized_records[i][j], float) and math.isnan(serialized_records[i][j]):
                     serialized_records[i][j] = None
+                MAX_CELL_SIZE = 50000
+                if isinstance(serialized_records[i][j], str) and len(serialized_records[i][j]) > MAX_CELL_SIZE:
+                    serialized_records[i][j] = serialized_records[i][j][:MAX_CELL_SIZE]
+                    oversize_cells.append((i, j))
+        if oversize_cells:
+            if len(oversize_cells) == 1:
+                plural = ""
+            else:
+                plural = "s"
+            if len(oversize_cells) <= 5:
+                coord_strs = (f"{integer_to_spreadsheet_column_str(coord[0])}{coord[1]}" for coord in oversize_cells)
+                example_cells_str = " (" + (", ".join(coord_strs)) + ")"
+            elif all((coord[1] == oversize_cells[0][1] for coord in oversize_cells)):
+                # All oversize cells are from a single column
+                example_cells_str = f" (all in column {integer_to_spreadsheet_column_str(oversize_cells[0][1])})"
+            else:
+                coord_strs = (
+                    f"{integer_to_spreadsheet_column_str(coord[0])}{coord[1]}" for coord in oversize_cells[:3]
+                )
+                example_cells_str = " (Ex: " + (", ".join(coord_strs)) + ", and more)"
+
+            logger.warning(
+                f"Truncated {len(oversize_cells)} cell{plural}{example_cells_str} to their first 50000 characters to "
+                + " fit within Google Sheets max cell size limit."
+            )
         return serialized_records
 
     @staticmethod
