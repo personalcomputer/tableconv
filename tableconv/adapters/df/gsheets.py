@@ -212,6 +212,13 @@ class GoogleSheetsAdapter(Adapter):
                         # timezone information, obj.strftime("%Y-%m-%d %H:%M:%S")
                         # Or we can use a format that ghseets cannot recognize, but close to one, better than iso8601:
                         serialized_records[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S %Z")
+                elif isinstance(obj, datetime.timedelta):
+                    serialized_records[i][j] = str(obj)
+                    # The above is a human readable way of encoding time delta. Extremely contentious though.
+                    # For reference, the ways offered by Pandas IO in its JSON module are:
+                    #   epoch: Format as a number, units of seconds. equivalent to .total_seconds()
+                    #   iso: The fairly obscure ISO8601 "duration" (aka *P*eriod) formatting standard.
+                    #        example: "P11DT14H50M12S"
                 elif isinstance(obj, list) or isinstance(obj, dict):
                     serialized_records[i][j] = str(obj)
                 elif hasattr(obj, "dtype"):
