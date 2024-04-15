@@ -1,6 +1,4 @@
 import ast
-import subprocess
-
 import pandas as pd
 
 from tableconv.exceptions import SourceParseError
@@ -30,16 +28,8 @@ class PythonAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_text_data(df, scheme, params):
-        raw = str(df.to_dict(orient="records"))
-        # TODO: This is not an acceptable way to invoke Black. Use its API instead. Black also should only be an
-        # optional dependency.
-        process = subprocess.Popen(
-            ["black", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE
-        )
-        process.communicate(raw.encode("utf-8"))
-        process.wait()
-        output, stderr = process.communicate()
-        if process.returncode != 0:
-            # fail gracefullly
-            return raw
-        return output.decode()
+        import pprint
+
+        # using pprint instead of repr because it can indent.
+        # reprlib in python 3.12+ can too, but I'm preferring pprint for backwards compat.
+        return pprint.pformat(df.to_dict(orient="records"), indent=4)
