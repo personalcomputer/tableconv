@@ -207,8 +207,11 @@ class GoogleSheetsAdapter(Adapter):
                     else:
                         if obj.tzinfo is not None:
                             obj = obj.astimezone(datetime.timezone.utc)
-                        # WARNING: In effect, this line is causing naive datetimes to be reinterpreted as UTC.
-                        serialized_records[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S")
+                        # Extremely contentious formatting choices here.
+                        # We can use a time format that Google Sheets recognizes/parses, but in the process dropping
+                        # timezone information, obj.strftime("%Y-%m-%d %H:%M:%S")
+                        # Or we can use a format that ghseets cannot recognize, but close to one, better than iso8601:
+                        serialized_records[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S %Z")
                 elif isinstance(obj, list) or isinstance(obj, dict):
                     serialized_records[i][j] = str(obj)
                 elif hasattr(obj, "dtype"):
