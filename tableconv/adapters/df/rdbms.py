@@ -19,6 +19,9 @@ from tableconv.adapters.df.base import Adapter, register_adapter
 logger = logging.getLogger(__name__)
 
 
+PD_VERSION = [int(i) for i in pd.__version__.split('.')]
+
+
 def resolve_pgcli_uri_alias(dsn: str) -> Optional[str]:
     """
     Hidden feature: Use configured database uri aliases. Currently only supported for aliases configured for postgres
@@ -91,9 +94,15 @@ class RDBMSAdapter(Adapter):
         from sqlalchemy import text as sqlalchemy_text
 
         engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parse_uri(uri))
+        query_text = sqlalchemy_text(query)
+
         if query:
             try:
-                return pd.read_sql(sqlalchemy_text(query), engine)
+                if PD_VERSION[0] >= 2 and PD_VERSION[1] >= 2 and PD_VERSION[2] >= 2:
+                    with engine.connect() as conn:
+                        return pd.read_sql(sql=query_text, con=conn.connection)
+                else:
+                    return pd.read_sql(sql=query_text, con=engine)
             except sqlalchemy.exc.ProgrammingError as exc:
                 raise InvalidQueryError(*exc.args) from exc
         elif table:
