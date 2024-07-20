@@ -187,13 +187,13 @@ class GoogleSheetsAdapter(Adapter):
                     "gridProperties": {"columnCount": columns, "rowCount": rows},
                     "sheetId": sheet_id,
                 },
-                "fields": "gridProperties.rowCount",
+                "fields": "gridProperties.columnCount,gridProperties.rowCount",
             }
         }
         googlesheets.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": [request]}).execute()
 
     @staticmethod
-    def _serialize_df(df):
+    def _serialize_df_records(df):
         serialized_records = [list(record) for record in df.values]
 
         MAX_CELL_SIZE = 50000
@@ -276,8 +276,6 @@ class GoogleSheetsAdapter(Adapter):
         else:
             sheet_name = "Sheet1"
 
-        serialized_records = GoogleSheetsAdapter._serialize_df(df)
-        serialized_header = [list(df.columns)]
         googlesheets = GoogleSheetsAdapter._get_googleapiclient_client("sheets", "v4")
 
         # Create new spreadsheet, if specified.
@@ -327,25 +325,53 @@ class GoogleSheetsAdapter(Adapter):
                     # raise NotImplementedError("Sheet if_exists=replace not implemented yet")
                 elif if_exists == "append":
                     reformat = False
-                    existing_rows = sheet["gridProperties"]["rowCount"]
-                    existing_columns = sheet["gridProperties"]["columnCount"]
-                    if existing_columns != columns:
-                        raise AppendSchemeConflictError(f"Cannot append to {sheet_name} - columns don't match")
-                    total_rows = existing_rows + rows
+                    existing_rows_count = sheet["gridProperties"]["rowCount"]
+                    existing_columns = googlesheets.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="1:1").execute()['values'][0]
+                    duplicate_column_names = len(set(existing_columns)) != len(existing_columns) or len(set(df.columns)) != len(df.columns)
+                    if duplicate_column_names:
+                        AppendSchemeConflictError(f"Cannot append to {sheet_name} - cannot calculate append operation when some column names are duplicated.")
+                    if set(existing_columns) != set(df.columns):
+                        missing_remote = list(set(df.columns) - set(existing_columns))
+                        missing_local = list(set(existing_columns) - set(df.columns))
+                        missing_remote_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_remote))
+                        missing_local_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_local))
+                        logger.warning(f"Columns don't match in {sheet_name}. Appending matching columns anyways. \nNew columns to be added to spreadsheet: \n{missing_remote_str}.\n Columns to be filled in as blank for new rows: \n{missing_local_str}")
+                        # reconfigure sheet
+                        columns = len(existing_columns) + len(missing_remote)
+                        GoogleSheetsAdapter._reshape_sheet(
+                            googlesheets, spreadsheet_id, sheet_id,
+                            columns=columns,
+                            rows=existing_rows_count,
+                        )
+                        # inject new headers
+                        googlesheets.spreadsheets().values().update(
+                            spreadsheetId=spreadsheet_id,
+                            range=f"'{sheet_name}'!{integer_to_spreadsheet_column_str(len(existing_columns))}1",
+                            valueInputOption="RAW",
+                            body={"values": [missing_remote]},
+                        ).execute()
+                        # add in blank columns
+                        for col in missing_local:
+                            df[col] = None
+                        # re-order columns in local data copy
+                        df = df[existing_columns + missing_remote]
+
                     GoogleSheetsAdapter._reshape_sheet(
-                        googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=total_rows
+                        googlesheets, spreadsheet_id, sheet_id,
+                        columns=columns,
+                        rows=existing_rows_count + rows,
                     )
-                    start_row = existing_rows + 1
+                    start_row = existing_rows_count + 1
                 else:
                     raise AssertionError
 
         # Insert data
-        serialized_cells = serialized_records
+        serialized_cells = GoogleSheetsAdapter._serialize_df_records(df)
         if reformat:
-            serialized_cells = serialized_header + serialized_records
+            serialized_cells = [list(df.columns)] + serialized_cells
         googlesheets.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range=f"{sheet_name}!A{start_row}",
+            range=f"'{sheet_name}'!A{start_row}",
             valueInputOption="RAW",
             body={"values": serialized_cells},
         ).execute()
