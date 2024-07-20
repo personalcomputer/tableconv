@@ -222,6 +222,8 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
                 def coerce_datetime(item):
                     if item in (None, ""):
                         return None
+                    # breakpoint()
+                    # THIS CODE DOES NOT WORK ANY MORE (!!!!!!!!!!!!!) DOES REALLY REALLY BAD THINGS. DROPS TZ INFO. CONVERTS TO "LOCAL" TIMEZONE. DROPS SUB-SECOND DATA. REALLY REALLY BAD THINGS.
                     if isinstance(item, str):
                         return ciso8601.parse_datetime(item)
                     if isinstance(item, pd.Timestamp):

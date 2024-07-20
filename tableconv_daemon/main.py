@@ -93,7 +93,8 @@ def client_process_request_by_daemon(argv):
         # Daemon not online!
         return None
 
-    if {"-v", "--verbose", "--debug"} & set(argv):  # Hack.. no argparse or logging.config loaded yet
+    verbose = {"-v", "--verbose", "--debug"} & set(argv)  # Hack.. no argparse or logging.config loaded yet
+    if verbose:
         logger.debug("Using tableconv daemon (run `tableconv --kill-daemon` to kill)")
 
     raw_request_msg = json.dumps(
@@ -194,9 +195,10 @@ def set_up_logging():
 
 def main_wrapper():
     """
-    This is _technically_ the entrypoint for tableconv if ran from the CLI. However, everything in this file is
-    merely just low quality experimental wrapper code for the optional feature of preloading the tableconv Python
-    libraries into a background daemon process (to improve startup time).
+    This is _technically_ the entrypoint for tableconv if ran from the CLI. However, everything in this file is merely
+    just low quality experimental wrapper code for providing the optional feature of preloading the tableconv Python
+    libraries into a background daemon process (to improve startup time), and the corresponding code also to invoke any
+    already-spun-up daemon.
 
     **Check tableconv.main.main to view the "real" tableconv entrypoint.**
     """
@@ -225,6 +227,9 @@ def main_wrapper():
     if argv == ["!!you-are-a-daemon!!"]:
         # TODO use a alternative entry_point console_script instead of this sentinel value? I don't want to pollute the
         # end-user's PATH with another command though, this is not something an end user should ever directly run.
+        # TODO: Using alternative entry point does not require adding pollution to PATH. I can just direcctly invoke a
+        # python file relative to this python file - i.e. anothe rpython file within the tableconv _install directory_,
+        # not within PATH.
         return run_daemon()
 
     # Try running as daemon client

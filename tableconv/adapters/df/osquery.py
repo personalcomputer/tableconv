@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
-from tableconv.exceptions import InvalidParamsError
+from tableconv.exceptions import InvalidParamsError, InvalidQueryError
 from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
@@ -38,4 +38,6 @@ class OSQuery(Adapter):
         instance = osquery.SpawnInstance()
         instance.open()
         result = instance.client.query(query)
+        if result.status.code != 0:
+            raise InvalidQueryError(result.status.message)
         return pd.DataFrame.from_records(result.response)

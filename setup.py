@@ -32,7 +32,7 @@ setup(
         "black",  # >=22.10.0",
         "boto3",  # >=1.25.4",
         "ciso8601",  # >=2.2.0",
-        "duckdb",  # >=0.6.0",
+        "duckdb>=0.10.0",
         "fsspec",  # >=2022.11.0",
         "genson",  # >=1.2.2",
         "google-api-python-client",  # >=2.68.0",
