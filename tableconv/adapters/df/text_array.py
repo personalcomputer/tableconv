@@ -1,10 +1,14 @@
 import ast
 import io
 import json
+import os
+import re
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 import yaml
 
+from tableconv.uri import parse_uri
 from tableconv.exceptions import IncapableDestinationError
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
@@ -75,3 +79,68 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
             return separator.join(serialized_array)
         else:
             raise AssertionError
+
+
+@register_adapter(["folder"])
+class FilePerRowOutputAdapter(Adapter):
+    """
+    Very experimental adapter. Definitely not proper. I'm struggling to figure out a good product design / story for
+    solving this usecase with tableconv. What other tool/script can we pipe tableconv output/input through to handle
+    this usecase? How can we inject a custom mini python script to handle this usecase? etc.
+    """
+
+    @staticmethod
+    def get_example_url(scheme):
+        return f"{scheme}:///tmp/example"
+
+    @classmethod
+    def load(cls, uri: str, query: Optional[str]) -> pd.DataFrame:
+        parsed_uri = parse_uri(uri)
+        path = parsed_uri.path
+        if not os.path.exists(path):
+                raise ValueError(f'Unable to load {path}, path does not exist')
+        filenames = os.listdir(path)
+        if not filenames:
+            raise ValueError(f'Unable to load {path}, no files in {path}')
+        data = []
+        for filename in os.listdir(path):
+            with open(filename) as f:
+                value = f.read().decode()
+            data.append({'filename': filename, 'value': value})
+        df = pd.DataFrame.from_records(data)
+        return cls._query_in_memory(df, query)
+
+    @classmethod
+    def dump(cls, df, uri: str):
+        parsed_uri = parse_uri(uri)
+        if set(df.columns) != set(["filename", "value"]):
+            raise IncapableDestinationError(
+                f"Table must have only two columns: \"filename\" and \"value\""
+            )
+        path = parsed_uri.path
+        if parsed_uri.authority:
+            if path:
+                path = os.path.join(parsed_uri.authority, path)
+            else:
+                path = parsed_uri.authority
+        if os.path.exists(path):
+            if not os.path.isdir(path):
+                raise IncapableDestinationError(f'Destination must be an empty folder. "{os.path.abspath(path)}" is a pre-existing file.')
+            if os.listdir(path):
+                raise IncapableDestinationError(f'Destination folder must be empty. "{os.path.abspath(path)}" is not empty.')
+        os.makedirs(path, exist_ok=True)
+        data = df.to_dict(orient="records")
+        for filename in (record['filename'] for record in data):
+            filename = str(filename)
+            if re.search(r'[<>:"|?*\\/]', filename):
+                raise IncapableDestinationError(f'Filenames must not contain special characters, please slugify them using SQL. Example errant filename: "{filename}"')
+        for record in data:
+            with open(os.path.join(path, str(record['filename'])), 'w') as f:
+                f.write(record['value'])
+
+
+
+
+
+
+
