@@ -62,7 +62,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
         nesting_sep = params.get("nesting_sep", ".")
         if preserve_nesting:
-            return pd.read_json(
+            pd.read_json(
                 path,
                 lines=(scheme == "jsonl"),
                 orient="records",
@@ -110,6 +110,9 @@ class JSONAdapter(FileAdapterMixin, Adapter):
 
         if "if_exists" in params:
             if_exists = params["if_exists"]
+            if if_exists == "error":
+                if_exists = "fail"
+            assert if_exists in {'fail', 'append', 'replace'}
         elif "append" in params and params["append"].lower() != "false":
             if_exists = "append"
         elif "overwrite" in params and params["overwrite"].lower() != "false":
@@ -117,42 +120,94 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         else:
             if_exists = "fail"
 
+        if if_exists == 'append':
+            if scheme != 'jsonl':
+                raise NotImplementedError('?if_exists=append is only supported with jsonl')
+
         if "indent" in params:
             indent = int(params["indent"])
         else:
             indent = None
         unnest = params.get("unnest", "false").lower() == "true"
-        format_mode = params.get("format_mode", params.get("orient", params.get("mode", "records")))
-        # `format_mode` Options are
+        orient = params.get("format_mode", params.get("orient", params.get("mode", "records")))
+        # `orient` Options are
         #    'split': dict like {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
         #    'records': list like [{column -> value}, ... , {column -> value}]
         #    'index': dict like {index -> {column -> value}}
         #    'columns': dict like {column -> {index -> value}}
         #    'values': just the values array
         #    'table': dict like {'schema': {schema}, 'data': {data}}
-        if scheme == "jsonl" and format_mode != "records":
-            raise InvalidParamsError("?format_mode must be records for jsonl")
+        if scheme == "jsonl" and orient != "records":
+            raise InvalidParamsError("?orient must be records for jsonl")
         if unnest:
-            raise NotImplementedError
-            # nesting_sep = params.get('nesting_sep', '.')
-            # for column in df.columns:
-            #     if nesting_sep in column:
-            #         raise NotImplementedError
-        path_or_buf = path
-        if os.path.exists(path):
-            if if_exists == "error":
-                raise TableAlreadyExistsError(f"{path} already exists")
-            elif if_exists == "append":
-                path_or_buf = open(path, "a")
+            if orient != 'records':
+                raise NotImplementedError('?unnest is only supported with orient=records')
+            if scheme != 'json':
+                raise NotImplementedError('?unnest is not supported with jsonl')
 
-        if format_mode in ["split", "index", "columns"]:
-            # Index required. Use first column as index.
-            df.set_index(df.columns[0], inplace=True)
+        if unnest:
+            # if os.path.exists(path):
+            #     if if_exists == "fail":
+            #         raise TableAlreadyExistsError(f"{path} already exists")
+            #     assert if_exists == 'replace'
+            unnested_dict = unnest_df(df, nesting_sep=params.get('nesting_sep', '.'))
+            json.dump(unnested_dict, open(path, 'w'), default=json_encoder_default, indent=indent)
+        else:
+            if orient in ["split", "index", "columns"]:
+                # Index required. Use first column as index.
+                df.set_index(df.columns[0], inplace=True)
 
-        df.to_json(path_or_buf, lines=(scheme == "jsonl"), indent=indent, orient=format_mode)
+            path_or_buf = path
+            if os.path.exists(path):
+                # if if_exists == "fail":
+                #     raise TableAlreadyExistsError(f"{path} already exists")
+                # el
+                if if_exists == "append":
+                    path_or_buf = open(path, "a")
 
-        if not isinstance(path_or_buf, str):
-            path_or_buf.close()
+            df.to_json(path_or_buf, lines=(scheme == "jsonl"), date_format='iso', indent=indent, orient=orient)
+
+            if not isinstance(path_or_buf, str):
+                path_or_buf.close()
 
         if scheme == "json" and path == "/dev/fd/1" and sys.stdout.isatty():
             print()
+
+
+def json_encoder_default(obj):
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    return obj
+
+
+def unnest_df(df, nesting_sep) -> list[dict]:
+    '''
+    WARNING: extremely inefficient and weak/untested
+    '''
+    # detect if unnesting has a naming conflict
+    columns = set(df.columns)
+    for column in columns:
+        if nesting_sep in column:
+            subkeys = column.split(nesting_sep)
+            subkeys_materialized = {'.'.join(subkeys[:x+1]) for x in range(len(subkeys[:-1]))}
+            if subkeys_materialized.intersection(columns):
+                conflict_col = list(subkeys_materialized.intersection(columns))[0]
+                raise ValueError(f'Unnesting key conflict: column "{column}" conflicts with column "{conflict_col}"')
+                # TODO: rename the conflict in this case, somewhere. e.g. rename the conflict column to "{name}_unexpanded" or something?
+
+    # unnest
+    new_records = []
+    records = df.to_dict(orient="records")
+    for record in records:
+        new_record = dict()
+        for key, value in record.items():
+            sub_keys = key.split(nesting_sep)
+            leaf_key = sub_keys[-1]
+            branch = new_record
+            for subkey in sub_keys[:-1]:
+                if subkey not in branch:
+                    branch[subkey] = dict()
+                branch = branch[subkey]
+            branch[leaf_key] = value
+        new_records.append(new_record)
+    return new_records
