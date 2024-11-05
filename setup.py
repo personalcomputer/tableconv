@@ -57,6 +57,7 @@ setup(
         "XlsxWriter",  # >=3.0.3",
         "xlwt",  # >=1.3.0",
         # 'tables",  # needed for hd5
+        # 'dpkt', # >=1.9.8  # needed for pcap
     ],
     extras_require={},
     include_package_data=True,
