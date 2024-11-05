@@ -10,7 +10,7 @@ from tableconv.adapters.df.base import Adapter, register_adapter
 logger = logging.getLogger(__name__)
 
 
-@register_adapter(["jc"], read_only=True)
+@register_adapter(["jc", "cmd", "sh"], read_only=True)
 class JC(Adapter):
     """
     Experimental adapter. Violates the unix philosophy but improves convenience by letting you directly run shell
@@ -41,7 +41,7 @@ class JC(Adapter):
     def load(uri, query):
         import jc
 
-        cmd_str = urllib.parse.unquote(uri.removeprefix("jc://"))
+        cmd_str = urllib.parse.unquote(uri.removeprefix("jc://").removeprefix("jc:"))
         cmd = shlex.split(cmd_str)
 
         parser_name = JC._get_magic_parser(cmd)
