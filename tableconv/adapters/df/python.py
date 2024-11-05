@@ -1,5 +1,6 @@
 import ast
 import pandas as pd
+import numpy as np
 
 from tableconv.exceptions import SourceParseError
 from tableconv.adapters.df.base import Adapter, register_adapter
@@ -29,6 +30,8 @@ class PythonAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def dump_text_data(df, scheme, params):
         import pprint
+
+        df.replace({np.nan: None}, inplace=True)
 
         # using pprint instead of repr because it can indent.
         # reprlib in python 3.12+ can too, but I'm preferring pprint for backwards compat.
