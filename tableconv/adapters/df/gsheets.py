@@ -193,19 +193,19 @@ class GoogleSheetsAdapter(Adapter):
         googlesheets.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": [request]}).execute()
 
     @staticmethod
-    def _serialize_df_records(df):
-        serialized_records = [list(record) for record in df.values]
+    def _serialize_df_to_array(df):
+        serialized_array = [list(value) for value in df.values]
 
         MAX_CELL_SIZE = 50000
         oversize_cells = []
 
         df = df.replace({np.nan: None})
-        for i, row in enumerate(serialized_records):
+        for i, row in enumerate(serialized_array):
             for j, obj in enumerate(row):
                 if isinstance(obj, datetime.datetime):
                     if type(obj) == type(pd.NaT):  # noqa: E721
                         # Not A Time. i.e. NULL.
-                        serialized_records[i][j] = ""
+                        serialized_array[i][j] = ""
                     else:
                         if obj.tzinfo is not None:
                             obj = obj.astimezone(datetime.timezone.utc)
@@ -213,22 +213,22 @@ class GoogleSheetsAdapter(Adapter):
                         # We can use a time format that Google Sheets recognizes/parses, but in the process dropping
                         # timezone information, obj.strftime("%Y-%m-%d %H:%M:%S")
                         # Or we can use a format that ghseets cannot recognize, but close to one, better than iso8601:
-                        serialized_records[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S %Z")
+                        serialized_array[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S %Z")
                 elif isinstance(obj, datetime.timedelta):
-                    serialized_records[i][j] = str(obj)
+                    serialized_array[i][j] = str(obj)
                     # The above is a human readable way of encoding time delta. Extremely contentious though.
                     # For reference, the ways offered by Pandas IO in its JSON module are:
                     #   epoch: Format as a number, units of seconds. equivalent to .total_seconds()
                     #   iso: The fairly obscure ISO8601 "duration" (aka *P*eriod) formatting standard.
                     #        example: "P11DT14H50M12S"
                 elif isinstance(obj, list) or isinstance(obj, dict):
-                    serialized_records[i][j] = str(obj)
+                    serialized_array[i][j] = str(obj)
                 elif hasattr(obj, "dtype"):
-                    serialized_records[i][j] = obj.item()
-                if isinstance(serialized_records[i][j], float) and math.isnan(serialized_records[i][j]):
-                    serialized_records[i][j] = None
-                if isinstance(serialized_records[i][j], str) and len(serialized_records[i][j]) > MAX_CELL_SIZE:
-                    serialized_records[i][j] = serialized_records[i][j][:MAX_CELL_SIZE]
+                    serialized_array[i][j] = obj.item()
+                if isinstance(serialized_array[i][j], float) and math.isnan(serialized_array[i][j]):
+                    serialized_array[i][j] = None
+                if isinstance(serialized_array[i][j], str) and len(serialized_array[i][j]) > MAX_CELL_SIZE:
+                    serialized_array[i][j] = serialized_array[i][j][:MAX_CELL_SIZE]
                     oversize_cells.append((i, j))
         if oversize_cells:
             if len(oversize_cells) == 1:
@@ -251,7 +251,7 @@ class GoogleSheetsAdapter(Adapter):
                 f"Truncated {len(oversize_cells)} cell{plural}{example_cells_str} to their first {MAX_CELL_SIZE} "
                 + " characters to fit within Google Sheets max cell size limit."
             )
-        return serialized_records
+        return serialized_array
 
     @staticmethod
     def dump(df, uri):
@@ -333,23 +333,32 @@ class GoogleSheetsAdapter(Adapter):
                     if set(existing_columns) != set(df.columns):
                         missing_remote = list(set(df.columns) - set(existing_columns))
                         missing_local = list(set(existing_columns) - set(df.columns))
-                        missing_remote_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_remote))
-                        missing_local_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_local))
-                        logger.warning(f"Columns don't match in {sheet_name}. Appending matching columns anyways. \nNew columns to be added to spreadsheet: \n{missing_remote_str}.\n Columns to be filled in as blank for new rows: \n{missing_local_str}")
+                        log_statements = [f"Columns don't match in {sheet_name}. Appending matching columns anyways."]
+                        if missing_remote:
+                            print(f'{existing_columns=}')
+                            print(f'{df.columns=}')
+                            print(f'{missing_remote=}')
+                            missing_remote_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_remote))
+                            log_statements.append(f'New columns to be added to spreadsheet: \n{missing_remote_str}.')
+                        if missing_local:
+                            missing_local_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_local))
+                            log_statements.append(f'Columns to be filled in as blank for new rows: \n{missing_local_str}')
+                        logger.warning('\n'.join(log_statements))
                         # reconfigure sheet
-                        columns = len(existing_columns) + len(missing_remote)
-                        GoogleSheetsAdapter._reshape_sheet(
-                            googlesheets, spreadsheet_id, sheet_id,
-                            columns=columns,
-                            rows=existing_rows_count,
-                        )
-                        # inject new headers
-                        googlesheets.spreadsheets().values().update(
-                            spreadsheetId=spreadsheet_id,
-                            range=f"'{sheet_name}'!{integer_to_spreadsheet_column_str(len(existing_columns))}1",
-                            valueInputOption="RAW",
-                            body={"values": [missing_remote]},
-                        ).execute()
+                        if missing_remote:
+                            columns = len(existing_columns) + len(missing_remote)
+                            GoogleSheetsAdapter._reshape_sheet(
+                                googlesheets, spreadsheet_id, sheet_id,
+                                columns=columns,
+                                rows=existing_rows_count,
+                            )
+                            # inject new headers
+                            googlesheets.spreadsheets().values().update(
+                                spreadsheetId=spreadsheet_id,
+                                range=f"'{sheet_name}'!{integer_to_spreadsheet_column_str(len(existing_columns))}1",
+                                valueInputOption="RAW",
+                                body={"values": [missing_remote]},
+                            ).execute()
                         # add in blank columns
                         for col in missing_local:
                             df[col] = None
@@ -366,7 +375,7 @@ class GoogleSheetsAdapter(Adapter):
                     raise AssertionError
 
         # Insert data
-        serialized_cells = GoogleSheetsAdapter._serialize_df_records(df)
+        serialized_cells = GoogleSheetsAdapter._serialize_df_to_array(df)
         if reformat:
             serialized_cells = [list(df.columns)] + serialized_cells
         googlesheets.spreadsheets().values().update(
