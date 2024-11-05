@@ -14,7 +14,7 @@ from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 
-@register_adapter(["list", "csa", "jsonarray", "pythonlist", "pylist", "yamlsequence"])
+@register_adapter(["list", "csa", "tsa", "jsonarray", "pythonlist", "pylist", "yamlsequence"])
 class TextArrayAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
@@ -32,12 +32,14 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         elif scheme == "yamlsequence":
             data_stream = io.StringIO(data)
             array = [(item,) for item in yaml.safe_load(data_stream)]
-        elif scheme in ("csa", "list"):
+        elif scheme in ("csa", "tsa", "list"):
             param_separator = params.get("separator", params.get("sep"))
             if param_separator:
                 separator = param_separator
+                if separator == '\\t':
+                    separator = '\t'
             else:
-                separator = {"csa": ",", "list": "\n"}[scheme]
+                separator = {"csa": ",", "list": "\n", "tsa": "\t"}[scheme]
             if separator[-1] == "\n" and data[-1] == "\n":
                 data = data[:-1]
             array = ((item,) for item in data.split(separator))
