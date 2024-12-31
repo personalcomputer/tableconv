@@ -162,7 +162,9 @@ supported url schemes:
   example.ldjson 
   example.ndjson 
   example.numbers (source only)
+  example.odf 
   example.ods 
+  example.odt 
   example.orc (source only)
   example.parquet 
   example.pcap (source only)
@@ -172,6 +174,8 @@ supported url schemes:
   example.python 
   example.tsv 
   example.xls 
+  example.xlsb 
+  example.xlsm 
   example.xlsx 
   example.yaml 
   example.yml 
