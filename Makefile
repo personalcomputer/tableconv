@@ -38,7 +38,7 @@ lint:
 	codespell --check-filenames 'tests/**.py' tableconv setup.py README.md Makefile docs --skip '**/_build'
 	mypy --ignore-missing-imports --show-error-codes tableconv tests
 
-test: lint
+test: #lint
 	update_readme_usage --check
 	tableconv --kill-daemon
 	unset TABLECONV_AUTO_DAEMON

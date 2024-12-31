@@ -146,6 +146,7 @@ supported url schemes:
   awsathena://eu-central-1 
   awsdynamodb://eu-central-1/example_table (source only)
   awslogs://eu-central-1//aws/lambda/example-function (source only)
+  cmd://ls -l (source only)
   csa:- 
   example.csv 
   example.dta 
@@ -164,6 +165,8 @@ supported url schemes:
   example.ods 
   example.orc (source only)
   example.parquet 
+  example.pcap (source only)
+  example.pcapng (source only)
   example.pickledf 
   example.py 
   example.python 
@@ -172,10 +175,12 @@ supported url schemes:
   example.xlsx 
   example.yaml 
   example.yml 
+  folder:///tmp/example 
   gsheets://:new: 
   jc://ls -l (source only)
   jiraformat:- (dest only)
   jsonarray:- 
+  jsondict:- (source only)
   latex:- (dest only)
   leveldblog:output-0 (source only)
   list:- 
@@ -185,7 +190,7 @@ supported url schemes:
   moinmoinformat:- (dest only)
   mssql://127.0.0.1:5432/example_db 
   mysql://127.0.0.1:5432/example_db 
-  nestedlist:- (source only)
+  nestedlist:- 
   oracle://127.0.0.1:5432/example_db 
   osquery://processes (source only)
   postgis://127.0.0.1:5432/example_db 
@@ -194,6 +199,7 @@ supported url schemes:
   pylist:- 
   pythonlist:- 
   rst:- (dest only)
+  sh://ls -l (source only)
   smartsheet://SHEET_ID (source only)
   sql_literal:- (dest only)
   sql_values:- (dest only)
@@ -201,6 +207,7 @@ supported url schemes:
   sqlite:///tmp/example.db 
   sumologic://?from=2021-03-01T00:00:00Z&to=2021-05-03T00:00:00Z (source only)
   tex:- (dest only)
+  tsa:- 
   yamlsequence:- 
 
 help & support:
