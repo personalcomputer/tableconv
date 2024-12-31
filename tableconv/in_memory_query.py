@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
     """
-    DuckDB doesn't support creating columns of arrays. It returns the values always as NaN. So, as a workaround, convert
-    all array columns to string.
+    I've struggled to make DuckDB support creating columns of arrays. In my attempts, it returns the values always as
+    NaN. So, as a workaround, convert all array columns to string.
 
-    The docs aren't clear to me, so this understanding may not be entirely correct. References:
+    The docs aren't clear to me, so my understanding is incomplete. Some references:
     - https://duckdb.org/docs/sql/data_types/nested
     - https://github.com/duckdb/duckdb/issues/1421
     """
@@ -42,8 +42,9 @@ def pre_process(dfs, query) -> Tuple:
     Warning: this function preprocesses both the query and the dfs, i.e. it actually mutates `dfs` too!
     Warning: this is very poorly implemented! Uses ultra-basic parsing to match parenthesis and find arguments.
     """
+    # transpose()
     if "transpose(data)" in query:
-        ANTI_CONFLICT_STR = "027eade341cf"  # (random text to avoid name conflicts)
+        ANTI_CONFLICT_STR = "027eade341cf"  # (rare/unique sentinel string to avoid name conflicts)
         transposed_data_table_name = f"transposed_data_{ANTI_CONFLICT_STR}"
         query = query.replace("transpose(data)", f'"{transposed_data_table_name}"')
         for table_name, df in dfs:
@@ -53,9 +54,11 @@ def pre_process(dfs, query) -> Tuple:
         transposed_data_df = data_df.transpose(copy=True).reset_index()
         dfs.append((transposed_data_table_name, transposed_data_df))
 
+    # from_unix()
     query = re.sub(
         r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query, flags=re.IGNORECASE
     )
+    # from_iso8601()
     query = re.sub(r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query, flags=re.IGNORECASE)
 
     return dfs, query
@@ -70,6 +73,7 @@ def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataF
     for table_name, df in dfs:
         flatten_arrays_for_duckdb(df)
         duck_conn.register(table_name, df)
+    logger.debug(f"Running query in duckdb: {query}")
     try:
         duck_conn.execute(query)
     except (RuntimeError, duckdb.ParserException, duckdb.CatalogException) as exc:
