@@ -91,18 +91,15 @@ class RDBMSAdapter(Adapter):
     @staticmethod
     def load(uri, query):
         import sqlalchemy.exc
-        from sqlalchemy import text as sqlalchemy_text
-
         engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parse_uri(uri))
-        query_text = sqlalchemy_text(query)
 
         if query:
             try:
-                if PD_VERSION[0] >= 2 and PD_VERSION[1] >= 2 and PD_VERSION[2] >= 2:
-                    with engine.connect() as conn:
-                        return pd.read_sql(sql=query_text, con=conn.connection)
-                else:
-                    return pd.read_sql(sql=query_text, con=engine)
+                # if PD_VERSION[0] >= 2 and PD_VERSION[1] >= 2 and PD_VERSION[2] >= 2:
+                #     with engine.connect() as conn:
+                #         return pd.read_sql(sql=query, con=conn.connection)
+                # else:
+                return pd.read_sql(sql=query, con=engine)
             except sqlalchemy.exc.ProgrammingError as exc:
                 raise InvalidQueryError(*exc.args) from exc
         elif table:
