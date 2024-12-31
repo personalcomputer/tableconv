@@ -165,7 +165,7 @@ class GoogleSheetsAdapter(Adapter):
         request = {
             "addSheet": {
                 "properties": {
-                    "gridProperties": {"columnCount": columns, "rowCount": rows},
+                    "gridProperties": {"columnCount": columns, "rowCount": rows + 1},
                     "index": 0,
                     "sheetType": "GRID",
                     "title": sheet_name,
@@ -184,7 +184,7 @@ class GoogleSheetsAdapter(Adapter):
         request = {
             "updateSheetProperties": {
                 "properties": {
-                    "gridProperties": {"columnCount": columns, "rowCount": rows},
+                    "gridProperties": {"columnCount": columns, "rowCount": rows + 1},
                     "sheetId": sheet_id,
                 },
                 "fields": "gridProperties.columnCount,gridProperties.rowCount",
@@ -325,7 +325,7 @@ class GoogleSheetsAdapter(Adapter):
                     # raise NotImplementedError("Sheet if_exists=replace not implemented yet")
                 elif if_exists == "append":
                     reformat = False
-                    existing_rows_count = sheet["gridProperties"]["rowCount"]
+                    existing_rows_count = sheet["gridProperties"]["rowCount"] - 1
                     existing_columns = googlesheets.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="1:1").execute()['values'][0]
                     duplicate_column_names = len(set(existing_columns)) != len(existing_columns) or len(set(df.columns)) != len(df.columns)
                     if duplicate_column_names:
