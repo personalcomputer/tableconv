@@ -2,6 +2,7 @@ import json
 
 import marko
 import pandas as pd
+import numpy as np
 
 from tableconv.exceptions import SourceParseError
 from tableconv.adapters.df.base import Adapter, register_adapter
@@ -50,15 +51,19 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_text_data(df, scheme, params):
+        df.replace({np.nan: None}, inplace=True)
         resultlines = []
-        current_heading = None
-        for _, row in df.iterrows():
-            if row.iloc[0] != current_heading:
-                indent = 0
-                resultlines.append(f'{indent * " "}- {current_heading}')
-                current_heading = row.iloc[0]
-            indent = 1
-            resultlines.append(f'{indent * "  "}- {row.iloc[1]}')
+        # result_nested_dict = {}
+        rows = [row for _, row in df.iterrows()]
+        xpath = []
+        num_columns = len(df.columns)
+        for row in rows:
+            for i in range(num_columns):
+                if len(xpath) < i + 1 or row.iloc[i] != xpath[i]:
+                    xpath = xpath[:i]
+                    xpath.append(row.iloc[i])
+                    if row.iloc[i]:
+                        resultlines.append(f'{i * "    "}* {xpath[i]}')
         return '\n'.join(resultlines)
 
 
