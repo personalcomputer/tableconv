@@ -76,7 +76,7 @@ class GoogleSheetsAdapter(Adapter):
         from oauth2client.file import Storage
 
         creds_path = os.path.expanduser("~/.tableconv-gsheets-credentials")
-        if not os.path.exists(creds_path):
+        if not os.path.exists(creds_path) and not os.path.exists(GSHEETS_OAUTH_SECRETS_FILE_PATH):
             raise URLInaccessibleError(
                 "gsheets integration requires configuring Google Sheets API authentication credentials. "
                 "Please run `tableconv configure gsheets --help` for help."
