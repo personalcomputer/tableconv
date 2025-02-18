@@ -52,6 +52,9 @@ def pre_process(dfs, query) -> Tuple:
                 data_df = df
                 break
         transposed_data_df = data_df.transpose(copy=True).reset_index()
+        transposed_data_df.columns = transposed_data_df.iloc[0].values
+        transposed_data_df = transposed_data_df.iloc[1:].reset_index(drop=True)
+
         dfs.append((transposed_data_table_name, transposed_data_df))
 
     # from_unix()

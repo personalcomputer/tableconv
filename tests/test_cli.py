@@ -316,3 +316,8 @@ def test_table_to_array(invoke_cli):
     """Test table (csv) to to array (csa) conversion"""
     stdout = invoke_cli(["csv:-", "-q", "SELECT name from data", "-o", "csa:-"], stdin=EXAMPLE_CSV_RAW)
     assert stdout == "George,Steven,Rachel"
+
+
+def test_transpose(invoke_cli):
+    stdout = invoke_cli([FIXTURES_DIR / "commodities.tsv", "-Q", "select * from transpose(data)", '-o', 'tsv:-'])
+    assert stdout == open(FIXTURES_DIR / "commodities-transposed.tsv").read()
