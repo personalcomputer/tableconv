@@ -28,8 +28,8 @@ class AWSLogs(Adapter):
         uri = parse_uri(uri)
         aws_region = uri.authority
 
-        from_time = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
-        to_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        from_time = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
+        to_time = datetime.datetime.now(tz=datetime.UTC)
         if "from" in uri.query:
             from_time = parse_input_time(uri.query["from"])
         if "to" in uri.query:

@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -20,7 +19,7 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
     - https://github.com/duckdb/duckdb/issues/1421
     """
     flattened = set()
-    for col_name, dtype in zip(df.dtypes.index, df.dtypes):
+    for col_name, dtype in zip(df.dtypes.index, df.dtypes, strict=False):
         if dtype == np.dtype("O"):
             # "Object" type. anything non-numeric, or of mixed-type, is type Object in pandas. So we need to further
             # specifically inspect for arrays.
@@ -32,7 +31,7 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
         logger.warning(f"Flattened some columns into strings for in-memory query: {flattened_display}")
 
 
-def pre_process(dfs, query) -> Tuple:
+def pre_process(dfs, query) -> tuple:
     """
     Preprocess the SQL query, to allow us to extend the DuckDB query language. Supported extensions:
     - transpose()
@@ -67,7 +66,7 @@ def pre_process(dfs, query) -> Tuple:
     return dfs, query
 
 
-def query_in_memory(dfs: List[Tuple[str, pd.DataFrame]], query: str) -> pd.DataFrame:
+def query_in_memory(dfs: list[tuple[str, pd.DataFrame]], query: str) -> pd.DataFrame:
     """Warning: Has a side effect of mutating the dfs"""
     import duckdb
 

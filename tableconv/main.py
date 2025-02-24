@@ -5,7 +5,6 @@ import logging.config
 import os
 import sys
 import textwrap
-from typing import Union
 
 from duckdb import __version__ as DUCKDB_VERSION_STR
 from pandas import __version__ as PD_VERSION_STR
@@ -92,7 +91,7 @@ class NoExitArgParser(argparse.ArgumentParser):
         raise argparse.ArgumentError(None, message)
 
 
-def raise_argparse_style_error(error: Union[str, Exception], usage=None):
+def raise_argparse_style_error(error: str | Exception, usage=None):
     if usage:
         print(f"usage: {usage % dict(prog=PROG)}", file=sys.stderr)
     if isinstance(error, Exception):

@@ -1,7 +1,6 @@
 import configparser
 import logging
 import os
-from typing import Optional
 
 import pandas as pd
 
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 PD_VERSION = [int(i) for i in pd.__version__.split(".")]
 
 
-def resolve_pgcli_uri_alias(dsn: str) -> Optional[str]:
+def resolve_pgcli_uri_alias(dsn: str) -> str | None:
     """
     Hidden feature: Use configured database uri aliases. Currently only supported for aliases configured for postgres
     and configured in the pgcli config format.

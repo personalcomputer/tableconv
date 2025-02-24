@@ -51,7 +51,7 @@ def scapy_load(path):
     def scapy_layer_to_dict(packet, top_layer=False):
         record = {}
         if top_layer:
-            record["timestamp"] = datetime.datetime.fromtimestamp(float(packet.time), tz=datetime.timezone.utc)
+            record["timestamp"] = datetime.datetime.fromtimestamp(float(packet.time), tz=datetime.UTC)
         # record['layer_name'] = packet.name
         for f in packet.fields_desc:
             if isinstance(f, ConditionalField) and not f._evalcond(packet):

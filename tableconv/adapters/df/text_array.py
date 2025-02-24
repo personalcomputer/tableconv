@@ -3,7 +3,6 @@ import io
 import json
 import os
 import re
-from typing import Optional
 
 import pandas as pd
 import yaml
@@ -74,7 +73,7 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
                     ",": "comma",
                     "\n": "new-line",
                 }[separator]
-            if any((separator in item for item in serialized_array)):
+            if any(separator in item for item in serialized_array):
                 raise IncapableDestinationError(
                     f"Cannot write as {scheme}, one or more values contain a {separator_word}"
                 )
@@ -96,7 +95,7 @@ class FilePerRowOutputAdapter(Adapter):
         return f"{scheme}:///tmp/example (each file is considered a (filename,value) record)"
 
     @classmethod
-    def load(cls, uri: str, query: Optional[str]) -> pd.DataFrame:
+    def load(cls, uri: str, query: str | None) -> pd.DataFrame:
         parsed_uri = parse_uri(uri)
         path = parsed_uri.path
         if not os.path.exists(path):

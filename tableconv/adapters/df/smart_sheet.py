@@ -46,7 +46,7 @@ class SmartSheetAdapter(Adapter):
         records = []
         for row in data["rows"][1:]:
             record = {}
-            for column_name, cell in zip(column_names, row["cells"]):
+            for column_name, cell in zip(column_names, row["cells"], strict=False):
                 if "value" not in cell:
                     continue
                 record[column_name] = cell["value"]

@@ -208,20 +208,20 @@ class GoogleSheetsAdapter(Adapter):
                         serialized_array[i][j] = ""
                     else:
                         if obj.tzinfo is not None:
-                            obj = obj.astimezone(datetime.timezone.utc)
+                            obj = obj.astimezone(datetime.UTC)
                         # Extremely contentious formatting choices here.
                         # We can use a time format that Google Sheets recognizes/parses, but in the process dropping
                         # timezone information, obj.strftime("%Y-%m-%d %H:%M:%S")
                         # Or we can use a format that ghseets cannot recognize, but close to one, better than iso8601:
                         serialized_array[i][j] = obj.strftime("%Y-%m-%d %H:%M:%S %Z")
-                elif isinstance(obj, datetime.timedelta):
+                elif isinstance(obj, datetime.timedelta):  # noqa: SIM114
                     serialized_array[i][j] = str(obj)
                     # The above is a human readable way of encoding time delta. Extremely contentious though.
                     # For reference, the ways offered by Pandas IO in its JSON module are:
                     #   epoch: Format as a number, units of seconds. equivalent to .total_seconds()
                     #   iso: The fairly obscure ISO8601 "duration" (aka *P*eriod) formatting standard.
                     #        example: "P11DT14H50M12S"
-                elif isinstance(obj, list) or isinstance(obj, dict):
+                elif isinstance(obj, list) or isinstance(obj, dict):  # noqa: SIM101
                     serialized_array[i][j] = str(obj)
                 elif hasattr(obj, "dtype"):
                     serialized_array[i][j] = obj.item()
@@ -238,7 +238,7 @@ class GoogleSheetsAdapter(Adapter):
             if len(oversize_cells) <= 5:
                 coord_strs = (f"{integer_to_spreadsheet_column_str(coord[0])}{coord[1]}" for coord in oversize_cells)
                 example_cells_str = " (" + (", ".join(coord_strs)) + ")"
-            elif all((coord[1] == oversize_cells[0][1] for coord in oversize_cells)):
+            elif all(coord[1] == oversize_cells[0][1] for coord in oversize_cells):
                 # All oversize cells are from a single column
                 example_cells_str = f" (all in column {integer_to_spreadsheet_column_str(oversize_cells[0][1])})"
             else:
@@ -287,7 +287,7 @@ class GoogleSheetsAdapter(Adapter):
         if parsed_uri.authority.lower().strip() == ":new:":
             if if_exists != "fail":
                 raise InvalidParamsError("only if_exists=fail supported for :new: spreadsheets")
-            datetime_formatted = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            datetime_formatted = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
             spreadsheet_name = params.get("name", f"Untitled {datetime_formatted}")
             spreadsheet_id = GoogleSheetsAdapter._create_spreadsheet(
                 googlesheets, spreadsheet_name, sheet_name, columns, rows
@@ -349,12 +349,12 @@ class GoogleSheetsAdapter(Adapter):
                             print(f"{df.columns=}")
                             print(f"{missing_remote=}")
                             missing_remote_str = "\n".join(
-                                (f'- {col.encode("unicode_escape").decode()}' for col in missing_remote)
+                                f'- {col.encode("unicode_escape").decode()}' for col in missing_remote
                             )
                             log_statements.append(f"New columns to be added to spreadsheet: \n{missing_remote_str}.")
                         if missing_local:
                             missing_local_str = "\n".join(
-                                (f'- {col.encode("unicode_escape").decode()}' for col in missing_local)
+                                f'- {col.encode("unicode_escape").decode()}' for col in missing_local
                             )
                             log_statements.append(
                                 f"Columns to be filled in as blank for new rows: \n{missing_local_str}"

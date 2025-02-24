@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import pandas as pd
 
 from tableconv.in_memory_query import query_in_memory
@@ -31,11 +29,11 @@ class Adapter:
         raise NotImplementedError(f"get_example_url not defined for {scheme}")
 
     @classmethod
-    def load(cls, uri: str, query: Optional[str]) -> pd.DataFrame:
+    def load(cls, uri: str, query: str | None) -> pd.DataFrame:
         raise NotImplementedError
 
     @classmethod
-    def dump(cls, df: pd.DataFrame, uri: str) -> Optional[str]:
+    def dump(cls, df: pd.DataFrame, uri: str) -> str | None:
         raise NotImplementedError
 
 
@@ -44,7 +42,7 @@ read_adapters: dict[str, Adapter] = {}
 write_adapters: dict[str, Adapter] = {}
 
 
-def register_adapter(schemes: List[str], write_only: bool = False, read_only: bool = False):
+def register_adapter(schemes: list[str], write_only: bool = False, read_only: bool = False):
     """
     TODO: better decorator api proposal:
     @register_write_adapter(

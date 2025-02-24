@@ -1,11 +1,10 @@
 import datetime
 import re
-from typing import Union
 
 from dateutil.parser import parse as dateutil_parse
 
 
-def parse_input_time(val: str) -> Union[datetime.timedelta, datetime.datetime]:
+def parse_input_time(val: str) -> datetime.timedelta | datetime.datetime:
     hms_match = re.match(r"^\-?(\d\d):(\d\d):(\d\d)$", val)
     if hms_match:
         seconds = (

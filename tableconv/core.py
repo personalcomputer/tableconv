@@ -7,7 +7,7 @@ import re
 import tempfile
 import urllib.parse
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import ciso8601
 import pandas as pd
@@ -29,7 +29,7 @@ from tableconv.uri import parse_uri
 logger = logging.getLogger(__name__)
 
 
-def resolve_query_arg(query: Optional[str]) -> Optional[str]:
+def resolve_query_arg(query: str | None) -> str | None:
     if not query:
         return None
 
@@ -52,7 +52,7 @@ def resolve_query_arg(query: Optional[str]) -> Optional[str]:
 
 
 class IntermediateExchangeTable:
-    def __init__(self, df=None, from_df: pd.DataFrame = None, from_dict_records: Optional[List[Dict[str, Any]]] = None):
+    def __init__(self, df=None, from_df: pd.DataFrame = None, from_dict_records: list[dict[str, Any]] | None = None):
         """
         tableconv's abstract intermediate tabular data type.
 
@@ -79,7 +79,7 @@ class IntermediateExchangeTable:
         if self.df.empty:
             raise EmptyDataError
 
-    def dump_to_url(self, url: str, params: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def dump_to_url(self, url: str, params: dict[str, Any] | None = None) -> str | None:
         """
         Export the table in the format and location identified by url.
 
@@ -98,10 +98,10 @@ class IntermediateExchangeTable:
         scheme = parse_uri(url).scheme
         try:
             write_adapter = write_adapters[scheme]
-        except KeyError as e:
+        except KeyError:
             raise UnrecognizedFormatError(
                 f'Unsupported scheme "{scheme}". Supported schemes: {", ".join(write_adapters.keys())}'
-            ) from e
+            ) from None
 
         if params:
             # TODO: This is a total hack! Implementing real structured table references, including structured passing of
@@ -130,7 +130,7 @@ class IntermediateExchangeTable:
         # TODO refactor to use this
         pass
 
-    def as_dict_records(self) -> List[Dict[str, Any]]:
+    def as_dict_records(self) -> list[dict[str, Any]]:
         """
         Expose the loaded data as a List of Dict records.
         """
@@ -151,7 +151,7 @@ class IntermediateExchangeTable:
 FSSPEC_SCHEMES = {"https", "http", "ftp", "s3", "gcs", "sftp", "scp", "abfs"}
 
 
-def parse_source_url(url: str) -> Tuple[str, Adapter]:
+def parse_source_url(url: str) -> tuple[str, Adapter]:
     """Returns source_scheme, read_adapter"""
     parsed_url = parse_uri(url)
     source_scheme = parsed_url.scheme
@@ -167,7 +167,7 @@ def parse_source_url(url: str) -> Tuple[str, Adapter]:
     except KeyError:
         raise UnrecognizedFormatError(
             f'Unsupported scheme {source_scheme}. Supported schemes: {", ".join(read_adapters.keys())}'
-        )
+        ) from None
 
     return source_scheme, read_adapter
 
@@ -197,17 +197,17 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     return new_url
 
 
-def validate_coercion_schema(schema: Dict[str, str]) -> None:
+def validate_coercion_schema(schema: dict[str, str]) -> None:
     SCHEMA_COERCION_SUPPORTED_TYPES = {"datetime", "str", "int", "float"}
     unsupported_schema_types = set(schema.values()) - SCHEMA_COERCION_SUPPORTED_TYPES
     if unsupported_schema_types:
         raise ValueError(
-            f'Unsupported schema type(s): {", ".join((str(item) for item in unsupported_schema_types))}. '
+            f'Unsupported schema type(s): {", ".join(str(item) for item in unsupported_schema_types)}. '
             + f'Please specify one of the supported types: {", ".join(SCHEMA_COERCION_SUPPORTED_TYPES)}.'
         )
 
 
-def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: bool) -> pd.DataFrame:
+def coerce_schema(df: pd.DataFrame, schema: dict[str, str], restrict_schema: bool) -> pd.DataFrame:
     validate_coercion_schema(schema)
 
     # Add missing columns
@@ -234,7 +234,7 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
                         return item.to_pydatetime()
                     raise TypeError(item)
 
-                df[col] = df.apply(lambda r: coerce_datetime(r[col]), axis=1)
+                df[col] = df.apply(lambda r, col=col: coerce_datetime(r[col]), axis=1)
             elif schema[col] == "str":
                 df[col] = df[col].astype("string")
             elif schema[col] == "int":
@@ -246,8 +246,8 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
                 # Remove trailing 0s after decimal point (int() errors on '1.0' input)
                 re_decimal = re.compile(r"\.0*\s*$")
                 df[col] = df.apply(
-                    lambda r: (
-                        int(re_decimal.sub("", str(r[col])))
+                    lambda r, col=col: (
+                        int(re_decimal.sub("", str(r[col])))  # noqa: B023
                         if (r[col] not in (None, "") and not pd.isna(r[col]))
                         else None
                     ),
@@ -256,7 +256,8 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
                 # df[col] = pd.to_numeric(df[col], downcast='integer')
             elif schema[col] == "float":
                 df[col] = df.apply(
-                    lambda r: float(r[col]) if (r[col] not in (None, "") and not pd.isna(r[col])) else None, axis=1
+                    lambda r, col=col: float(r[col]) if (r[col] not in (None, "") and not pd.isna(r[col])) else None,
+                    axis=1,
                 )
         except (ValueError, TypeError) as exc:
             raise SchemaCoercionError(
@@ -325,11 +326,11 @@ def save_to_cache(read_adapter_name, url, query, df):
 
 
 def load_url(
-    url: Union[str, Path],
-    params: Optional[Dict[str, Any]] = None,
-    query: Optional[str] = None,
-    filter_sql: Optional[str] = None,
-    schema_coercion: Optional[Dict[str, str]] = None,
+    url: str | Path,
+    params: dict[str, Any] | None = None,
+    query: str | None = None,
+    filter_sql: str | None = None,
+    schema_coercion: dict[str, str] | None = None,
     restrict_schema: bool = False,
     autocache: bool = False,
 ) -> IntermediateExchangeTable:

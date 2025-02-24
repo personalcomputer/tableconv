@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import pandas as pd
 import requests
@@ -56,8 +56,8 @@ class SumoLogicClient:
     def search_job(self, query, from_time=None, to_time=None, time_zone="UTC", by_receipt_time=None):
         data = {
             "query": query,
-            "from": from_time.astimezone(datetime.timezone.utc).strftime(SUMO_API_TS_FORMAT),
-            "to": to_time.astimezone(datetime.timezone.utc).strftime(SUMO_API_TS_FORMAT),
+            "from": from_time.astimezone(datetime.UTC).strftime(SUMO_API_TS_FORMAT),
+            "to": to_time.astimezone(datetime.UTC).strftime(SUMO_API_TS_FORMAT),
             "timeZone": time_zone,
             "byReceiptTime": by_receipt_time,
         }
@@ -79,16 +79,16 @@ class SumoLogicClient:
 
 def get_sumo_data(
     search_query: str,
-    search_from: Union[datetime.datetime, datetime.timedelta],
-    search_to: Optional[Union[datetime.datetime, datetime.timedelta]] = None,
+    search_from: datetime.datetime | datetime.timedelta,
+    search_to: datetime.datetime | datetime.timedelta | None = None,
     by_receipt_time: bool = False,
 ):
     if isinstance(search_from, datetime.timedelta):
-        search_from = datetime.datetime.now(tz=datetime.timezone.utc) - search_from
+        search_from = datetime.datetime.now(tz=datetime.UTC) - search_from
     if isinstance(search_to, datetime.timedelta):
-        search_to = datetime.datetime.now(tz=datetime.timezone.utc) - search_to
+        search_to = datetime.datetime.now(tz=datetime.UTC) - search_to
     if search_to is None:
-        search_to = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)
+        search_to = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
 
     SUMO_CREDS = yaml.safe_load(open(CREDENTIALS_FILE_PATH))
     sumo = SumoLogicClient(SUMO_CREDS["access_id"], SUMO_CREDS["access_key"])
@@ -122,7 +122,7 @@ def get_sumo_data(
     message_count = status["messageCount"]
     logger.info(f"Downloading sumo results (message count: {message_count})")
 
-    raw_results: List[Dict[str, Any]] = []
+    raw_results: list[dict[str, Any]] = []
     if message_count > 0:
         offset = 0
         while offset < message_count:
@@ -130,7 +130,7 @@ def get_sumo_data(
                 search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset
             )["messages"]
             assert search_output
-            raw_results.extend((r["map"] for r in search_output))
+            raw_results.extend(r["map"] for r in search_output)
             offset += len(search_output)
             logger.debug(f"Sumo message download {round(100 * offset / message_count)}% complete")
     assert len(raw_results) == message_count

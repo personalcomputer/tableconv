@@ -58,7 +58,7 @@ def normalize_pandas_multiindex(df, nesting_sep: str, truncate_redundant_hierarc
     if not isinstance(df.columns, pd.core.indexes.multi.MultiIndex):
         return
 
-    if truncate_redundant_hierarchy and any((len(column) > 2 for column in df.columns)):
+    if truncate_redundant_hierarchy and any(len(column) > 2 for column in df.columns):
         logger.warning(
             "Table hierarchy depth is over 2. Support for accurately truncating redundant header hierarchies"
             "deeper than 2 is not fully implemented"
@@ -75,7 +75,7 @@ def normalize_pandas_multiindex(df, nesting_sep: str, truncate_redundant_hierarc
         if (
             truncate_redundant_hierarchy
             and column[0] not in duplicate_top_headings
-            and all((sub_heading == column[0] for sub_heading in column))
+            and all(sub_heading == column[0] for sub_heading in column)
         ):
             # All sub-headings are the same
             new_columns.append(column[0])
@@ -113,7 +113,7 @@ class HTMLAdapter(FileAdapterMixin, Adapter):
             buffer.seek(0)
             df = pd.read_html(buffer, **params)[table_index]
             # Put back in newlines in the place of the passed through sentinel values, within the parsed data frame.
-            for dtype, column in zip(df.dtypes, df.columns):
+            for dtype, column in zip(df.dtypes, df.columns, strict=False):
                 if dtype in ("object", str):
                     df[column] = df[column].str.replace(NEWLINE_PLACHOLDER, "\n", regex=False)
         else:

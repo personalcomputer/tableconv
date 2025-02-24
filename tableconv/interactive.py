@@ -6,7 +6,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-from typing import Optional
 
 from tableconv.core import IntermediateExchangeTable, load_url
 from tableconv.exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
@@ -28,7 +27,7 @@ def os_open(url: str):
     raise RuntimeError(f"Not sure how to open files/urls on {sys.platform}")
 
 
-def handle_administrative_command(query: str, source: str, last_result: Optional[IntermediateExchangeTable]):
+def handle_administrative_command(query: str, source: str, last_result: IntermediateExchangeTable | None):
     cmd_char = query[0]
     cmd = query[1:].split(" ")
     if cmd[0] in ("h", "help", "?"):

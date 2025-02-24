@@ -1,7 +1,7 @@
 import os
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from tableconv.exceptions import InvalidURLSyntaxError
 
@@ -9,10 +9,10 @@ from tableconv.exceptions import InvalidURLSyntaxError
 @dataclass
 class URI:
     scheme: str
-    query: Dict[str, Any]
-    authority: Optional[str] = None
+    query: dict[str, Any]
+    authority: str | None = None
     path: str = ""
-    fragment: Optional[str] = None
+    fragment: str | None = None
 
 
 def parse_uri(uri_str: str) -> URI:

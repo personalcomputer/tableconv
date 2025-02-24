@@ -21,8 +21,9 @@ clean:
 	rm -fr htmlcov/
 
 lint:
-	uv run flake8 tableconv tests setup.py
-	uv run black tableconv --exclude 'main\.py' --line-length 120 --check
+	uv run ruff check tableconv tests
+	uv run black tableconv --check
+	uv run isort tableconv --check
 	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
 	uv run update_readme_usage --check
 	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
