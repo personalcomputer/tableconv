@@ -58,6 +58,11 @@ servedocs: docs ## Autoreload docs
 	uvx --with sphinx --from watchdog watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean ## Build and release to PyPI
+	# Get primary branch name
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ] && [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then \
+		echo "Error: Must be on main/master branch to do release"; \
+		exit 1; \
+	fi
 	@if git diff --exit-code --cached > /dev/null 2>&1 && git diff --exit-code > /dev/null 2>&1; then \
 		echo "No changes to commit"; \
 		exit 0; \
@@ -76,3 +81,5 @@ release: clean ## Build and release to PyPI
 	uv build
 	ls -l dist
 	uv publish --token "$$(pcregrep -o1 'password: (pypi-.+)$$' ~/.pypirc)"
+	# Push the release to github too.
+	git push -u origin $$(git rev-parse --abbrev-ref HEAD)
