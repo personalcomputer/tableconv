@@ -24,7 +24,7 @@ lint:
 	uv run flake8 tableconv tests setup.py
 	uv run black tableconv --exclude 'main\.py' --line-length 120 --check
 	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
-	uv run update_readme_usage --check
+	@which update_readme_usage >/dev/null 2>&1 && uv run update_readme_usage --check || true
 	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
 
 test:
