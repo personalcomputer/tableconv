@@ -1,10 +1,11 @@
 import ast
-import pandas as pd
-import numpy as np
 
-from tableconv.exceptions import SourceParseError
+import numpy as np
+import pandas as pd
+
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
+from tableconv.exceptions import SourceParseError
 
 
 @register_adapter(["py", "python"])

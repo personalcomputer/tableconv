@@ -1,12 +1,13 @@
 import json
 import os
 import sys
+from typing import Any
 
 import pandas as pd
 
-from tableconv.exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
+from tableconv.exceptions import InvalidParamsError, SourceParseError
 
 
 @register_adapter(["json", "jsonl", "jsonlines", "ldjson", "ndjson"])
@@ -112,7 +113,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
             if_exists = params["if_exists"]
             if if_exists == "error":
                 if_exists = "fail"
-            assert if_exists in {'fail', 'append', 'replace'}
+            assert if_exists in {"fail", "append", "replace"}
         elif "append" in params and params["append"].lower() != "false":
             if_exists = "append"
         elif "overwrite" in params and params["overwrite"].lower() != "false":
@@ -120,9 +121,9 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         else:
             if_exists = "fail"
 
-        if if_exists == 'append':
-            if scheme != 'jsonl':
-                raise NotImplementedError('?if_exists=append is only supported with jsonl')
+        if if_exists == "append":
+            if scheme != "jsonl":
+                raise NotImplementedError("?if_exists=append is only supported with jsonl")
 
         if "indent" in params:
             indent = int(params["indent"])
@@ -140,18 +141,18 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         if scheme == "jsonl" and orient != "records":
             raise InvalidParamsError("?orient must be records for jsonl")
         if unnest:
-            if orient != 'records':
-                raise NotImplementedError('?unnest is only supported with orient=records')
-            if scheme != 'json':
-                raise NotImplementedError('?unnest is not supported with jsonl')
+            if orient != "records":
+                raise NotImplementedError("?unnest is only supported with orient=records")
+            if scheme != "json":
+                raise NotImplementedError("?unnest is not supported with jsonl")
 
         if unnest:
             # if os.path.exists(path):
             #     if if_exists == "fail":
             #         raise TableAlreadyExistsError(f"{path} already exists")
             #     assert if_exists == 'replace'
-            unnested_dict = unnest_df(df, nesting_sep=params.get('nesting_sep', '.'))
-            json.dump(unnested_dict, open(path, 'w'), default=json_encoder_default, indent=indent)
+            unnested_dict = unnest_df(df, nesting_sep=params.get("nesting_sep", "."))
+            json.dump(unnested_dict, open(path, "w"), default=json_encoder_default, indent=indent)
         else:
             if orient in ["split", "index", "columns"]:
                 # Index required. Use first column as index.
@@ -165,7 +166,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                 if if_exists == "append":
                     path_or_buf = open(path, "a")
 
-            df.to_json(path_or_buf, lines=(scheme == "jsonl"), date_format='iso', indent=indent, orient=orient)
+            df.to_json(path_or_buf, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
 
             if not isinstance(path_or_buf, str):
                 path_or_buf.close()
@@ -181,25 +182,26 @@ def json_encoder_default(obj):
 
 
 def unnest_df(df, nesting_sep) -> list[dict]:
-    '''
+    """
     WARNING: extremely inefficient and weak/untested
-    '''
+    """
     # detect if unnesting has a naming conflict
     columns = set(df.columns)
     for column in columns:
         if nesting_sep in column:
             subkeys = column.split(nesting_sep)
-            subkeys_materialized = {'.'.join(subkeys[:x+1]) for x in range(len(subkeys[:-1]))}
+            subkeys_materialized = {".".join(subkeys[: x + 1]) for x in range(len(subkeys[:-1]))}
             if subkeys_materialized.intersection(columns):
                 conflict_col = list(subkeys_materialized.intersection(columns))[0]
                 raise ValueError(f'Unnesting key conflict: column "{column}" conflicts with column "{conflict_col}"')
-                # TODO: rename the conflict in this case, somewhere. e.g. rename the conflict column to "{name}_unexpanded" or something?
+                # TODO: rename the conflict in this case, somewhere.
+                # e.g. rename the conflict column to "{name}_unexpanded" or something?
 
     # unnest
     new_records = []
     records = df.to_dict(orient="records")
     for record in records:
-        new_record = dict()
+        new_record: dict[str, Any] = dict()
         for key, value in record.items():
             sub_keys = key.split(nesting_sep)
             leaf_key = sub_keys[-1]

@@ -132,7 +132,7 @@ def get_sumo_data(
             assert search_output
             raw_results.extend((r["map"] for r in search_output))
             offset += len(search_output)
-            logger.debug(f"Sumo message download {round(100*offset/message_count)}% complete")
+            logger.debug(f"Sumo message download {round(100 * offset / message_count)}% complete")
     assert len(raw_results) == message_count
 
     sumo.delete_search_job(search_job_id)

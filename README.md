@@ -102,23 +102,18 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -q SOURCE_QUERY, -Q SOURCE_QUERY, --query SOURCE_QUERY
+  -q, -Q, --query SOURCE_QUERY
                         Query to run on the source. Even for non-SQL datasources (e.g. csv or
                         json), SQL querying is still supported, try `SELECT * FROM data`.
-  -F INTERMEDIATE_FILTER_SQL, --filter INTERMEDIATE_FILTER_SQL
+  -F, --filter INTERMEDIATE_FILTER_SQL
                         Filter (i.e. transform) the input data using a SQL query operating on the
                         dataset in memory using DuckDB SQL.
-  -o DEST_URL, --dest DEST_URL, --out DEST_URL, --output DEST_URL
+  -o, --dest, --out, --output DEST_URL
                         Specify the data destination URL. If this destination already exists, be
                         aware that the default behavior is to overwrite.
   -i, --interactive     Enter interactive REPL query mode.
   --open                Open resulting file/url in the operating system desktop environment. (not
                         supported for all destination types)
-  --schema SCHEMA_COERCION, --coerce-schema SCHEMA_COERCION
-                        Coerce source schema according to a schema definition. (WARNING:
-                        experimental feature)
-  --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
-                        (WARNING: experimental feature)
   --autocache, --cache  Cache network data, and reuse cached data.
   -v, --verbose, --debug
                         Show debug details, including API calls and error sources.
@@ -126,9 +121,14 @@ options:
   --quiet               Only display errors.
   --print, --print-dest
                         Print resulting URL/path to stdout, for chaining with other commands.
+  --schema, --coerce-schema SCHEMA_COERCION
+                        Coerce source schema according to a schema definition. (WARNING:
+                        experimental feature)
+  --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
+                        (WARNING: experimental feature)
   --daemon              Tableconv startup time (python startup time) is slow. To mitigate that,
                         you can first run tableconv as a daemon, and then all future invocations
-                        (while daemon is still alive) will be fast. (WARNING: experimental
+                        will be fast. (while daemon is still alive) (WARNING: experimental
                         feature)
 
 supported url schemes:
@@ -179,7 +179,7 @@ supported url schemes:
   example.xlsx 
   example.yaml 
   example.yml 
-  folder:///tmp/example 
+  folder:///tmp/example (each file is considered a (filename,value) record) 
   gsheets://:new: 
   jc://ls -l (source only)
   jiraformat:- (dest only)

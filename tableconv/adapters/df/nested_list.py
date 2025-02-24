@@ -1,12 +1,12 @@
 import json
 
 import marko
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from tableconv.exceptions import SourceParseError
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
+from tableconv.exceptions import SourceParseError
 
 
 @register_adapter(["nestedlist"])
@@ -64,7 +64,7 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
                     xpath.append(row.iloc[i])
                     if row.iloc[i]:
                         resultlines.append(f'{i * "    "}* {xpath[i]}')
-        return '\n'.join(resultlines)
+        return "\n".join(resultlines)
 
 
 @register_adapter(["jsondict"], read_only=True)

@@ -326,29 +326,47 @@ class GoogleSheetsAdapter(Adapter):
                 elif if_exists == "append":
                     reformat = False
                     existing_rows_count = sheet["gridProperties"]["rowCount"] - 1
-                    existing_columns = googlesheets.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="1:1").execute()['values'][0]
-                    duplicate_column_names = len(set(existing_columns)) != len(existing_columns) or len(set(df.columns)) != len(df.columns)
+                    existing_columns = (
+                        googlesheets.spreadsheets()
+                        .values()
+                        .get(spreadsheetId=spreadsheet_id, range="1:1")
+                        .execute()["values"][0]
+                    )
+                    duplicate_column_names = len(set(existing_columns)) != len(existing_columns) or len(
+                        set(df.columns)
+                    ) != len(df.columns)
                     if duplicate_column_names:
-                        AppendSchemeConflictError(f"Cannot append to {sheet_name} - cannot calculate append operation when some column names are duplicated.")
+                        AppendSchemeConflictError(
+                            f"Cannot append to {sheet_name} - cannot calculate append operation when some column "
+                            "names are duplicated."
+                        )
                     if set(existing_columns) != set(df.columns):
                         missing_remote = list(set(df.columns) - set(existing_columns))
                         missing_local = list(set(existing_columns) - set(df.columns))
                         log_statements = [f"Columns don't match in {sheet_name}. Appending matching columns anyways."]
                         if missing_remote:
-                            print(f'{existing_columns=}')
-                            print(f'{df.columns=}')
-                            print(f'{missing_remote=}')
-                            missing_remote_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_remote))
-                            log_statements.append(f'New columns to be added to spreadsheet: \n{missing_remote_str}.')
+                            print(f"{existing_columns=}")
+                            print(f"{df.columns=}")
+                            print(f"{missing_remote=}")
+                            missing_remote_str = "\n".join(
+                                (f'- {col.encode("unicode_escape").decode()}' for col in missing_remote)
+                            )
+                            log_statements.append(f"New columns to be added to spreadsheet: \n{missing_remote_str}.")
                         if missing_local:
-                            missing_local_str = '\n'.join((f'- {col.encode("unicode_escape").decode()}' for col in missing_local))
-                            log_statements.append(f'Columns to be filled in as blank for new rows: \n{missing_local_str}')
-                        logger.warning('\n'.join(log_statements))
+                            missing_local_str = "\n".join(
+                                (f'- {col.encode("unicode_escape").decode()}' for col in missing_local)
+                            )
+                            log_statements.append(
+                                f"Columns to be filled in as blank for new rows: \n{missing_local_str}"
+                            )
+                        logger.warning("\n".join(log_statements))
                         # reconfigure sheet
                         if missing_remote:
                             columns = len(existing_columns) + len(missing_remote)
                             GoogleSheetsAdapter._reshape_sheet(
-                                googlesheets, spreadsheet_id, sheet_id,
+                                googlesheets,
+                                spreadsheet_id,
+                                sheet_id,
                                 columns=columns,
                                 rows=existing_rows_count,
                             )
@@ -366,7 +384,9 @@ class GoogleSheetsAdapter(Adapter):
                         df = df[existing_columns + missing_remote]
 
                     GoogleSheetsAdapter._reshape_sheet(
-                        googlesheets, spreadsheet_id, sheet_id,
+                        googlesheets,
+                        spreadsheet_id,
+                        sheet_id,
                         columns=columns,
                         rows=existing_rows_count + rows,
                     )

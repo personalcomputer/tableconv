@@ -3,15 +3,15 @@ import io
 import json
 import os
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Optional
 
 import pandas as pd
 import yaml
 
-from tableconv.uri import parse_uri
-from tableconv.exceptions import IncapableDestinationError
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
+from tableconv.exceptions import IncapableDestinationError
+from tableconv.uri import parse_uri
 
 
 @register_adapter(["list", "csa", "tsa", "jsonarray", "pythonlist", "pylist", "yamlsequence"])
@@ -36,8 +36,8 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
             param_separator = params.get("separator", params.get("sep"))
             if param_separator:
                 separator = param_separator
-                if separator == '\\t':
-                    separator = '\t'
+                if separator == "\\t":
+                    separator = "\t"
             else:
                 separator = {"csa": ",", "list": "\n", "tsa": "\t"}[scheme]
             if separator[-1] == "\n" and data[-1] == "\n":
@@ -93,22 +93,22 @@ class FilePerRowOutputAdapter(Adapter):
 
     @staticmethod
     def get_example_url(scheme):
-        return f"{scheme}:///tmp/example"
+        return f"{scheme}:///tmp/example (each file is considered a (filename,value) record)"
 
     @classmethod
     def load(cls, uri: str, query: Optional[str]) -> pd.DataFrame:
         parsed_uri = parse_uri(uri)
         path = parsed_uri.path
         if not os.path.exists(path):
-                raise ValueError(f'Unable to load {path}, path does not exist')
+            raise ValueError(f"Unable to load {path}, path does not exist")
         filenames = os.listdir(path)
         if not filenames:
-            raise ValueError(f'Unable to load {path}, no files in {path}')
+            raise ValueError(f"Unable to load {path}, no files in {path}")
         data = []
         for filename in os.listdir(path):
             with open(filename) as f:
-                value = f.read().decode()
-            data.append({'filename': filename, 'value': value})
+                value = f.read()
+            data.append({"filename": filename, "value": value})
         df = pd.DataFrame.from_records(data)
         return cls._query_in_memory(df, query)
 
@@ -116,9 +116,7 @@ class FilePerRowOutputAdapter(Adapter):
     def dump(cls, df, uri: str):
         parsed_uri = parse_uri(uri)
         if set(df.columns) != set(["filename", "value"]):
-            raise IncapableDestinationError(
-                f"Table must have only two columns: \"filename\" and \"value\""
-            )
+            raise IncapableDestinationError('Table must have only two columns: "filename" and "value"')
         path = parsed_uri.path
         if parsed_uri.authority:
             if path:
@@ -127,22 +125,22 @@ class FilePerRowOutputAdapter(Adapter):
                 path = parsed_uri.authority
         if os.path.exists(path):
             if not os.path.isdir(path):
-                raise IncapableDestinationError(f'Destination must be an empty folder. "{os.path.abspath(path)}" is a pre-existing file.')
+                raise IncapableDestinationError(
+                    f'Destination must be an empty folder. "{os.path.abspath(path)}" is a pre-existing file.'
+                )
             if os.listdir(path):
-                raise IncapableDestinationError(f'Destination folder must be empty. "{os.path.abspath(path)}" is not empty.')
+                raise IncapableDestinationError(
+                    f'Destination folder must be empty. "{os.path.abspath(path)}" is not empty.'
+                )
         os.makedirs(path, exist_ok=True)
         data = df.to_dict(orient="records")
-        for filename in (record['filename'] for record in data):
+        for filename in (record["filename"] for record in data):
             filename = str(filename)
             if re.search(r'[<>:"|?*\\/]', filename):
-                raise IncapableDestinationError(f'Filenames must not contain special characters, please slugify them using SQL. Example errant filename: "{filename}"')
+                raise IncapableDestinationError(
+                    "Filenames must not contain special characters, please slugify them using SQL. Example errant "
+                    f'filename: "{filename}"'
+                )
         for record in data:
-            with open(os.path.join(path, str(record['filename'])), 'w') as f:
-                f.write(record['value'])
-
-
-
-
-
-
-
+            with open(os.path.join(path, str(record["filename"])), "w") as f:
+                f.write(record["value"])

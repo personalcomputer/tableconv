@@ -1,10 +1,9 @@
-import pandas as pd
-
 import logging
 
-from tableconv.uri import parse_uri
-from tableconv.adapters.df.base import Adapter, register_adapter
+import pandas as pd
 
+from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 

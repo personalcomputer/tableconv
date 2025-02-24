@@ -4,9 +4,9 @@ import os
 import pandas as pd
 import requests
 
+from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.exceptions import InvalidQueryError
 from tableconv.uri import parse_uri
-from tableconv.adapters.df.base import Adapter, register_adapter
 
 
 class SmartSheetClient:

@@ -21,7 +21,7 @@ from tableconv.uri import parse_uri
 logger = logging.getLogger(__name__)
 
 PROG = os.path.basename(sys.argv[0])
-PY_VERSION_STR = f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}'
+PY_VERSION_STR = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
 def get_supported_schemes_list_str() -> str:
@@ -58,6 +58,9 @@ def set_up_logging():
             },
             "loggers": {
                 "googleapiclient.discovery_cache": {
+                    "level": "ERROR",
+                },
+                "numexpr": {
                     "level": "ERROR",
                 },
                 "botocore": {
@@ -181,20 +184,93 @@ def main(argv=None):
         exit_on_error=False,
     )
     parser.add_argument("SOURCE_URL", type=str, help="Specify the data source URL.")
-    parser.add_argument("-q", "-Q", "--query", dest="source_query", default=None, help="Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still supported, try `SELECT * FROM data`.")  # noqa: E501
-    parser.add_argument("-F", "--filter", dest="intermediate_filter_sql", default=None, help="Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using DuckDB SQL.")  # noqa: E501
-    parser.add_argument("-o", "--dest", "--out", "--output", dest="DEST_URL", type=str, help="Specify the data destination URL. If this destination already exists, be aware that the default behavior is to overwrite.")  # noqa: E501
-    parser.add_argument("-i", "--interactive", action="store_true", help="Enter interactive REPL query mode.")  # noqa: E501
-    parser.add_argument("--open", dest="open_dest", action="store_true", help="Open resulting file/url in the operating system desktop environment. (not supported for all destination types)")  # noqa: E501
-    parser.add_argument("--schema", "--coerce-schema", dest="schema_coercion", default=None, help="Coerce source schema according to a schema definition. (WARNING: experimental feature)")  # noqa: E501
-    parser.add_argument("--restrict-schema", dest="restrict_schema", action="store_true", help="Exclude all columns not included in the SCHEMA_COERCION definition. (WARNING: experimental feature)")  # noqa: E501
-    parser.add_argument("--autocache", "--cache", action="store_true", help="Cache network data, and reuse cached data.")  # noqa: E501
-    parser.add_argument("-v", "--verbose", "--debug", dest="verbose", action="store_true", help="Show debug details, including API calls and error sources.")  # noqa: E501
-    parser.add_argument("--version", action='version', help="Show version number and exit", version=f"{PROG} {__version__} (Python {PY_VERSION_STR}, DuckDB {DUCKDB_VERSION_STR}, Pandas {PD_VERSION_STR})")  # noqa: E501
+    parser.add_argument(
+        "-q",
+        "-Q",
+        "--query",
+        dest="source_query",
+        default=None,
+        help="Query to run on the source. Even for non-SQL datasources (e.g. csv or json), SQL querying is still "
+        "supported, try `SELECT * FROM data`.",
+    )
+    parser.add_argument(
+        "-F",
+        "--filter",
+        dest="intermediate_filter_sql",
+        default=None,
+        help="Filter (i.e. transform) the input data using a SQL query operating on the dataset in memory using "
+        "DuckDB SQL.",
+    )
+    parser.add_argument(
+        "-o",
+        "--dest",
+        "--out",
+        "--output",
+        dest="DEST_URL",
+        type=str,
+        help="Specify the data destination URL. If this destination already exists, be aware that the default "
+        "behavior is to overwrite.",
+    )
+    parser.add_argument("-i", "--interactive", action="store_true", help="Enter interactive REPL query mode.")
+    parser.add_argument(
+        "--open",
+        dest="open_dest",
+        action="store_true",
+        help="Open resulting file/url in the operating system desktop environment. "
+        "(not supported for all destination types)",
+    )
+    parser.add_argument(
+        "--autocache", "--cache", action="store_true", help="Cache network data, and reuse cached data."
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        "--debug",
+        dest="verbose",
+        action="store_true",
+        help="Show debug details, including API calls and error sources.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        help="Show version number and exit",
+        version=f"{PROG} {__version__} (Python {PY_VERSION_STR}, DuckDB {DUCKDB_VERSION_STR}, Pandas {PD_VERSION_STR})",
+    )
     parser.add_argument("--quiet", action="store_true", help="Only display errors.")
-    parser.add_argument("--print", "--print-dest", action="store_true", help="Print resulting URL/path to stdout, for chaining with other commands.")  # noqa: E501
-    parser.add_argument("--debug-shell", "--pandas-debug-shell", "--debug-pandas-shell", "--debug_shell", action="store_true", help=argparse.SUPPRESS)  # noqa: E501
-    parser.add_argument("--daemon", action="store_true", help="Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as a daemon, and then all future invocations (while daemon is still alive) will be fast.  (WARNING: experimental feature)")  # noqa: E501
+    parser.add_argument(
+        "--print",
+        "--print-dest",
+        action="store_true",
+        help="Print resulting URL/path to stdout, for chaining with other commands.",
+    )
+    parser.add_argument(
+        "--debug-shell",
+        "--pandas-debug-shell",
+        "--debug-pandas-shell",
+        "--debug_shell",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--schema",
+        "--coerce-schema",
+        dest="schema_coercion",
+        default=None,
+        help="Coerce source schema according to a schema definition. (WARNING: experimental feature)",
+    )
+    parser.add_argument(
+        "--restrict-schema",
+        dest="restrict_schema",
+        action="store_true",
+        help="Exclude all columns not included in the SCHEMA_COERCION definition. (WARNING: experimental feature)",
+    )
+    parser.add_argument(
+        "--daemon",
+        action="store_true",
+        help="Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as "
+        "a daemon, and then all future invocations will be fast. (while daemon is still alive) "
+        "(WARNING: experimental feature)",
+    )
 
     if argv and argv[0] in ("configure", "--configure"):
         # This is a hidden feature because it is very incomplete right now.

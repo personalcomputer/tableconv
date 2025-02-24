@@ -1,11 +1,11 @@
+"""File for all Adapters that are just minimal wrappers of pandas supported io formats"""
+
+import collections
 import csv
 import io
 import logging
 import os
 import re
-
-""" File for all Adapters that are just minimal wrappers of pandas supported io formats """
-import collections
 
 import pandas as pd
 

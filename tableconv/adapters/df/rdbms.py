@@ -5,6 +5,7 @@ from typing import Optional
 
 import pandas as pd
 
+from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.exceptions import (
     AppendSchemeConflictError,
     InvalidParamsError,
@@ -14,12 +15,10 @@ from tableconv.exceptions import (
 )
 from tableconv.uri import parse_uri
 
-from tableconv.adapters.df.base import Adapter, register_adapter
-
 logger = logging.getLogger(__name__)
 
 
-PD_VERSION = [int(i) for i in pd.__version__.split('.')]
+PD_VERSION = [int(i) for i in pd.__version__.split(".")]
 
 
 def resolve_pgcli_uri_alias(dsn: str) -> Optional[str]:
@@ -91,6 +90,7 @@ class RDBMSAdapter(Adapter):
     @staticmethod
     def load(uri, query):
         import sqlalchemy.exc
+
         engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parse_uri(uri))
 
         if query:

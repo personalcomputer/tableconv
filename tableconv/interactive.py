@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import readline
@@ -99,6 +100,17 @@ def run_interactive_shell(
         readline.read_history_file(INTERACTIVE_HIST_PATH)
     except FileNotFoundError:
         create_empty_file(INTERACTIVE_HIST_PATH)
+    except OSError as e:
+        if e.args[0] == 22:  # "Invalid argument"
+            # Corrupt file? I'm not sure how this happens, but it has happened to me.
+            date_str = datetime.datetime.now().strftime("%Y%m%d")
+            corrupt_path = INTERACTIVE_HIST_PATH + ".invalid." + date_str + ".bak"
+            os.rename(INTERACTIVE_HIST_PATH, corrupt_path)
+            create_empty_file(INTERACTIVE_HIST_PATH)
+            logger.warning(
+                f"Invalid interactive shell history file found at {INTERACTIVE_HIST_PATH}. "
+                f"Moved to {corrupt_path} and created new blank file in its place."
+            )
 
     readline.set_history_length(1000)
 

@@ -1,4 +1,5 @@
-from tableconv.adapters.df.base import write_adapters, read_adapters, adapters  # noqa: F401
+from tableconv.adapters.df.base import adapters, read_adapters, write_adapters  # noqa: F401
+
 from .ascii import *  # noqa: F401 F403
 from .aws_athena import *  # noqa: F401 F403
 from .aws_dynamodb import *  # noqa: F401 F403

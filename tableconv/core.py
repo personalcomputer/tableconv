@@ -98,10 +98,10 @@ class IntermediateExchangeTable:
         scheme = parse_uri(url).scheme
         try:
             write_adapter = write_adapters[scheme]
-        except KeyError:
+        except KeyError as e:
             raise UnrecognizedFormatError(
                 f'Unsupported scheme "{scheme}". Supported schemes: {", ".join(write_adapters.keys())}'
-            )
+            ) from e
 
         if params:
             # TODO: This is a total hack! Implementing real structured table references, including structured passing of
@@ -223,7 +223,11 @@ def coerce_schema(df: pd.DataFrame, schema: Dict[str, str], restrict_schema: boo
                     if item in (None, ""):
                         return None
                     # breakpoint()
-                    # THIS CODE DOES NOT WORK ANY MORE (!!!!!!!!!!!!!) DOES REALLY REALLY BAD THINGS. DROPS TZ INFO. CONVERTS TO "LOCAL" TIMEZONE. DROPS SUB-SECOND DATA. REALLY REALLY BAD THINGS.
+                    # THIS CODE DOES NOT WORK ANY MORE (!!) DOES REALLY BAD THINGS.
+                    # DROPS TZ INFO.
+                    # CONVERTS TO "LOCAL" TIMEZONE.
+                    # DROPS SUB-SECOND DATA.
+                    # REALLY BAD THINGS.
                     if isinstance(item, str):
                         return ciso8601.parse_datetime(item)
                     if isinstance(item, pd.Timestamp):
