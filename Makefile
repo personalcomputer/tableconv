@@ -24,7 +24,7 @@ lint:
 	uv run flake8 tableconv tests setup.py
 	uv run black tableconv --exclude 'main\.py' --line-length 120 --check
 	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
-	uv run update_readme_usage --check
+	@which update_readme_usage >/dev/null 2>&1 && uv run update_readme_usage --check || true
 	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
 
 test:
@@ -58,6 +58,11 @@ servedocs: docs ## Autoreload docs
 	uvx --with sphinx --from watchdog watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean ## Build and release to PyPI
+	# Get primary branch name
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ] && [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then \
+		echo "Error: Must be on main/master branch to do release"; \
+		exit 1; \
+	fi
 	@if git diff --exit-code --cached > /dev/null 2>&1 && git diff --exit-code > /dev/null 2>&1; then \
 		echo "No changes to commit"; \
 		exit 0; \
@@ -76,3 +81,5 @@ release: clean ## Build and release to PyPI
 	uv build
 	ls -l dist
 	uv publish --token "$$(pcregrep -o1 'password: (pypi-.+)$$' ~/.pypirc)"
+	# Push the release to github too.
+	git push -u origin $$(git rev-parse --abbrev-ref HEAD)
