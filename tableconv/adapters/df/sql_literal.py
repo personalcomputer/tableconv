@@ -19,6 +19,6 @@ class SQLLiteralAdapter(FileAdapterMixin, Adapter):
         table_name = "data"
         columns_str = ", ".join([f'"{name}"' for name in data["columns"]])
         rendered_tuples = [[repr(value) for value in item] for item in data["data"]]
-        values_str = ", ".join([f'({", ".join(items)})' for items in rendered_tuples])
+        values_str = ", ".join([f"({', '.join(items)})" for items in rendered_tuples])
 
         return f"(VALUES {values_str}) {table_name}({columns_str})"

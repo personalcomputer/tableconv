@@ -52,7 +52,7 @@ class AWSLogs(Adapter):
             while True:
                 results = client.get_query_results(queryId=query_id)
                 if results["status"] in ("Failed", "Timeout", "Unknown"):
-                    raise InvalidQueryError(f'AWS CloudWatch Logs Insights Query {results["status"]}.')
+                    raise InvalidQueryError(f"AWS CloudWatch Logs Insights Query {results['status']}.")
                 elif results["status"] == "Complete":
                     raw_array = [{item["field"]: item["value"] for item in row} for row in results["results"]]
                     break

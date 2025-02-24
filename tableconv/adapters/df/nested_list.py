@@ -63,7 +63,7 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
                     xpath = xpath[:i]
                     xpath.append(row.iloc[i])
                     if row.iloc[i]:
-                        resultlines.append(f'{i * "    "}* {xpath[i]}')
+                        resultlines.append(f"{i * '    '}* {xpath[i]}")
         return "\n".join(resultlines)
 
 

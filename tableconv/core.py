@@ -166,7 +166,7 @@ def parse_source_url(url: str) -> tuple[str, Adapter]:
         read_adapter = read_adapters[source_scheme]
     except KeyError:
         raise UnrecognizedFormatError(
-            f'Unsupported scheme {source_scheme}. Supported schemes: {", ".join(read_adapters.keys())}'
+            f"Unsupported scheme {source_scheme}. Supported schemes: {', '.join(read_adapters.keys())}"
         ) from None
 
     return source_scheme, read_adapter
@@ -202,8 +202,8 @@ def validate_coercion_schema(schema: dict[str, str]) -> None:
     unsupported_schema_types = set(schema.values()) - SCHEMA_COERCION_SUPPORTED_TYPES
     if unsupported_schema_types:
         raise ValueError(
-            f'Unsupported schema type(s): {", ".join(str(item) for item in unsupported_schema_types)}. '
-            + f'Please specify one of the supported types: {", ".join(SCHEMA_COERCION_SUPPORTED_TYPES)}.'
+            f"Unsupported schema type(s): {', '.join(str(item) for item in unsupported_schema_types)}. "
+            + f"Please specify one of the supported types: {', '.join(SCHEMA_COERCION_SUPPORTED_TYPES)}."
         )
 
 

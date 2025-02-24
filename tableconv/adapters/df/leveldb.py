@@ -6,7 +6,6 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 @register_adapter(["leveldblog"], read_only=True)
 class LevelDBLogAdapter(FileAdapterMixin, Adapter):
-
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}:output-0"

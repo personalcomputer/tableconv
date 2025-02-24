@@ -13,7 +13,6 @@ from tableconv.exceptions import InvalidParamsError
 
 @register_adapter(["pcap", "pcapng"], read_only=True)
 class PcapAdapter(FileAdapterMixin, Adapter):
-
     @staticmethod
     def load_file(scheme, path, params):
         impl = params.get("implementation", params.get("impl", "tshark"))

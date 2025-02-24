@@ -349,12 +349,12 @@ class GoogleSheetsAdapter(Adapter):
                             print(f"{df.columns=}")
                             print(f"{missing_remote=}")
                             missing_remote_str = "\n".join(
-                                f'- {col.encode("unicode_escape").decode()}' for col in missing_remote
+                                f"- {col.encode('unicode_escape').decode()}" for col in missing_remote
                             )
                             log_statements.append(f"New columns to be added to spreadsheet: \n{missing_remote_str}.")
                         if missing_local:
                             missing_local_str = "\n".join(
-                                f'- {col.encode("unicode_escape").decode()}' for col in missing_local
+                                f"- {col.encode('unicode_escape').decode()}" for col in missing_local
                             )
                             log_statements.append(
                                 f"Columns to be filled in as blank for new rows: \n{missing_local_str}"

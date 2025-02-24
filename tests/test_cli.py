@@ -58,7 +58,7 @@ def test_inferred_numbers_from_ascii_format(invoke_cli):
 def test_join(invoke_cli):
     stdout = invoke_cli(
         [
-            f'{FIXTURES_DIR / "example.tsv"} AS tab1, {FIXTURES_DIR / "example_2.csv"} AS tab2',
+            f"{FIXTURES_DIR / 'example.tsv'} AS tab1, {FIXTURES_DIR / 'example_2.csv'} AS tab2",
             "-F",
             "SELECT name, preference FROM tab1 JOIN tab2 ON tab2.id=tab1.id ORDER BY id",
             "-o",
@@ -319,5 +319,5 @@ def test_table_to_array(invoke_cli):
 
 
 def test_transpose(invoke_cli):
-    stdout = invoke_cli([FIXTURES_DIR / "commodities.tsv", "-Q", "select * from transpose(data)", '-o', 'tsv:-'])
+    stdout = invoke_cli([FIXTURES_DIR / "commodities.tsv", "-Q", "select * from transpose(data)", "-o", "tsv:-"])
     assert stdout == open(FIXTURES_DIR / "commodities-transposed.tsv").read()

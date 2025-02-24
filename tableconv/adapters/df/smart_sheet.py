@@ -57,7 +57,7 @@ class SmartSheetAdapter(Adapter):
     def load(uri, query):
         if query is not None:
             raise InvalidQueryError(
-                "Direct smartsheet query language not supported, please use -F instead for " "in-memory SQL"
+                "Direct smartsheet query language not supported, please use -F instead for in-memory SQL"
             )
 
         uri = parse_uri(uri)

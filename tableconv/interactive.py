@@ -66,7 +66,7 @@ def handle_administrative_command(query: str, source: str, last_result: Intermed
     elif cmd[0] in ("m", "multiline"):
         global multiline
         multiline = not multiline
-        print(f'(Multiline {"enabled" if multiline else "disabled"})', file=sys.stderr)
+        print(f"(Multiline {'enabled' if multiline else 'disabled'})", file=sys.stderr)
     elif cmd[0] in ("save", "export", "copy", "out", "o"):
         if last_result is None:
             print("Error: No results to export. Run a query first.", file=sys.stderr)

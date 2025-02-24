@@ -3,12 +3,7 @@ import json
 from tests.fixtures.example_raw import EXAMPLE_CSV_RAW
 
 COERCION_TESTS_JSON_RAW = (
-    "["
-    '{"id":"1.0","name":"Anatoly"},'
-    '{"id":"2 ","name":"Bobby"},'
-    '{"id":null,"name":"Alice"},'
-    '{"id":"","name":"Sofia"}'
-    "]"
+    '[{"id":"1.0","name":"Anatoly"},{"id":"2 ","name":"Bobby"},{"id":null,"name":"Alice"},{"id":"","name":"Sofia"}]'
 )
 
 
