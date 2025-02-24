@@ -19,8 +19,6 @@ clean:
 	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
-	rm -fr .pytest_cache
-	rm -rf .mypy_cache
 
 lint:
 	uv run flake8 tableconv tests setup.py
