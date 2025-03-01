@@ -30,13 +30,15 @@ def tshark_load(path):
     records = []
     for record in json.loads(proc.stdout):
         new_record = {}
-        for value in record["_source"]["layers"].values():
-            for key, subvalue in list(value.items()):
-                if key == "Timestamps":
-                    value = {**value, **subvalue}
-                    del value[key]
-            new_record = {**new_record, **value}
-        # records.append(record)  # [for debug]
+        def walk_dict(data):
+            for key, value in data.items():
+                if key.startswith("_ws."):
+                    continue
+                if isinstance(value, dict):
+                    walk_dict(value)
+                    continue
+                new_record[key] = value
+        walk_dict(record["_source"]["layers"])
         records.append(new_record)
     return records
 
@@ -47,7 +49,7 @@ def scapy_load(path):
     from scapy.fields import ConditionalField
     from scapy.packet import Packet
 
-    def scapy_layer_to_dict(packet, top_layer=False):
+    def scapy_layer_to_dict(packet, top_layer=True):
         record = {}
         if top_layer:
             record["timestamp"] = datetime.datetime.fromtimestamp(float(packet.time), tz=datetime.UTC)
@@ -58,15 +60,16 @@ def scapy_load(path):
             fvalue = packet.getfieldval(f.name)
             if isinstance(fvalue, Packet) or (f.islist and f.holds_packets and isinstance(fvalue, list)):
                 fvalue_gen = SetGen(fvalue, _iterpacket=0)
-                record[f.name] = [scapy_layer_to_dict(fvalue) for fvalue in fvalue_gen]
+                record[f.name] = [scapy_layer_to_dict(fvalue, top_layer=False) for fvalue in fvalue_gen]
             else:
                 record[f.name] = f.i2repr(packet, fvalue)
         if packet.payload:
-            record[packet.payload.name.lower()] = scapy_layer_to_dict(packet.payload)
+            record[packet.payload.name.lower()] = scapy_layer_to_dict(packet.payload, top_layer=False)
         return record
 
     records = []
     packets = rdpcap(path)
     for packet in packets:
-        records.append(scapy_layer_to_dict(packet, top_layer=True))
+        records.append(scapy_layer_to_dict(packet))
+    breakpoint()
     return records
