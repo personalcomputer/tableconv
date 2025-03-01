@@ -77,31 +77,7 @@ class SumoLogicClient:
         return self.request("DELETE", f"/search/jobs/{search_job_id}")
 
 
-def get_sumo_data(
-    search_query: str,
-    search_from: datetime.datetime | datetime.timedelta,
-    search_to: datetime.datetime | datetime.timedelta | None = None,
-    by_receipt_time: bool = False,
-):
-    if isinstance(search_from, datetime.timedelta):
-        search_from = datetime.datetime.now(tz=datetime.UTC) - search_from
-    if isinstance(search_to, datetime.timedelta):
-        search_to = datetime.datetime.now(tz=datetime.UTC) - search_to
-    if search_to is None:
-        search_to = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
-
-    SUMO_CREDS = yaml.safe_load(open(CREDENTIALS_FILE_PATH))
-    sumo = SumoLogicClient(SUMO_CREDS["access_id"], SUMO_CREDS["access_key"])
-
-    search_job = sumo.search_job(
-        query=search_query + " | json auto",
-        from_time=search_from,
-        to_time=search_to,
-        time_zone="UTC",
-        by_receipt_time=by_receipt_time,
-    )
-    search_job_id = search_job["id"]
-
+def get_sumo_data(sumo, search_job_id):
     logger.info(f"Waiting for query to complete (job id: {search_job_id})")
     time.sleep((SUMO_API_RESULTS_POLLING_INTERVAL / 2).total_seconds())
     while True:
@@ -126,6 +102,8 @@ def get_sumo_data(
     if message_count > 0:
         offset = 0
         while offset < message_count:
+            # Note: Paralleizing this does nothing, it is rate limited serverside on a per-api-key basis. I've already
+            # tried.
             search_output = sumo.search_job_messages(
                 search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset
             )["messages"]
@@ -138,6 +116,30 @@ def get_sumo_data(
     sumo.delete_search_job(search_job_id)
 
     return pd.DataFrame.from_records(raw_results)
+
+def query_sumo(
+    sumo: SumoLogicClient,
+    search_query: str,
+    search_from: datetime.datetime | datetime.timedelta,
+    search_to: datetime.datetime | datetime.timedelta | None = None,
+    by_receipt_time: bool = False,
+):
+    if isinstance(search_from, datetime.timedelta):
+        search_from = datetime.datetime.now(tz=datetime.UTC) - search_from
+    if isinstance(search_to, datetime.timedelta):
+        search_to = datetime.datetime.now(tz=datetime.UTC) - search_to
+    if search_to is None:
+        search_to = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1)
+
+    search_job = sumo.search_job(
+        query=search_query + " | json auto",
+        from_time=search_from,
+        to_time=search_to,
+        time_zone="UTC",
+        by_receipt_time=by_receipt_time,
+    )
+    return search_job["id"]
+
 
 
 @register_adapter(["sumologic"], read_only=True)
@@ -190,6 +192,11 @@ class SumoLogicAdapter(Adapter):
             to_time = None
 
         receipt_time = params.get("receipt_time", False)
-        df = get_sumo_data(query, search_from=from_time, search_to=to_time, by_receipt_time=receipt_time)
+
+        SUMO_CREDS = yaml.safe_load(open(CREDENTIALS_FILE_PATH))
+        sumo = SumoLogicClient(SUMO_CREDS["access_id"], SUMO_CREDS["access_key"])
+
+        search_job_id = query_sumo(sumo, query, search_from=from_time, search_to=to_time, by_receipt_time=receipt_time)
+        df = get_sumo_data(sumo, search_job_id)
 
         return df
