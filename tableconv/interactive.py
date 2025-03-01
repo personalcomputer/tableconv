@@ -131,7 +131,8 @@ def run_interactive_shell(
         if not raw_query:
             continue
 
-        readline.append_history_file(1, INTERACTIVE_HIST_PATH)
+        readline.add_history(raw_query)
+        readline.write_history_file(INTERACTIVE_HIST_PATH)
 
         if raw_query[0] in ("\\", ".", "/"):
             handle_administrative_command(raw_query, source, last_result)
