@@ -6,6 +6,7 @@ import urllib
 import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.in_memory_query import query_in_memory
 
 logger = logging.getLogger(__name__)
 
@@ -41,17 +42,26 @@ class JC(Adapter):
     def load(uri, query):
         import jc
 
-        cmd_str = urllib.parse.unquote(uri.removeprefix("jc://").removeprefix("jc:"))
+        cmd_str = uri
+        for prefix in ["jc://", "jc:", "cmd://", "cmd:", "sh://", "sh:"]:
+            if cmd_str.startswith(prefix):
+                cmd_str = cmd_str.removeprefix(prefix)
+                break
+        cmd_str = urllib.parse.unquote(cmd_str)
         cmd = shlex.split(cmd_str)
-
+        print(cmd)
         parser_name = JC._get_magic_parser(cmd)
         if not parser_name:
             raise ValueError(
                 "Not able to guess jc parser. Try using jc manually from the command line instead, and"
-                " piping to tableconv."
+                " piping to tableconv. (e.g. `jc ls -l | tableconv json:-`)"
             )
 
         cmd_output = subprocess.check_output(cmd, text=True)
         data = jc.parse(parser_name, cmd_output)
+        df = pd.DataFrame.from_records(data)
 
-        return pd.DataFrame.from_records(data)
+        if query:
+            df = query_in_memory([("data", df)], query)
+
+        return df
