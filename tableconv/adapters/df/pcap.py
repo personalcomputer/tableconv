@@ -7,26 +7,37 @@ import pandas as pd
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 from tableconv.exceptions import InvalidParamsError
-
-# TSHARK-based Implementation:
+from tableconv.uri import parse_uri
 
 
 @register_adapter(["pcap", "pcapng"], read_only=True)
 class PcapAdapter(FileAdapterMixin, Adapter):
-    @staticmethod
-    def load_file(scheme, path, params):
+    @classmethod
+    def load(cls, uri: str, query: str | None) -> pd.DataFrame:
+        parsed_uri = parse_uri(uri)
+        if parsed_uri.authority == "-" or parsed_uri.path == "-" or parsed_uri.path == "/dev/fd/0":
+            path: str | IOBase = sys.stdin  # type: ignore[assignment]
+        else:
+            path = parsed_uri.path
+        scheme = parsed_uri.scheme
+        params = parsed_uri.query
+
         impl = params.get("implementation", params.get("impl", "tshark"))
         if impl == "tshark":
-            records = tshark_load(path)
+            records = tshark_load(path, query)  # type: ignore[attr-defined]
+            df = pd.json_normalize(records)
+            return df
         elif impl == "scapy":
             records = scapy_load(path)
+            df = pd.json_normalize(records)
+            return cls._query_in_memory(df, query)
         else:
             raise InvalidParamsError("valid options for ?impl= are tshark or scapy")
-        return pd.json_normalize(records)
 
 
-def tshark_load(path):
-    proc = subprocess.run(["tshark", "-r", path, "-T", "json"], capture_output=True, check=True, text=True)
+def tshark_load(path, query=None):
+    query_args = ['-Y', query] if query else []
+    proc = subprocess.run(["tshark", "-r", path, "-T", "json"] + query_args, capture_output=True, check=True, text=True)
     records = []
     for record in json.loads(proc.stdout):
         new_record = {}
