@@ -18,7 +18,7 @@ class URI:
 def parse_uri(uri_str: str) -> URI:
     m = re.match(
         r"^(?:(?P<scheme>[^:/?#]+):)?"
-        r"(?://(?P<authority>[^/?#]*))?"
+        r"(?://(?P<authority>[^~/?#]*))?"
         r"(?P<path>[^?#]*)"
         r"(?:\?(?P<query>[^#]*))?"
         r"(?:#(?P<fragment>.*))?",

@@ -1,3 +1,4 @@
+import os
 import sys
 from io import IOBase
 from typing import Any
@@ -18,7 +19,7 @@ class FileAdapterMixin:
         if parsed_uri.authority == "-" or parsed_uri.path == "-" or parsed_uri.path == "/dev/fd/0":
             path: str | IOBase = sys.stdin  # type: ignore[assignment]
         else:
-            path = parsed_uri.path
+            path = os.path.expanduser(parsed_uri.path)
         df = cls.load_file(parsed_uri.scheme, path, parsed_uri.query)
         return cls._query_in_memory(df, query)  # type: ignore[attr-defined]
 
