@@ -34,6 +34,8 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
 def pre_process(dfs, query) -> tuple:
     """
     Preprocess the SQL query, to allow us to extend the DuckDB query language. Supported extensions:
+    - omitting `FROM data` clause
+    - omitting `SELECT` verb
     - transpose()
     - from_unix()
     - from_iso8601()
@@ -41,7 +43,23 @@ def pre_process(dfs, query) -> tuple:
     Warning: this function preprocesses both the query and the dfs, i.e. it actually mutates `dfs` too!
     Warning: this is very poorly implemented! Uses ultra-basic parsing to match parenthesis and find arguments.
     """
-    # transpose()
+    # infer missing `FROM data``
+    if not re.search(r"\bFROM\b", query, re.IGNORECASE):
+        post_from_clauses = ["ORDER BY", "LIMIT", "GROUP BY", "HAVING", "WHERE"]
+        insert_position = len(query)
+        for clause in post_from_clauses:
+            pos = query.upper().find(clause)
+            if pos != -1 and pos < insert_position:
+                insert_position = pos
+        query = f"{query[:insert_position]} FROM data {query[insert_position:]}"
+        logger.debug(f"Query was missing any FROM clause. Inferring `FROM data` clause..")
+
+    # infer missing `SELECT`
+    if not re.search(r"\bSELECT\b", query, re.IGNORECASE):
+        query = f"SELECT {query}"
+        logger.debug(f"Query was missing any SELECT statement. Inferring `SELECT` at start of query..")
+
+    # Expand `transpose()` macro
     if "transpose(data)" in query:
         ANTI_CONFLICT_STR = "027eade341cf"  # (rare/unique sentinel string to avoid name conflicts)
         transposed_data_table_name = f"transposed_data_{ANTI_CONFLICT_STR}"
@@ -55,13 +73,21 @@ def pre_process(dfs, query) -> tuple:
         transposed_data_df = transposed_data_df.iloc[1:].reset_index(drop=True)
 
         dfs.append((transposed_data_table_name, transposed_data_df))
+        logger.debug(f"Expanded `transpose(data)` macro")
 
-    # from_unix()
+    # Expand `from_unix()` macro
+    old_query = query
     query = re.sub(
         r"\b(?:from_)?unix\((.+?)\)", r"(TIMESTAMP '1970-01-01 00:00:00' + to_seconds(\1))", query, flags=re.IGNORECASE
     )
-    # from_iso8601()
+    if old_query != query:
+        logger.debug(f"Expanded `from_unix()` macro")
+
+    # Expand `from_iso8601()` macro
+    old_query = query
     query = re.sub(r"\b(?:from_)?iso8601\((.+?)\)", r"CAST(\1 AS TIMESTAMP)", query, flags=re.IGNORECASE)
+    if old_query != query:
+        logger.debug(f"Expanded `from_iso8601()` macro")
 
     return dfs, query
 
