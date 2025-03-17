@@ -417,7 +417,7 @@ class GoogleSheetsAdapter(Adapter):
         serialized_cells = GoogleSheetsAdapter._serialize_df_to_array(df)
         if reformat:
             serialized_cells = [list(df.columns)] + serialized_cells
-        logger.debug(f"Uploading data to gsheets...")
+        logger.debug("Uploading data to gsheets...")
         googlesheets.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
             range=f"'{sheet_name}'!A{start_row}",
@@ -426,7 +426,7 @@ class GoogleSheetsAdapter(Adapter):
         ).execute()
 
         # Format
-        logger.debug(f"Reformating sheet...")
+        logger.debug("Reformatting sheet...")
         if reformat:
             googlesheets.spreadsheets().batchUpdate(
                 spreadsheetId=spreadsheet_id,

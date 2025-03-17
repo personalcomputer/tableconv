@@ -1,6 +1,9 @@
 import datetime
 import json
+import os
 import subprocess
+import sys
+from io import IOBase
 
 import pandas as pd
 
@@ -18,8 +21,7 @@ class PcapAdapter(FileAdapterMixin, Adapter):
         if parsed_uri.authority == "-" or parsed_uri.path == "-" or parsed_uri.path == "/dev/fd/0":
             path: str | IOBase = sys.stdin  # type: ignore[assignment]
         else:
-            path = parsed_uri.path
-        scheme = parsed_uri.scheme
+            path = os.path.expanduser(parsed_uri.path)
         params = parsed_uri.query
 
         impl = params.get("implementation", params.get("impl", "tshark"))
@@ -35,21 +37,23 @@ class PcapAdapter(FileAdapterMixin, Adapter):
             raise InvalidParamsError("valid options for ?impl= are tshark or scapy")
 
 
+def walk_dict(new_record, data):
+    for key, value in data.items():
+        if key.startswith("_ws."):
+            continue
+        if isinstance(value, dict):
+            walk_dict(new_record, value)
+            continue
+        new_record[key] = value
+
+
 def tshark_load(path, query=None):
-    query_args = ['-Y', query] if query else []
+    query_args = ["-Y", query] if query else []
     proc = subprocess.run(["tshark", "-r", path, "-T", "json"] + query_args, capture_output=True, check=True, text=True)
     records = []
     for record in json.loads(proc.stdout):
         new_record = {}
-        def walk_dict(data):
-            for key, value in data.items():
-                if key.startswith("_ws."):
-                    continue
-                if isinstance(value, dict):
-                    walk_dict(value)
-                    continue
-                new_record[key] = value
-        walk_dict(record["_source"]["layers"])
+        walk_dict(new_record, record["_source"]["layers"])
         records.append(new_record)
     return records
 

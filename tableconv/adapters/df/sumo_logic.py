@@ -102,7 +102,7 @@ def get_sumo_data(sumo, search_job_id):
     if message_count > 0:
         offset = 0
         while offset < message_count:
-            # Note: Paralleizing this does nothing, it is rate limited serverside on a per-api-key basis. I've already
+            # Note: Parallelizing this does nothing, it is rate limited serverside on a per-api-key basis. I've already
             # tried.
             search_output = sumo.search_job_messages(
                 search_job_id, limit=SUMO_API_MAX_RESULTS_PER_API_CALL, offset=offset
@@ -116,6 +116,7 @@ def get_sumo_data(sumo, search_job_id):
     sumo.delete_search_job(search_job_id)
 
     return pd.DataFrame.from_records(raw_results)
+
 
 def query_sumo(
     sumo: SumoLogicClient,
@@ -139,7 +140,6 @@ def query_sumo(
         by_receipt_time=by_receipt_time,
     )
     return search_job["id"]
-
 
 
 @register_adapter(["sumologic"], read_only=True)
