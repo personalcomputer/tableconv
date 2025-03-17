@@ -242,6 +242,6 @@ def main_wrapper():
         run_daemonize(log=False)
 
     # Runinng as daemon client failed, so run tableconv normally, run within this process.
-    from tableconv.main import main
+    from tableconv.main import main_wrapper
 
-    sys.exit(main(argv))
+    sys.exit(main_wrapper(argv))

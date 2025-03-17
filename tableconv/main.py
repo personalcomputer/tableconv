@@ -3,6 +3,7 @@ import io
 import logging
 import logging.config
 import os
+import subprocess
 import sys
 import textwrap
 
@@ -91,12 +92,17 @@ class NoExitArgParser(argparse.ArgumentParser):
         raise argparse.ArgumentError(None, message)
 
 
-def raise_argparse_style_error(error: str | Exception, usage=None):
+def abort_with_usage_error(error: str | Exception, usage=None):
+    # Display an argparse-style error message.
     if usage:
         print(f"usage: {usage % dict(prog=PROG)}", file=sys.stderr)
     if isinstance(error, Exception):
         logger.debug(error, exc_info=True)
-    print(f"error: {error}", file=sys.stderr)
+    if isinstance(error, str):
+        error_msg = error
+    else:
+        error_msg = f"{error.__class__.__name__}: {str(error)}"
+    print(f"error: {error_msg}", file=sys.stderr)
     sys.exit(1)
 
 
@@ -120,9 +126,9 @@ def run_configuration_mode(argv):
         args = {name: value for name, value in args.items() if value is not None and name in required_args}
         adapter.set_configuration_options(args)
     except NoConfigurationOptionsAvailable as exc:
-        raise_argparse_style_error(f"{exc.args[0]} has no configuration options", CONFIGURE_USAGE)
+        abort_with_usage_error(f"{exc.args[0]} has no configuration options", CONFIGURE_USAGE)
     except argparse.ArgumentError as exc:
-        raise_argparse_style_error(exc, CONFIGURE_USAGE)
+        abort_with_usage_error(exc, CONFIGURE_USAGE)
 
 
 def parse_schema_coercion_arg(args):
@@ -139,16 +145,16 @@ def parse_schema_coercion_arg(args):
     try:
         schema_coercion = yaml.safe_load(iostr)
     except yaml.YAMLError:
-        raise_argparse_style_error(FORMAT_ERR_MSG)
+        abort_with_usage_error(FORMAT_ERR_MSG)
     if not isinstance(schema_coercion, dict):
-        raise_argparse_style_error(FORMAT_ERR_MSG)
+        abort_with_usage_error(FORMAT_ERR_MSG)
     for val in list(schema_coercion.values()) + list(schema_coercion.keys()):
         if not isinstance(val, str):
-            raise_argparse_style_error(FORMAT_ERR_MSG)
+            abort_with_usage_error(FORMAT_ERR_MSG)
     try:
         validate_coercion_schema(schema_coercion)
     except ValueError as exc:
-        raise_argparse_style_error(exc)
+        abort_with_usage_error(exc)
     return schema_coercion
 
 
@@ -158,7 +164,7 @@ def parse_dest_arg(args):
     try:
         source_scheme, _ = parse_source_url(args.SOURCE_URL)
     except InvalidURLError as exc:
-        raise_argparse_style_error(exc)
+        abort_with_usage_error(exc)
 
     if source_scheme in write_adapters and write_adapters[source_scheme].text_based and not args.interactive:
         # Default to outputting to console, in same format as input
@@ -289,7 +295,7 @@ def main(argv=None):
         if not args.SOURCE_URL:
             raise argparse.ArgumentError(None, "SOURCE_URL empty")
     except argparse.ArgumentError as exc:
-        raise_argparse_style_error(exc, parser.usage)
+        abort_with_usage_error(exc, parser.usage)
 
     if args.verbose:
         logging.config.dictConfig(
@@ -341,7 +347,7 @@ def main(argv=None):
         # Dump to destination
         output = table.dump_to_url(url=dest)
     except (DataError, InvalidQueryError, InvalidURLError) as exc:
-        raise_argparse_style_error(exc)
+        abort_with_usage_error(exc)
 
     if output:
         logger.info(f"Wrote out {output}")
@@ -353,5 +359,20 @@ def main(argv=None):
     return 0
 
 
-def main_wrapper():
-    return main(sys.argv[1:])
+def main_wrapper(argv):
+    """
+    Wrapper to provide special error handling specifically for subprocess.CalledProcessError errors that are
+    crashing the whole program.
+    """
+    try:
+        return main(argv)
+    except subprocess.CalledProcessError as exc:
+        if exc.stdout.strip():
+            print(exc.stdout.strip())
+        if exc.stderr.strip():
+            print(exc.stderr.strip())
+        raise
+
+
+if __name__ == "__main__":
+    main_wrapper(sys.argv[1:])
