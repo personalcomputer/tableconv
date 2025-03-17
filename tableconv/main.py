@@ -235,11 +235,14 @@ def main(argv=None):
         action="store_true",
         help="Show debug details, including API calls and error sources.",
     )
+    version_str = f"{__version__} (Python {PY_VERSION_STR}, DuckDB {DUCKDB_VERSION_STR}, Pandas {PD_VERSION_STR})"
+    if os.environ.get("TABLECONV_IS_DAEMON"):
+        version_str += " (running from daemon)"
     parser.add_argument(
         "--version",
         action="version",
         help="Show version number and exit",
-        version=f"{PROG} {__version__} (Python {PY_VERSION_STR}, DuckDB {DUCKDB_VERSION_STR}, Pandas {PD_VERSION_STR})",
+        version=f"{PROG} {version_str}",
     )
     parser.add_argument("--quiet", action="store_true", help="Only display errors.")
     parser.add_argument(
@@ -270,7 +273,7 @@ def main(argv=None):
         help="Exclude all columns not included in the SCHEMA_COERCION definition. (WARNING: experimental feature)",
     )
     parser.add_argument(
-        "--daemon",
+        "--daemonize",
         action="store_true",
         help="Tableconv startup time (python startup time) is slow. To mitigate that, you can first run tableconv as "
         "a daemon, and then all future invocations will be fast. (while daemon is still alive) "

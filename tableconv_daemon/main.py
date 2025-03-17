@@ -13,6 +13,7 @@ import traceback
 SELF_NAME = os.path.basename(sys.argv[0])
 SOCKET_ADDR = "/tmp/tableconv-daemon.sock"
 PIDFILE_PATH = "/tmp/tableconv-daemon.pid"
+LOGFILE_PATH = "/tmp/tableconv-daemon.log"
 
 
 logger = logging.getLogger(__name__)
@@ -71,14 +72,15 @@ def run_daemon_supervisor():
 
 
 def run_daemon():
-    from tableconv.main import main
+    from tableconv.main import main_wrapper
 
     while True:
         try:
             data = json.loads(sys.stdin.readline())
             # os.environ = data['environ']
             os.chdir(data["cwd"])
-            main(data["argv"])
+            os.environ['TABLECONV_IS_DAEMON'] = '1'
+            main_wrapper(data["argv"])
         except Exception:
             traceback.print_exc()
         except SystemExit:
@@ -152,8 +154,8 @@ def kill_daemon():
 
 def run_daemonize(log=True):
     if log:
-        logger.info("Forking daemon using `daemonize`. Daemon logs piped to /tmp/tableconv-daemon.log.")
-    os.system(f"daemonize -e /tmp/tableconv-daemon.log $(which {sys.argv[0]}) --daemon")
+        logger.info(f"Forking daemon using `daemonize`. Daemon logs piped to {LOGFILE_PATH}.")
+    os.system(f"daemonize -e \"{LOGFILE_PATH}\" \"$(which {sys.argv[0]})\" --daemon")
 
 
 def set_up_logging():
@@ -207,7 +209,7 @@ def main_wrapper():
     argv = sys.argv[1:]
 
     # Daemon management commands
-    if "--daemon" in argv:
+    if "--daemon" in argv:  # Undocumented feature
         if len(argv) > 1:
             raise ValueError("ERROR: --daemon cannot be combined with any other options")
         try:
@@ -220,15 +222,15 @@ def main_wrapper():
         # daemon supervisor and the daemon beneath it simply as the "daemon", but within the code you can see that what
         # we actually run is the supervisor, which then runs the daemon. (Also: if you invoke via --daemonize, you
         # actually get 4 processes!)
-    if argv in [["--daemonize"], ["--spawn-daemon"]]:  # Undocumented feature
+    if argv in [["--daemonize"], ["--spawn-daemon"]]:
         return run_daemonize()
     if argv == ["--kill-daemon"]:  # Undocumented feature
         return kill_daemon()
     if argv == ["!!you-are-a-daemon!!"]:
         # TODO use a alternative entry_point console_script instead of this sentinel value? I don't want to pollute the
         # end-user's PATH with another command though, this is not something an end user should ever directly run.
-        # TODO: Using alternative entry point does not require adding pollution to PATH. I can just direcctly invoke a
-        # python file relative to this python file - i.e. anothe rpython file within the tableconv _install directory_,
+        # TODO: Using alternative entry point does not require adding pollution to PATH! I can just direcctly invoke a
+        # python file relative to this python file - i.e. another python file within the tableconv _install directory_,
         # not within PATH.
         return run_daemon()
 
@@ -237,11 +239,12 @@ def main_wrapper():
     if daemon_status is not None:
         return daemon_status
     elif os.environ.get("TABLECONV_AUTO_DAEMON"):  # Undocumented feature
-        print("[Automatically forking daemon for future invocations]", file=sys.stderr)
+        print("[Automatically forking daemon]", file=sys.stderr)
         print("[To kill daemon, run `unset TABLECONV_AUTO_DAEMON && tableconv --kill-daemon`]", file=sys.stderr)
         run_daemonize(log=False)
+        time.sleep(0.5)  # Give daemon time to start # hack..
+        return client_process_request_by_daemon(argv)
 
-    # Runinng as daemon client failed, so run tableconv normally, run within this process.
+    # Runinng as daemon client failed, so run tableconv normally: run within this process.
     from tableconv.main import main_wrapper
-
     sys.exit(main_wrapper(argv))
