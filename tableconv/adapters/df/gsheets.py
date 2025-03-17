@@ -21,10 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 def list_ljust(ls, n, fill_value=None):
+    """Extend a list to length n by appending fill_value.
+    >>> list_ljust([1, 2, 3], 5, 0)
+    [1, 2, 3, 0, 0]
+    """
     return ls + [fill_value] * (n - len(ls))
 
 
 def integer_to_spreadsheet_column_str(i):
+    """Convert a zero-based integer to a spreadsheet column string (A, B, C, ..., Z, AA, AB, ...).
+    >>> integer_to_spreadsheet_column_str(0)
+    'A'
+    >>> integer_to_spreadsheet_column_str(25)
+    'Z'
+    >>> integer_to_spreadsheet_column_str(26)
+    'AA'
+    >>> integer_to_spreadsheet_column_str(50)
+    'AY'
+    """
     i += 1
     result = ""
     while i > 0:
@@ -90,7 +104,7 @@ class GoogleSheetsAdapter(Adapter):
                 "https://www.googleapis.com/auth/drive",
             ]
             flow = client.flow_from_clientsecrets(GSHEETS_OAUTH_SECRETS_FILE_PATH, SCOPES)
-            flow.user_agent = "tableconv"
+            flow.user_agent = os.environ.get("TABLECONV_GSHEETS_OAUTH_USER_AGENT", "tableconv")
             credentials = tools.run_flow(flow, store)
         return credentials
 
@@ -200,6 +214,8 @@ class GoogleSheetsAdapter(Adapter):
         oversize_cells = []
 
         df = df.replace({np.nan: None})
+        # TODO: This is highly inefficient code. There should be a vectorized way to do these type conversions. It's
+        # also an embarrassing parallelizable problem.
         for i, row in enumerate(serialized_array):
             for j, obj in enumerate(row):
                 if isinstance(obj, datetime.datetime):
@@ -226,6 +242,8 @@ class GoogleSheetsAdapter(Adapter):
                 elif hasattr(obj, "dtype"):
                     serialized_array[i][j] = obj.item()
                 if isinstance(serialized_array[i][j], float) and math.isnan(serialized_array[i][j]):
+                    serialized_array[i][j] = None
+                if serialized_array[i][j] is pd.NA:
                     serialized_array[i][j] = None
                 if isinstance(serialized_array[i][j], str) and len(serialized_array[i][j]) > MAX_CELL_SIZE:
                     serialized_array[i][j] = serialized_array[i][j][:MAX_CELL_SIZE]
@@ -395,9 +413,11 @@ class GoogleSheetsAdapter(Adapter):
                     raise AssertionError
 
         # Insert data
+        logger.debug(f"Serializing {df.shape[0]*df.shape[1]} cells...")
         serialized_cells = GoogleSheetsAdapter._serialize_df_to_array(df)
         if reformat:
             serialized_cells = [list(df.columns)] + serialized_cells
+        logger.debug(f"Uploading data to gsheets...")
         googlesheets.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
             range=f"'{sheet_name}'!A{start_row}",
@@ -406,6 +426,7 @@ class GoogleSheetsAdapter(Adapter):
         ).execute()
 
         # Format
+        logger.debug(f"Reformating sheet...")
         if reformat:
             googlesheets.spreadsheets().batchUpdate(
                 spreadsheetId=spreadsheet_id,
