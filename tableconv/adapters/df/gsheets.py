@@ -1,3 +1,4 @@
+import copy
 import datetime
 import logging
 import math
@@ -15,7 +16,7 @@ from tableconv.exceptions import (
     TableAlreadyExistsError,
     URLInaccessibleError,
 )
-from tableconv.uri import parse_uri
+from tableconv.uri import encode_uri, parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -122,16 +123,27 @@ class GoogleSheetsAdapter(Adapter):
 
         return googleapiclient.discovery.build(service, version, http=http)
 
+    @staticmethod
+    def _get_sheet_names(googlesheets, spreadsheet_id):
+        return [
+            sheet["properties"]["title"]
+            for sheet in googlesheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()["sheets"]
+        ]
+
     @classmethod
     def load(cls, uri, query):
         parsed_uri = parse_uri(uri)
         spreadsheet_id = parsed_uri.authority
         sheet_name = parsed_uri.path.strip("/")
 
-        if not sheet_name:
-            raise InvalidLocationReferenceError("Must specify sheet_name")
-
         googlesheets = GoogleSheetsAdapter._get_googleapiclient_client("sheets", "v4")
+
+        if not sheet_name:
+            names = GoogleSheetsAdapter._get_sheet_names(googlesheets, spreadsheet_id)
+            if len(names) == 1:
+                sheet_name = names[0]
+            else:
+                raise InvalidLocationReferenceError(f"Must specify sheet_name. Available sheets: {', '.join(names)}")
 
         # Query data
         raw_data = (
@@ -149,6 +161,38 @@ class GoogleSheetsAdapter(Adapter):
         values = [list_ljust(row, num_columns) for row in raw_data["values"][1:]]
         df = pd.DataFrame(values, columns=header)
         return cls._query_in_memory(df, query)
+
+    @classmethod
+    def load_multitable(cls, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        parsed_uri = parse_uri(uri)
+        spreadsheet_id = parsed_uri.authority
+        assert parsed_uri.path.strip("/") == ""
+        googlesheets = cls._get_googleapiclient_client("sheets", "v4")
+        table_names = cls._get_sheet_names(googlesheets, spreadsheet_id)
+        for table_name in table_names:
+            table_uri_parsed = copy.copy(parsed_uri)
+            table_uri_parsed.path = f"/{table_name}"
+            logger.info(f"Loading table {encode_uri(table_uri_parsed)}")
+            df = cls.load(encode_uri(table_uri_parsed), query=None)
+            yield table_name, df
+
+    @classmethod
+    def dump_multitable(cls, df_multitable, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        parsed_uri = parse_uri(uri)
+        if parsed_uri.authority is None:
+            raise InvalidLocationReferenceError("Please specify spreadsheet id or :new: in gsheets uri")
+        assert parsed_uri.path.strip("/") == ""
+        for table_name, df in df_multitable:
+            table_uri_parsed = copy.copy(parsed_uri)
+            table_uri_parsed.path = os.path.join("/", table_name)
+            logger.info(f"Dumping table {encode_uri(table_uri_parsed)}")
+            output = cls.dump(df, encode_uri(table_uri_parsed))
+            if parsed_uri.authority == ":new:":
+                # Parse new sheet id out of http gui uri (output is not a tableconv uri)  # hacky
+                parsed_uri.authority = os.path.split(parse_uri(output).path)[-1]
+        return output
 
     @staticmethod
     def _create_spreadsheet(googlesheets, spreadsheet_name, first_sheet_name, columns, rows):
@@ -239,6 +283,8 @@ class GoogleSheetsAdapter(Adapter):
                     #        example: "P11DT14H50M12S"
                 elif isinstance(obj, list) or isinstance(obj, dict):  # noqa: SIM101
                     serialized_array[i][j] = str(obj)
+                elif isinstance(obj, np.ndarray):
+                    serialized_array[i][j] = str(obj.tolist())
                 elif hasattr(obj, "dtype"):
                     serialized_array[i][j] = obj.item()
                 if isinstance(serialized_array[i][j], float) and math.isnan(serialized_array[i][j]):

@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 import pandas as pd
 
 from tableconv.in_memory_query import query_in_memory
@@ -34,6 +36,14 @@ class Adapter:
 
     @classmethod
     def dump(cls, df: pd.DataFrame, uri: str) -> str | None:
+        raise NotImplementedError
+
+    @classmethod
+    def load_multitable(cls, uri: str) -> Iterator[tuple[str, pd.DataFrame]]:
+        raise NotImplementedError
+
+    @classmethod
+    def dump_multitable(cls, df_multitable: Iterator[tuple[str, pd.DataFrame]], uri: str) -> str:
         raise NotImplementedError
 
 

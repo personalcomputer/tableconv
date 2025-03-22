@@ -45,3 +45,37 @@ def parse_uri(uri_str: str) -> URI:
         path=m.group("path"),
         fragment=m.group("fragment"),
     )
+
+
+def encode_uri(uri: URI) -> str:
+    """
+    Convert a URI object back to a string representation.
+
+    Roundtrip tests:
+    >>> encode_uri(parse_uri("http://example.com/data.csv"))
+    'http://example.com/data.csv'
+    >>> encode_uri(parse_uri("postgresql://example111:5432/table_5?q=test&page=1&param="))
+    'postgresql://example111:5432/table_5?q=test&page=1&param='
+    >>> encode_uri(parse_uri("list:///home/user/document.txt"))
+    'list:/home/user/document.txt'
+    >>> encode_uri(parse_uri("list:~/document.txt"))
+    'list:~/document.txt'
+    >>> encode_uri(parse_uri("example.csv"))
+    'csv:example.csv'
+    >>> encode_uri(parse_uri("/example.csv"))
+    'csv:/example.csv'
+    >>> encode_uri(parse_uri("ascii:-"))
+    'ascii:-'
+    >>> encode_uri(parse_uri("ascii://-"))
+    'ascii://-'
+    """
+    result = f"{uri.scheme}:" if uri.scheme else ""
+    if uri.authority:
+        result += "//" + uri.authority
+    result += uri.path
+    if uri.query:
+        query_parts = [f"{k}={v}" for k, v in uri.query.items()]
+        result += "?" + "&".join(query_parts)
+    if uri.fragment:
+        result += f"#{uri.fragment}"
+    return result

@@ -1,14 +1,22 @@
+import copy
+import logging
 import os
+import shlex
+import shutil
+import subprocess
 import sys
 from io import IOBase
 from typing import Any
 
 import pandas as pd
 
-from tableconv.uri import parse_uri
+from tableconv.uri import encode_uri, parse_uri
+
+logger = logging.getLogger(__name__)
 
 
 class FileAdapterMixin:
+
     @staticmethod
     def get_example_url(scheme):
         return f"example.{scheme}"
@@ -68,3 +76,61 @@ class FileAdapterMixin:
     @classmethod
     def dump_text_data(cls, df: pd.DataFrame, scheme: str, params: dict[str, Any]) -> str:
         raise NotImplementedError
+
+    @classmethod
+    def load_multitable(cls, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        parsed_uri = parse_uri(uri)
+        parsed_uri.path, ext = os.path.splitext(parsed_uri.path)
+        if ext:
+            if ext in [".zip", ".tar", ".tar.zstd", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2"]:
+                cmd(["extract", parsed_uri.path + ext, "--output", parsed_uri.path])
+            else:
+                raise ValueError(
+                    f"Unsupported format: {ext}. Multitable file output only supports folders or common "
+                    "archive formats."
+                )
+
+        for file in os.listdir(parsed_uri.path):
+            table_name = os.path.splitext(file)[0]
+            table_uri_parsed = copy.copy(parsed_uri)
+            table_uri_parsed.path = os.path.join(parsed_uri.path, file)
+            logger.info(f"Loading table {encode_uri(table_uri_parsed)}")
+            df = cls.load(encode_uri(table_uri_parsed), query=None)
+            yield table_name, df
+
+    @classmethod
+    def dump_multitable(cls, df_multitable, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        parsed_uri = parse_uri(uri)
+
+        archive_format = None
+        parsed_uri.path, ext = os.path.splitext(parsed_uri.path)
+        if ext:
+            if ext in [".zip", ".tar", ".tar.zstd", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2"]:
+                archive_format = ext.strip(".")
+            else:
+                raise ValueError(
+                    f"Unsupported format: {ext}. Multitable file output only supports folders or common "
+                    "archive formats."
+                )
+
+        os.makedirs(parsed_uri.path, exist_ok=False)
+        try:
+            for table_name, df in df_multitable:
+                table_uri_parsed = copy.copy(parsed_uri)
+                table_uri_parsed.path = os.path.join(table_uri_parsed.path, f"{table_name}.{parsed_uri.scheme}")
+                logger.info(f"Dumping table {encode_uri(table_uri_parsed)}")
+                cls.dump(df, encode_uri(table_uri_parsed))
+
+            if archive_format:
+                cmd(["package.py", archive_format, parsed_uri.path, "--output", parsed_uri.path + ext])
+        finally:
+            if archive_format:
+                logging.debug(f"Removing temp directory {parsed_uri.path}")
+                shutil.rmtree(parsed_uri.path)
+
+
+def cmd(args, **kwargs):
+    logging.info(f"Running command: {shlex.join(args)}")
+    return subprocess.run(args, check=True, **kwargs)

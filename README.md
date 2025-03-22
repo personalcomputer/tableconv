@@ -126,10 +126,14 @@ options:
                         experimental feature)
   --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
                         (WARNING: experimental feature)
-  --daemon              Tableconv startup time (python startup time) is slow. To mitigate that,
+  --daemonize           Tableconv startup time (python startup time) is slow. To mitigate that,
                         you can first run tableconv as a daemon, and then all future invocations
                         will be fast. (while daemon is still alive) (WARNING: experimental
                         feature)
+  --multitable, --multifile
+                        Convert "database" formats, such as folders with many csvs, or a multi-tab
+                        spreadsheet. (WARNING: experimental mode, very rough, details
+                        undocumented)
 
 supported url schemes:
   ascii:- (dest only)
@@ -179,7 +183,7 @@ supported url schemes:
   example.xlsx 
   example.yaml 
   example.yml 
-  folder:///tmp/example (each file is considered a (filename,value) record) 
+  file_per_row:///tmp/example (each file is considered a (filename,value) record) 
   gsheets://:new: 
   jc://ls -l (source only)
   jiraformat:- (dest only)

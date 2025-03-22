@@ -12,7 +12,7 @@ class LevelDBLogAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def load_file(scheme, path, params):
-        from leveldb_export import parse_leveldb_documents
+        from leveldb_export import parse_leveldb_documents  # inlined for startup performance
 
         docs = list(parse_leveldb_documents(path))
         # breakpoint()

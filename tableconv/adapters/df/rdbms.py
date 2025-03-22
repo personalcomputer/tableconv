@@ -1,4 +1,5 @@
 import configparser
+import copy
 import logging
 import os
 
@@ -12,7 +13,7 @@ from tableconv.exceptions import (
     InvalidURLError,
     TableAlreadyExistsError,
 )
-from tableconv.uri import parse_uri
+from tableconv.uri import encode_uri, parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class RDBMSAdapter(Adapter):
 
     @staticmethod
     def _get_engine_and_table_from_uri(parsed_uri):
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine  # sqlalchemy imports are inlined for startup performance
 
         database_is_filename = (
             ".." in parsed_uri.path
@@ -88,7 +89,7 @@ class RDBMSAdapter(Adapter):
 
     @staticmethod
     def load(uri, query):
-        import sqlalchemy.exc
+        import sqlalchemy.exc  # sqlalchemy imports are inlined for startup performance
 
         engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parse_uri(uri))
 
@@ -118,7 +119,7 @@ class RDBMSAdapter(Adapter):
 
     @staticmethod
     def dump(df, uri):
-        import sqlalchemy.exc
+        import sqlalchemy.exc  # sqlalchemy imports are inlined for startup performance
 
         parsed_uri = parse_uri(uri)
         engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parsed_uri)
@@ -149,3 +150,31 @@ class RDBMSAdapter(Adapter):
             if if_exists == "append":
                 raise AppendSchemeConflictError(*exc.args) from exc
             raise
+
+    @classmethod
+    def load_multitable(cls, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        from sqlalchemy import MetaData  # sqlalchemy imports are inlined for startup performance
+
+        parsed_uri = parse_uri(uri)
+        engine, table = RDBMSAdapter._get_engine_and_table_from_uri(parse_uri(uri))
+        assert table is None
+        with engine.connect() as conn:
+            metadata = MetaData()
+            metadata.reflect(bind=conn)
+            for table_name in metadata.tables:
+                table_uri_parsed = copy.copy(parsed_uri)
+                table_uri_parsed.query["table"] = table_name
+                logger.info(f"Loading table {encode_uri(table_uri_parsed)}")
+                df = cls.load(encode_uri(table_uri_parsed), query=None)
+                yield table_name, df
+
+    @classmethod
+    def dump_multitable(cls, df_multitable, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        parsed_uri = parse_uri(uri)
+        for table_name, df in df_multitable:
+            table_uri_parsed = copy.copy(parsed_uri)
+            table_uri_parsed.query["table"] = table_name
+            logger.info(f"Dumping table {encode_uri(table_uri_parsed)}")
+            cls.dump(df, encode_uri(table_uri_parsed))

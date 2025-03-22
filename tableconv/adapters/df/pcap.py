@@ -59,7 +59,7 @@ def tshark_load(path, query=None):
 
 
 def scapy_load(path):
-    from scapy.all import rdpcap
+    from scapy.all import rdpcap  # inlined for startup performance
     from scapy.base_classes import SetGen
     from scapy.fields import ConditionalField
     from scapy.packet import Packet

@@ -20,18 +20,24 @@ clean:
 	rm -f .coverage
 	rm -fr htmlcov/
 
+auto_lint_fix:
+	uv run ruff check tableconv tests --fix
+	uv run isort tableconv
+	uv run black tableconv
+	uv run ruff check tableconv tests --fix
+	uv run update_readme_usage
+
 lint:
 	uv run ruff check tableconv tests
 	uv run black tableconv --check
 	uv run isort tableconv --check
 	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
-	@which update_readme_usage >/dev/null 2>&1 && uv run update_readme_usage --check || true
+	uv run update_readme_usage --check
 	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
 
 test:
-	uv run tableconv --kill-daemon
-	unset TABLECONV_AUTO_DAEMON
-	uv run pytest
+	uv run tableconv --kill-daemon || true
+	TABLECONV_AUTO_DAEMON= uv run pytest
 
 test-ci: lint
 	# Smaller testsuite for CI until I bother to fix the CI environment to run postgres etc.

@@ -82,12 +82,13 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
             raise AssertionError
 
 
-@register_adapter(["folder"])
+@register_adapter(["file_per_row"])
 class FilePerRowOutputAdapter(Adapter):
     """
     Very experimental adapter. Definitely not proper. I'm struggling to figure out a good product design / story for
-    solving this usecase with tableconv. What other tool/script can we pipe tableconv output/input through to handle
-    this usecase? How can we inject a custom mini python script to handle this usecase? etc.
+    solving this specific usecase. What other tool/script can we pipe tableconv output/input through to handle this
+    usecase? How can we inject a custom mini python script to handle this usecase? etc. What is
+    the composable solution?
     """
 
     @staticmethod

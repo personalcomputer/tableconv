@@ -29,7 +29,7 @@ class JC(Adapter):
 
     @staticmethod
     def _get_magic_parser(cmd):
-        import jc
+        import jc  # inlined for startup performance
 
         magic_dict = {}
         for entry in jc.all_parser_info():
@@ -40,7 +40,7 @@ class JC(Adapter):
 
     @staticmethod
     def load(uri, query):
-        import jc
+        import jc  # inlined for startup performance
 
         cmd_str = uri
         for prefix in ["jc://", "jc:", "cmd://", "cmd:", "sh://", "sh:"]:

@@ -13,7 +13,14 @@ from pandas import __version__ as PD_VERSION_STR
 from tableconv.__version__ import __version__
 from tableconv.adapters.df import adapters, read_adapters, write_adapters
 from tableconv.adapters.df.base import NoConfigurationOptionsAvailable
-from tableconv.core import load_url, parse_source_url, resolve_query_arg, validate_coercion_schema
+from tableconv.core import (
+    dump_multitable_to_url,
+    load_multitable_from_url,
+    load_url,
+    parse_source_url,
+    resolve_query_arg,
+    validate_coercion_schema,
+)
 from tableconv.exceptions import DataError, InvalidQueryError, InvalidURLError
 from tableconv.interactive import os_open, run_interactive_shell
 from tableconv.uri import parse_uri
@@ -279,7 +286,13 @@ def main(argv=None):
         "a daemon, and then all future invocations will be fast. (while daemon is still alive) "
         "(WARNING: experimental feature)",
     )
-
+    parser.add_argument(
+        "--multitable",
+        "--multifile",
+        action="store_true",
+        help='Convert "database" formats, such as folders with many csvs, or a multi-tab spreadsheet.'
+        " (WARNING: experimental mode, very rough, details undocumented)",
+    )
     if argv and argv[0] in ("configure", "--configure"):
         # This is a hidden feature because it is very incomplete right now.
         run_configuration_mode(argv)
@@ -334,21 +347,26 @@ def main(argv=None):
             )
             return
 
-        # Load source
-        table = load_url(
-            url=args.SOURCE_URL,
-            query=args.source_query,
-            filter_sql=args.intermediate_filter_sql,
-            schema_coercion=schema_coercion,
-            restrict_schema=args.restrict_schema,
-            autocache=args.autocache,
-        )
-        if args.debug_shell:
-            df = table.as_pandas_df()  # noqa: F841
-            breakpoint()
+        if args.multitable:
+            # Crazy experimental feature. Undocumented. Low Quality.
+            df_multi_table = load_multitable_from_url(args.SOURCE_URL)
+            output = dump_multitable_to_url(df_multi_table, dest)
+        else:
+            # Load source
+            table = load_url(
+                url=args.SOURCE_URL,
+                query=args.source_query,
+                filter_sql=args.intermediate_filter_sql,
+                schema_coercion=schema_coercion,
+                restrict_schema=args.restrict_schema,
+                autocache=args.autocache,
+            )
+            if args.debug_shell:
+                df = table.as_pandas_df()  # noqa: F841
+                breakpoint()
 
-        # Dump to destination
-        output = table.dump_to_url(url=dest)
+            # Dump to destination
+            output = table.dump_to_url(url=dest)
     except (DataError, InvalidQueryError, InvalidURLError) as exc:
         abort_with_usage_error(exc)
 
@@ -364,15 +382,16 @@ def main(argv=None):
 
 def main_wrapper(argv):
     """
-    Wrapper to provide special error handling specifically for subprocess.CalledProcessError errors that are
-    crashing the whole program.
+    Wrapper to provide special traceback handling specifically for subprocess.CalledProcessError errors that are
+    crashing the whole program: ensure that that the subprogram's raw output (presumably containing an error message)
+    is also printed.
     """
     try:
         return main(argv)
     except subprocess.CalledProcessError as exc:
-        if exc.stdout.strip():
+        if exc.stdout and exc.stdout.strip():
             print(exc.stdout.strip())
-        if exc.stderr.strip():
+        if exc.stderr and exc.stderr.strip():
             print(exc.stderr.strip())
         raise
 

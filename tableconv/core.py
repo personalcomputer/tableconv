@@ -6,6 +6,7 @@ import pathlib
 import re
 import tempfile
 import urllib.parse
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -375,7 +376,7 @@ def load_url(
     if scheme in FSSPEC_SCHEMES:
         url = process_and_rewrite_remote_source_url(url)
 
-    source_scheme, read_adapter = parse_source_url(url)
+    _, read_adapter = parse_source_url(url)
     # TODO: Dynamic file resolution is great for CLI but it isn't appropriate for the Python API.
     query = resolve_query_arg(query)
     filter_sql = resolve_query_arg(filter_sql)
@@ -426,3 +427,20 @@ def load_url(
     table = IntermediateExchangeTable(df)
 
     return table
+
+
+def load_multitable_from_url(url: str) -> Iterator[tuple[str, pd.DataFrame]]:
+    """Experimental feature. Undocumented. Low Quality."""
+    if isinstance(url, Path):
+        url = str(url)
+    _, read_adapter = parse_source_url(url)
+    logger.debug(f"Loading data in via {read_adapter.__qualname__} from {url}")  # type: ignore[attr-defined]
+    return read_adapter.load_multitable(url)
+
+
+def dump_multitable_to_url(df_multi_table: Iterator[tuple[str, pd.DataFrame]], url: str) -> str:
+    """Experimental feature. Undocumented. Low Quality."""
+    scheme = parse_uri(url).scheme
+    write_adapter = write_adapters[scheme]
+    logger.debug(f"Dumping data out via {write_adapter.__qualname__} to {url}")  # type: ignore[attr-defined]
+    return write_adapter.dump_multitable(df_multi_table, url)
