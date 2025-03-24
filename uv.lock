@@ -1757,7 +1757,7 @@ wheels = [
 
 [[package]]
 name = "tableconv"
-version = "1.9989.20250317"
+version = "1.9990.20250324"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
