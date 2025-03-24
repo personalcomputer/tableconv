@@ -100,16 +100,20 @@ class NoExitArgParser(argparse.ArgumentParser):
 
 
 def abort_with_usage_error(error: str | Exception, usage=None):
-    # Display an argparse-style error message.
+    """Display an argparse-style error message."""
+    from rich.console import Console
+
+    console = Console(file=sys.stderr)
+
     if usage:
-        print(f"usage: {usage % dict(prog=PROG)}", file=sys.stderr)
+        console.print(f"usage: {usage % dict(prog=PROG)}", style="magenta", highlight=False)
     if isinstance(error, Exception):
         logger.debug(error, exc_info=True)
     if isinstance(error, str):
         error_msg = error
     else:
-        error_msg = f"{error.__class__.__name__}: {str(error)}"
-    print(f"error: {error_msg}", file=sys.stderr)
+        error_msg = f"{str(error)}\n({error.__class__.__name__})"
+    console.print(f"error: {error_msg}", style="magenta", highlight=False)
     sys.exit(1)
 
 
@@ -262,7 +266,7 @@ def main(argv=None):
         "--debug-shell",
         "--pandas-debug-shell",
         "--debug-pandas-shell",
-        "--debug_shell",
+        "--debugshell",
         action="store_true",
         help=argparse.SUPPRESS,
     )
@@ -290,8 +294,9 @@ def main(argv=None):
         "--multitable",
         "--multifile",
         action="store_true",
-        help='Convert "database" formats, such as folders with many csvs, or a multi-tab spreadsheet.'
-        " (WARNING: experimental mode, very rough, details undocumented)",
+        help='Convert entire "database"s of tables from one format to another, such as folders with many csvs, a '
+        "multi-tab spreadsheet, or an actual RDBMS (WARNING: This is an experimental mode, very rough, details "
+        "undocumented)",
     )
     if argv and argv[0] in ("configure", "--configure"):
         # This is a hidden feature because it is very incomplete right now.

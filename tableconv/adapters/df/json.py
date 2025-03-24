@@ -7,7 +7,7 @@ import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
-from tableconv.exceptions import InvalidParamsError, SourceParseError
+from tableconv.exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
 
 
 @register_adapter(["json", "jsonl", "jsonlines", "ldjson", "ndjson"])
@@ -121,10 +121,6 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         else:
             if_exists = "fail"
 
-        if if_exists == "append":
-            if scheme != "jsonl":
-                raise NotImplementedError("?if_exists=append is only supported with jsonl")
-
         if "indent" in params:
             indent = int(params["indent"])
         else:
@@ -146,30 +142,38 @@ class JSONAdapter(FileAdapterMixin, Adapter):
             if scheme != "json":
                 raise NotImplementedError("?unnest is not supported with jsonl")
 
+        exists = os.path.exists(path) and path != "/dev/fd/1"
+        if exists and if_exists == "fail":
+            raise TableAlreadyExistsError(f"{path} already exists")
+        assert not exists or if_exists in {"append", "replace"}
         if unnest:
-            # if os.path.exists(path):
-            #     if if_exists == "fail":
-            #         raise TableAlreadyExistsError(f"{path} already exists")
-            #     assert if_exists == 'replace'
-            unnested_dict = unnest_df(df, nesting_sep=params.get("nesting_sep", "."))
-            json.dump(unnested_dict, open(path, "w"), default=json_encoder_default, indent=indent)
+            records = unnest_df(df, nesting_sep=params.get("nesting_sep", "."))
+            with open(path, "r+") as buf:
+                if exists and if_exists == "append":
+                    buf.seek(0)
+                    records = json.load(buf) + records
+                buf.truncate(0)
+                json.dump(records, buf, default=json_encoder_default, indent=indent)
         else:
             if orient in ["split", "index", "columns"]:
                 # Index required. Use first column as index.
                 df.set_index(df.columns[0], inplace=True)
 
-            path_or_buf = path
-            if os.path.exists(path):
-                # if if_exists == "fail":
-                #     raise TableAlreadyExistsError(f"{path} already exists")
-                # el
-                if if_exists == "append":
-                    path_or_buf = open(path, "a")
-
-            df.to_json(path_or_buf, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
-
-            if not isinstance(path_or_buf, str):
-                path_or_buf.close()
+            if exists and if_exists == "append":
+                if scheme == "json":
+                    records = df.to_dict(orient=orient)
+                    with open(path, "r+") as buf:
+                        if exists and if_exists == "append":
+                            buf.seek(0)
+                            records = json.load(buf) + records
+                        buf.truncate(0)
+                        buf.seek(0)
+                        json.dump(records, buf, default=json_encoder_default, indent=indent)
+                else:
+                    with open(path, "a") as buf:
+                        df.to_json(buf, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
+            else:
+                df.to_json(path, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
 
         if scheme == "json" and path == "/dev/fd/1" and sys.stdout.isatty():
             print()

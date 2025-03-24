@@ -2,7 +2,6 @@ import json
 import os
 
 import pandas as pd
-import requests
 
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.exceptions import InvalidQueryError
@@ -18,6 +17,8 @@ class SmartSheetClient:
         self._auth_token = auth_token
 
     def _call(self, method, url_part):
+        import requests  # inlined for startup performance
+
         url = self._BASE_URL + url_part
         response = requests.request(method, url, headers={"Authorization": f"Bearer {self._auth_token}"})
         response.raise_for_status()

@@ -131,9 +131,9 @@ options:
                         will be fast. (while daemon is still alive) (WARNING: experimental
                         feature)
   --multitable, --multifile
-                        Convert "database" formats, such as folders with many csvs, or a multi-tab
-                        spreadsheet. (WARNING: experimental mode, very rough, details
-                        undocumented)
+                        Convert entire "database"s of tables from one format to another, such as
+                        folders with many csvs, a multi-tab spreadsheet, or an actual RDBMS
+                        (WARNING: This is an experimental mode, very rough, details undocumented)
 
 supported url schemes:
   ascii:- (dest only)
@@ -152,6 +152,7 @@ supported url schemes:
   awslogs://eu-central-1//aws/lambda/example-function (source only)
   cmd://ls -l (source only)
   csa:- 
+  example.asciirich (dest only)
   example.csv 
   example.dta 
   example.feather 
@@ -176,6 +177,7 @@ supported url schemes:
   example.pickledf 
   example.py 
   example.python 
+  example.rich (dest only)
   example.tsv 
   example.xls 
   example.xlsb 

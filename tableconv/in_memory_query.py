@@ -57,7 +57,11 @@ def pre_process(dfs, query) -> tuple:
     # infer missing `SELECT`
     if not re.search(r"\bSELECT\b", query, re.IGNORECASE):
         query = f"SELECT {query}"
-        logger.debug("Query was missing any SELECT statement. Inferring `SELECT` at start of query..")
+        if query.startswith("SELECT  FROM "):
+            query = query.replace("SELECT  FROM ", "SELECT * FROM ")
+            logger.debug("Query was missing any SELECT statement. Inferring `SELECT *` at start of query..")
+        else:
+            logger.debug("Query was missing any SELECT statement. Inferring `SELECT` at start of query..")
 
     # Expand `transpose()` macro
     if "transpose(data)" in query:
@@ -94,7 +98,7 @@ def pre_process(dfs, query) -> tuple:
 
 def query_in_memory(dfs: list[tuple[str, pd.DataFrame]], query: str) -> pd.DataFrame:
     """Warning: Has a side effect of mutating the dfs"""
-    import duckdb
+    import duckdb  # inline import for performance
 
     duck_conn = duckdb.connect(database=":memory:", read_only=False)
     dfs, query = pre_process(dfs, query)
@@ -111,6 +115,8 @@ def query_in_memory(dfs: list[tuple[str, pd.DataFrame]], query: str) -> pd.DataF
     #         raise InvalidQueryError(*exc.args) from exc
     #     raise
     except duckdb.BinderException as exc:
+        if re.search(r"Referenced column .+ not found in FROM clause!", exc.args[0]):
+            raise InvalidQueryError(*exc.args) from exc
         if "No function matches the given name" in exc.args[0]:
             raise InvalidQueryError(*exc.args) from exc
         raise

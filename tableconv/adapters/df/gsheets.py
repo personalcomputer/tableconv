@@ -30,7 +30,7 @@ def list_ljust(ls, n, fill_value=None):
 
 
 def integer_to_spreadsheet_column_str(i):
-    """Convert a zero-based integer to a spreadsheet column string (A, B, C, ..., Z, AA, AB, ...).
+    """The spreadsheet column id (A, B, C, ..., Z, AA, AB, ...) for the given column index number.
     >>> integer_to_spreadsheet_column_str(0)
     'A'
     >>> integer_to_spreadsheet_column_str(25)
@@ -409,9 +409,9 @@ class GoogleSheetsAdapter(Adapter):
                         missing_local = list(set(existing_columns) - set(df.columns))
                         log_statements = [f"Columns don't match in {sheet_name}. Appending matching columns anyways."]
                         if missing_remote:
-                            print(f"{existing_columns=}")
-                            print(f"{df.columns=}")
-                            print(f"{missing_remote=}")
+                            logger.debug(f"{existing_columns=}")
+                            logger.debug(f"{df.columns=}")
+                            logger.debug(f"{missing_remote=}")
                             missing_remote_str = "\n".join(
                                 f"- {col.encode('unicode_escape').decode()}" for col in missing_remote
                             )

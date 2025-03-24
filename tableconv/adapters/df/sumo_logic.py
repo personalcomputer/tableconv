@@ -7,7 +7,6 @@ import time
 from typing import Any
 
 import pandas as pd
-import requests
 import yaml
 
 from tableconv.adapters.df.base import Adapter, register_adapter
@@ -30,6 +29,8 @@ class SumoLogicClient:
     """
 
     def __init__(self, accessId, accessKey):
+        import requests  # inlined for startup performance
+
         self.session = requests.Session()
         self.session.auth = (accessId, accessKey)
         self.session.headers = {"content-type": "application/json", "accept": "application/json"}

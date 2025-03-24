@@ -13,7 +13,7 @@ class NumbersAdapter(FileAdapterMixin, Adapter):
         except ImportError as exc:
             raise RuntimeError(
                 "Interfacing with .numbers files requires installing additional packages!\n"
-                " - `pip install numbers-parser`\n"
+                " - `uv run --with numbers-parser tableconv`\n"
                 " - Also required: `brew install snappy` (mac) or `sudo apt-get install libsnappy-dev` (ubuntu)\n"
                 "(See also, additional install errors troubleshooting guide: "
                 "https://github.com/andrix/python-snappy#frequently-asked-questions)"

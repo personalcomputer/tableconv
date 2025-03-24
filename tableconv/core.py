@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-import ciso8601
+import iso8601
 import pandas as pd
 from pandas.errors import EmptyDataError as pd_EmptyDataError
 from platformdirs import user_cache_dir
@@ -230,7 +230,7 @@ def coerce_schema(df: pd.DataFrame, schema: dict[str, str], restrict_schema: boo
                     # DROPS SUB-SECOND DATA.
                     # REALLY BAD THINGS.
                     if isinstance(item, str):
-                        return ciso8601.parse_datetime(item)
+                        return iso8601.parse_date(item)
                     if isinstance(item, pd.Timestamp):
                         return item.to_pydatetime()
                     raise TypeError(item)

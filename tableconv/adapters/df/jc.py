@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 class JC(Adapter):
     """
     Experimental adapter. Violates the unix philosophy but improves convenience by letting you directly run shell
-    commands as a tableconv source, instead of needing to pipe them to jc and then pipe that json to tableconv. I think
-    in the tableconv end game this is how things would work, tableconv would be your only interface to the operating
-    system. Although right now this is arguably more of a bad adapter than a good one, because it fails to teach/support
-    the intended beginner-level pipe-heavy usage pattern of tableconv.
+    commands as a tableconv source, instead of needing to run them, pipe them to jc, and then pipe that json to tc.
+    I think in the tableconv end game this Adapter is aligned with how things would work, tableconv would be your only
+    interface to the operating system. Although right now this is arguably more of a bad adapter than a good one,
+    because it fails to teach/support the intended beginner-level pipe-heavy usage pattern of tableconv.
 
     See https://github.com/kellyjonbrazil/jc
     """
@@ -49,7 +49,6 @@ class JC(Adapter):
                 break
         cmd_str = urllib.parse.unquote(cmd_str)
         cmd = shlex.split(cmd_str)
-        print(cmd)
         parser_name = JC._get_magic_parser(cmd)
         if not parser_name:
             raise ValueError(

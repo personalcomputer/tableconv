@@ -57,8 +57,8 @@ class FileAdapterMixin:
 
     @classmethod
     def dump_file(cls, df: pd.DataFrame, scheme: str, path: str, params: dict[str, Any]) -> None:
+        data = cls.dump_text_data(df, scheme, params)
         with open(path, "w", newline="") as f:
-            data = cls.dump_text_data(df, scheme, params)
             try:
                 f.write(data)
             except BrokenPipeError:
@@ -66,7 +66,12 @@ class FileAdapterMixin:
                     # Ignore broken pipe error when outputting to stdout
                     return
                 raise
+        # if path == "/dev/fd/1" and sys.stdout.isatty() and cls.text_based:
+        #   TODO: pipe through a color-highlighter maybe, like either `bat` or python rich library?
         if data and data[-1] != "\n" and path == "/dev/fd/1" and sys.stdout.isatty():
+            # TODO: this print should happen for literally every file, stdout or otherwise.
+            # however, right now that is causing some sort of corruption in testcases where the \n gets printed at the
+            # start of the buffer. Need to fix that first.
             print()
 
     @classmethod
@@ -84,6 +89,7 @@ class FileAdapterMixin:
         parsed_uri.path, ext = os.path.splitext(parsed_uri.path)
         if ext:
             if ext in [".zip", ".tar", ".tar.zstd", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2"]:
+                # TODO: this archiving tool is not packaged with tableconv. Find a good one..
                 cmd(["extract", parsed_uri.path + ext, "--output", parsed_uri.path])
             else:
                 raise ValueError(
@@ -124,9 +130,10 @@ class FileAdapterMixin:
                 cls.dump(df, encode_uri(table_uri_parsed))
 
             if archive_format:
+                # TODO: this archiving tool is not packaged with tableconv. Find a good one..
                 cmd(["package.py", archive_format, parsed_uri.path, "--output", parsed_uri.path + ext])
         finally:
-            if archive_format:
+            if archive_format or not os.listdir(parsed_uri.path):
                 logging.debug(f"Removing temp directory {parsed_uri.path}")
                 shutil.rmtree(parsed_uri.path)
 

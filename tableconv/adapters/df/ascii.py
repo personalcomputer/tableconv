@@ -1,6 +1,11 @@
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
+"""
+Note: Some of these adapters use unicode characters too, not just ASCII. The "ascii" adapters use the word "ascii" as a
+reference to _ASCII art_.
+"""
+
 
 def _render_value(value):
     if value is None:
@@ -40,6 +45,48 @@ def render_unicodebox(ordered_fields, rows):
         output_lines.append("│ " + " │ ".join(rendered_values_list) + " │")
     output_lines.append("└─" + "─┴─".join(["─" * max_lengths[field] for field in ordered_fields]) + "─┘")
     return "\n".join(output_lines)
+
+
+@register_adapter(["asciirich", "rich"], write_only=True)
+class RichAdapter(FileAdapterMixin, Adapter):
+
+    @classmethod
+    def render(cls, console, df, params):
+        from rich.table import Table
+
+        table_params = {
+            "show_header": "True",
+            "header_style": "bold green",
+            "highlight": "True",
+        }
+        table_params.update(params)
+        if "alternating_row_style" in table_params:
+            table_params["row_styles"] = [table_params["alternating_row_style"], ""]
+            del table_params["alternating_row_style"]
+        if "h" in table_params:
+            table_params["highlight"] = table_params["h"]
+            del table_params["h"]
+        table_params["show_header"] = table_params["show_header"].lower() == "true"
+        table_params["highlight"] = table_params["highlight"].lower() == "true"
+
+        table = Table(**table_params)
+        for field in df.columns:
+            table.add_column(field)
+        for row in df.values:
+            table.add_row(*[str(value) for value in row])
+        console.print(table)
+
+    @classmethod
+    def dump_file(cls, df, scheme, path, params):
+        from rich.console import Console
+
+        if path != "/dev/fd/1":
+            with open(path, "w", newline="") as f:
+                console = Console(file=f)
+                cls.render(console, df, params)
+        else:
+            console = Console()
+            cls.render(console, df, params)
 
 
 @register_adapter(

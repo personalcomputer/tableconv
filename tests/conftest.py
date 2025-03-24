@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tableconv.main import main
+from tableconv.main import main_wrapper
 
 FIXTURES_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "fixtures"
 
@@ -42,7 +42,7 @@ def invoke_cli(capfd, monkeypatch):
             if stdin:
                 monkeypatch.setattr("sys.stdin", io.StringIO(stdin))
             try:
-                main(args)
+                main_wrapper(args)
             except SystemExit as sysexit:
                 if assert_nonzero_exit_code:
                     assert sysexit.code != 0
