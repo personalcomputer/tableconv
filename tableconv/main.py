@@ -23,7 +23,6 @@ from tableconv.core import (
 )
 from tableconv.exceptions import DataError, InvalidQueryError, InvalidURLError
 from tableconv.interactive import os_open, run_interactive_shell
-from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -171,19 +170,20 @@ def parse_schema_coercion_arg(args):
 
 def parse_dest_arg(args):
     if args.DEST_URL:
-        return args.DEST_URL
-    try:
-        source_scheme, _ = parse_source_url(args.SOURCE_URL)
-    except InvalidURLError as exc:
-        abort_with_usage_error(exc)
-
-    if source_scheme in write_adapters and write_adapters[source_scheme].text_based and not args.interactive:
-        # Default to outputting to console, in same format as input
-        dest = f"{source_scheme}:-"
+        if args.DEST_URL not in ("mirror", "mirror:-"):
+            return args.DEST_URL
+        try:
+            source_scheme, _ = parse_source_url(args.SOURCE_URL)
+        except InvalidURLError as exc:
+            abort_with_usage_error(exc)
+        if source_scheme in write_adapters and write_adapters[source_scheme].text_based:
+            dest = f"{source_scheme}:-"
+        else:
+            abort_with_usage_error(f"Cannot mirror format {source_scheme}. Please specify an explicit destination url.")
     else:
-        # Otherwise, default to ascii output to console
-        dest = "ascii:-"
-    logger.debug(f"No output destination specified, defaulting to {parse_uri(dest).scheme} output to stdout")
+        # Default to rich ascii art output to console
+        dest = "rich:-"
+        logger.debug(f"No output destination specified, defaulting to {dest}")
     return dest
 
 
