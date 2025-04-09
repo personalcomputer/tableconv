@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 
-from tableconv.core import IntermediateExchangeTable, load_url
+from tableconv.core import IntermediateExchangeTable, load_multitable_from_url, load_url
 from tableconv.exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,9 @@ def os_open(url: str):
     raise RuntimeError(f"Not sure how to open files/urls on {sys.platform}")
 
 
-def handle_administrative_command(query: str, source: str, last_result: IntermediateExchangeTable | None):
+def handle_administrative_command(
+    query: str, source: str, multitable: bool, last_result: IntermediateExchangeTable | None
+):
     cmd_char = query[0]
     cmd = query[1:].split(" ")
     if cmd[0] in ("h", "help", "?"):
@@ -39,30 +41,35 @@ def handle_administrative_command(query: str, source: str, last_result: Intermed
             + f"  {cmd_char}m (toggle multiline mode (queries terminated by semicolon instead of newline))"
         )
     elif cmd[0] in ("schema", "dt", "dt+", "ds", "d", "d+", "describe", "show"):
-        table = load_url(source)
-        print('Table "data":', file=sys.stderr)
-        columns = table.get_json_schema()["properties"].items()
-        if cmd[0] == "ds":
-            columns = sorted(columns)
-        for column, column_data in columns:
-            if "type" in column_data:
-                if isinstance(column_data["type"], str):
-                    types = [column_data["type"]]
-                elif isinstance(column_data["type"], list):
-                    types = column_data["type"]
-                else:
-                    raise AssertionError
-            else:
-                assert "anyOf" in column_data
-                types = []
-                for i in column_data["anyOf"]:
-                    if isinstance(i["type"], str):
-                        types.append(i["type"])
-                    elif isinstance(i["type"], list):
-                        types.extend(i["type"])
+        if multitable:
+            tables = list(load_multitable_from_url(source))
+        else:
+            tables = [("data", load_url(source).as_pandas_df())]
+        for table_name, table_df in tables:
+            table = IntermediateExchangeTable(table_df)
+            print(f'Table "{table_name}":', file=sys.stderr)
+            columns = table.get_json_schema()["properties"].items()
+            if cmd[0] == "ds":
+                columns = sorted(columns)
+            for column, column_data in columns:
+                if "type" in column_data:
+                    if isinstance(column_data["type"], str):
+                        types = [column_data["type"]]
+                    elif isinstance(column_data["type"], list):
+                        types = column_data["type"]
                     else:
                         raise AssertionError
-            print(f'  "{column}" {", ".join(types)}')
+                else:
+                    assert "anyOf" in column_data
+                    types = []
+                    for i in column_data["anyOf"]:
+                        if isinstance(i["type"], str):
+                            types.append(i["type"])
+                        elif isinstance(i["type"], list):
+                            types.extend(i["type"])
+                        else:
+                            raise AssertionError
+                print(f'  "{column}" {", ".join(types)}')
     elif cmd[0] in ("m", "multiline"):
         global multiline
         multiline = not multiline
@@ -92,7 +99,14 @@ def create_empty_file(path):
 
 
 def run_interactive_shell(
-    source: str, dest: str, intermediate_filter_sql: str, open_dest: bool, schema_coercion, restrict_schema, autocache
+    source: str,
+    dest: str,
+    multitable: bool,
+    intermediate_filter_sql: str,
+    open_dest: bool,
+    schema_coercion,
+    restrict_schema,
+    autocache,
 ) -> None:
     # shell_width, shell_height = shutil.get_terminal_size()
     try:
@@ -135,7 +149,7 @@ def run_interactive_shell(
         readline.write_history_file(INTERACTIVE_HIST_PATH)
 
         if raw_query[0] in ("\\", ".", "/"):
-            handle_administrative_command(raw_query, source, last_result)
+            handle_administrative_command(raw_query, source, multitable, last_result)
             continue
 
         query_buffer += raw_query

@@ -344,6 +344,7 @@ def main(argv=None):
             run_interactive_shell(
                 args.SOURCE_URL,
                 dest,
+                args.multitable,
                 args.intermediate_filter_sql,
                 args.open_dest,
                 schema_coercion,
