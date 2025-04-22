@@ -11,6 +11,8 @@ import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
+from tableconv.parameter_parsing_utils import strtobool
+from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,12 @@ class CSVAdapter(FileAdapterMixin, Adapter):
     def load_file(scheme, path, params):
         params["skipinitialspace"] = params.get("skipinitialspace", True)
         params["sep"] = params.get("sep", "\t" if scheme == "tsv" else ",")
+        if "skiprows" in params:
+            params["skiprows"] = int(params["skiprows"])
+        if "nrows" in params:
+            params["nrows"] = int(params["nrows"])
+        if "dayfirst" in params:
+            params["dayfirst"] = strtobool(params["dayfirst"])
         return pd.read_csv(path, **params)
 
     @staticmethod
@@ -138,6 +146,14 @@ class ExcelAdapter(FileAdapterMixin, Adapter):
         params["sheet_name"] = params.get("sheet_name", "Sheet1")  # TODO: table naming support - extract it from URI
         params["index"] = params.get("index", False)
         df.to_excel(path, **params)
+
+    @classmethod
+    def load_multitable(cls, uri):
+        """Experimental feature. Undocumented. Low Quality."""
+        parsed_uri = parse_uri(uri)
+        path = os.path.expanduser(parsed_uri.path)
+        for table_name, df in pd.read_excel(path, **parsed_uri.query, sheet_name=None).items():
+            yield table_name, df
 
 
 @register_adapter(["parquet"])

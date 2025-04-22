@@ -110,10 +110,6 @@ def query_in_memory(dfs: list[tuple[str, pd.DataFrame]], query: str) -> pd.DataF
         duck_conn.execute(query)
     except (RuntimeError, duckdb.ParserException, duckdb.CatalogException) as exc:
         raise InvalidQueryError(*exc.args) from exc
-    # except duckdb.StandardException as exc:  # type: ignore[attr-defined]  # backwards-compat with old duckdb
-    #     if "Parser Error" in exc.args[0]:
-    #         raise InvalidQueryError(*exc.args) from exc
-    #     raise
     except duckdb.BinderException as exc:
         if re.search(r"Referenced column .+ not found in FROM clause!", exc.args[0]):
             raise InvalidQueryError(*exc.args) from exc

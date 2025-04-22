@@ -30,10 +30,9 @@ class PythonAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def dump_text_data(df, scheme, params):
-        import pprint
-
+        import black
+        if params.get("orient") == "index":
+            df.set_index(df.columns[0], inplace=True)
         df.replace({np.nan: None}, inplace=True)
-
-        # using pprint instead of repr because it can indent.
-        # reprlib in python 3.12+ can too, but I'm preferring pprint for backwards compat.
-        return pprint.pformat(df.to_dict(orient="records"), indent=4)
+        output_py = repr(df.to_dict(orient=params.get("orient", "records")))
+        return black.format_str(output_py, mode=black.Mode())

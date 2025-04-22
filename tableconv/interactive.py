@@ -128,9 +128,10 @@ def run_interactive_shell(
     readline.set_history_length(1000)
 
     if len(source) <= (7 + 5 + 19):
-        prompt = f"{source}=> "
+        normal_prompt = f"{source}=> "
     else:
-        prompt = f"{source[:7]}[...]{source[-19:]}=> "
+        normal_prompt = f"{source[:7]}[...]{source[-19:]}=> "
+    prompt = normal_prompt
 
     last_result = None
 
@@ -157,11 +158,11 @@ def run_interactive_shell(
             semi_pos = query_buffer.find(";")
             if semi_pos != -1:
                 query = query_buffer[:semi_pos].strip()
-                query_buffer = " "  # Alternatively, support many queries entered at once? # query_buffer[semi_pos + 1:]
-                if not query:
-                    continue
+                query_buffer = ""  # Alternatively, support many queries entered at once? # query_buffer[semi_pos + 1:]
+                prompt = normal_prompt
             else:
-                query_buffer += " "
+                query_buffer += "\n"
+                prompt = ((len(normal_prompt) - 8) * " ") + "[...] > "
                 continue
         else:
             query = query_buffer

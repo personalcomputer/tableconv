@@ -102,6 +102,10 @@ class RDBMSAdapter(Adapter):
                 return pd.read_sql(sql=query, con=engine)
             except sqlalchemy.exc.ProgrammingError as exc:
                 raise InvalidQueryError(*exc.args) from exc
+            except sqlalchemy.exc.OperationalError as exc:
+                if "syntax error" in exc.args[0]:
+                    raise InvalidQueryError(*exc.args) from exc
+                raise exc
         elif table:
             try:
                 return pd.read_sql_table(table, engine)
