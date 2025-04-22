@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1757,7 +1758,7 @@ wheels = [
 
 [[package]]
 name = "tableconv"
-version = "1.9991.20250409"
+version = "1.9992.20250422"
 source = { editable = "." }
 dependencies = [
     { name = "black" },
@@ -1847,6 +1848,7 @@ requires-dist = [
     { name = "xlsxwriter", specifier = "~=3.2.2" },
     { name = "xlwt", specifier = "~=1.3.0" },
 ]
+provides-extras = ["full"]
 
 [package.metadata.requires-dev]
 dev = [
