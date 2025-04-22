@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.exceptions import InvalidQueryError
@@ -19,6 +18,7 @@ class DuckDBFile(Adapter):
     @staticmethod
     def load(uri, query):
         import duckdb
+
         parsed_uri = parse_uri(uri)
         db_path = os.path.abspath(os.path.expanduser(parsed_uri.path))
         conn = duckdb.connect(database=db_path)
@@ -27,7 +27,7 @@ class DuckDBFile(Adapter):
             table = parsed_uri.query["table"]
             # TODO: escape this. Or use some other duckdb->pandas api. Prepared statements won't work.
             # df = conn.execute(f"SELECT * FROM \"{table}\"").fetchdf()
-            query = f"SELECT * FROM \"{table}\""
+            query = f'SELECT * FROM "{table}"'
 
         try:
             df = conn.execute(query).fetchdf()

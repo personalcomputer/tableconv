@@ -31,6 +31,7 @@ class PythonAdapter(FileAdapterMixin, Adapter):
     @staticmethod
     def dump_text_data(df, scheme, params):
         import black
+
         if params.get("orient") == "index":
             df.set_index(df.columns[0], inplace=True)
         df.replace({np.nan: None}, inplace=True)

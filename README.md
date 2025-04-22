@@ -147,78 +147,79 @@ supported url schemes:
   asciipretty:- (dest only)
   asciipsql:- (dest only)
   asciisimple:- (dest only)
-  awsathena://eu-central-1 
+  awsathena://eu-central-1
   awsdynamodb://eu-central-1/example_table (source only)
   awslogs://eu-central-1//aws/lambda/example-function (source only)
   cmd://ls -l (source only)
-  csa:- 
+  csa:-
+  duckdb://example.duckdb (source only)
   example.asciirich (dest only)
-  example.csv 
-  example.dta 
-  example.feather 
-  example.fixedwidth 
-  example.fwf 
-  example.h5 
-  example.hdf5 
-  example.html 
-  example.json 
-  example.jsonl 
-  example.jsonlines 
-  example.ldjson 
-  example.ndjson 
+  example.csv
+  example.dta
+  example.feather
+  example.fixedwidth
+  example.fwf
+  example.h5
+  example.hdf5
+  example.html
+  example.json
+  example.jsonl
+  example.jsonlines
+  example.ldjson
+  example.ndjson
   example.numbers (source only)
-  example.odf 
-  example.ods 
-  example.odt 
+  example.odf
+  example.ods
+  example.odt
   example.orc (source only)
-  example.parquet 
+  example.parquet
   example.pcap (source only)
   example.pcapng (source only)
-  example.pickledf 
-  example.py 
-  example.python 
+  example.pickledf
+  example.py
+  example.python
   example.rich (dest only)
-  example.tsv 
-  example.xls 
-  example.xlsb 
-  example.xlsm 
-  example.xlsx 
-  example.yaml 
-  example.yml 
-  file_per_row:///tmp/example (each file is considered a (filename,value) record) 
-  gsheets://:new: 
+  example.tsv
+  example.xls
+  example.xlsb
+  example.xlsm
+  example.xlsx
+  example.yaml
+  example.yml
+  file_per_row:///tmp/example (each file is considered a (filename,value) record)
+  gsheets://:new:
   jc://ls -l (source only)
   jiraformat:- (dest only)
-  jsonarray:- 
+  jsonarray:-
   jsondict:- (source only)
   latex:- (dest only)
   leveldblog:output-0 (source only)
-  list:- 
+  list:-
   markdown:- (dest only)
   md:- (dest only)
   mediawikiformat:- (dest only)
   moinmoinformat:- (dest only)
-  mssql://127.0.0.1:5432/example_db 
-  mysql://127.0.0.1:5432/example_db 
-  nestedlist:- 
-  oracle://127.0.0.1:5432/example_db 
+  mssql://127.0.0.1:5432/example_db
+  mysql://127.0.0.1:5432/example_db
+  nestedlist:-
+  oracle://127.0.0.1:5432/example_db
   osquery://processes (source only)
-  postgis://127.0.0.1:5432/example_db 
-  postgres://127.0.0.1:5432/example_db 
-  postgresql://127.0.0.1:5432/example_db 
-  pylist:- 
-  pythonlist:- 
+  postgis://127.0.0.1:5432/example_db
+  postgres://127.0.0.1:5432/example_db
+  postgresql://127.0.0.1:5432/example_db
+  pylist:-
+  pythonlist:-
   rst:- (dest only)
   sh://ls -l (source only)
   smartsheet://SHEET_ID (source only)
   sql_literal:- (dest only)
   sql_values:- (dest only)
-  sqlite3:///tmp/example.db 
-  sqlite:///tmp/example.db 
+  sqlite3:///tmp/example.db
+  sqlite:///tmp/example.db
   sumologic://?from=2021-03-01T00:00:00Z&to=2021-05-03T00:00:00Z (source only)
   tex:- (dest only)
-  tsa:- 
-  yamlsequence:- 
+  tsa:-
+  yamlsequence:-
 
 help & support:
   https://github.com/personalcomputer/tableconv/issues/new

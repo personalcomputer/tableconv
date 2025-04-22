@@ -152,8 +152,7 @@ class ExcelAdapter(FileAdapterMixin, Adapter):
         """Experimental feature. Undocumented. Low Quality."""
         parsed_uri = parse_uri(uri)
         path = os.path.expanduser(parsed_uri.path)
-        for table_name, df in pd.read_excel(path, **parsed_uri.query, sheet_name=None).items():
-            yield table_name, df
+        yield from pd.read_excel(path, **parsed_uri.query, sheet_name=None).items()
 
 
 @register_adapter(["parquet"])
