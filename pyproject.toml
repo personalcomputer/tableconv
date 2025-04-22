@@ -45,6 +45,7 @@ dependencies = [
     "jc>=1.25.4",
     "iso8601~=2.1.0",
     "rich>=13.9.4",
+    "black>=25.1.0",
 ]
 [dependency-groups]
 dev = [

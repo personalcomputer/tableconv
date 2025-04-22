@@ -1,11 +1,6 @@
 .PHONY: help clean lint test test-ci test-packaging coverage docs release
 .DEFAULT_GOAL := help
 
-# Show makefile usage help message
-help:
-	@# Run makehelp using python uv, if available, otherwise, pipx, otherwise error.
-	@(which uvx >/dev/null 2>&1 && uvx makehelp) || (which pipx >/dev/null 2>&1 && pipx run makehelp) || echo 'Error: Please run `pip install uv && uv tool install makehelp` first'
-
 clean:
 	rm -fr build/
 	rm -fr dist/
@@ -22,20 +17,20 @@ clean:
 
 auto_lint_fix:
 	uv run ruff check tableconv tests --fix
-	uv run isort tableconv
-	uv run black tableconv
+	uv run isort tableconv tests
+	uv run black tableconv tests
 	uv run ruff check tableconv tests --fix
 	uv run update_readme_usage
 
 lint:
 	uv run ruff check tableconv tests
-	uv run black tableconv --check
-	uv run isort tableconv --check
+	uv run black tableconv tests --check
+	uv run isort tableconv tests --check
 	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
-	uv run update_readme_usage --check
 	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
 
 test:
+	uv run update_readme_usage --check
 	uv run tableconv --kill-daemon || true
 	TABLECONV_AUTO_DAEMON= uv run pytest
 
@@ -78,6 +73,9 @@ release: clean ## Build and release to PyPI
 		git status --short --untracked-files=no; \
 		exit 1; \
 	fi
+	# make sure branch is in sync with remote before we do anything
+	git checkout master
+	git pull origin master
 	# Rerun tests
 	$(MAKE) lint
 	$(MAKE) test
