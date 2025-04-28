@@ -2106,7 +2106,7 @@ wheels = [
 
 [[package]]
 name = "tableconv"
-version = "1.9992.20250422"
+version = "1.9993.20250428"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
