@@ -160,7 +160,7 @@ def parse_source_url(url: str) -> tuple[str, Adapter]:
     if source_scheme in FSSPEC_SCHEMES:
         source_scheme = os.path.splitext(parsed_url.path)[1][1:]
         if not source_scheme:
-            source_scheme = 'html'
+            source_scheme = "html"
 
     if source_scheme is None:
         raise InvalidURLSyntaxError(f'Unable to parse URL "{url}".')
@@ -193,7 +193,7 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
         encoded_query_params = ""
     file_scheme = os.path.splitext(parsed_url.path)[1][1:]
     if not file_scheme:
-        file_scheme = 'html'
+        file_scheme = "html"
     temp_file = tempfile.NamedTemporaryFile(delete=False, prefix="tableconv_fsspec_cache_", suffix=f".{file_scheme}")
     with fsspec.open(f"{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}") as network_file:
         temp_file.write(network_file.read())

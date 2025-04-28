@@ -19,8 +19,15 @@ auto_lint_fix:
 	uv run ruff check tableconv tests --fix
 	uv run isort tableconv tests
 	uv run black tableconv tests
-	uv run ruff check tableconv tests --fix
+	uv run ruff check tableconv tests
 	uv run update_readme_usage
+
+auto: auto_lint_fix
+	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
+	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
+	$(MAKE) test
+	uv build
+	verify_all_files_in_py_build_are_tracked_in_git.py
 
 lint:
 	uv run ruff check tableconv tests
@@ -59,7 +66,7 @@ docs: ## Generate Sphinx HTML documentation, including API docs
 servedocs: docs ## Autoreload docs
 	uvx --with sphinx --from watchdog watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
-release: clean ## Build and release to PyPI
+release: ## Build and release to PyPI
 	# Get primary branch name
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ] && [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then \
 		echo "Error: Must be on main/master branch to do release"; \
@@ -85,6 +92,7 @@ release: clean ## Build and release to PyPI
 	$(MAKE) clean
 	uv build
 	ls -l dist
+	verify_all_files_in_py_build_are_tracked_in_git.py
 	uv publish --token "$$(pcregrep -o1 'password: (pypi-.+)$$' ~/.pypirc)"
 	# Push the release to github too.
 	git push -u origin $$(git rev-parse --abbrev-ref HEAD)

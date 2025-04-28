@@ -1,12 +1,16 @@
 import ast
 import copy
 import filecmp
+import http.server
 import json
 import logging
 import re
 import shlex
+import socketserver
 import sqlite3
 import subprocess
+import threading
+import time
 
 import pytest
 
@@ -321,3 +325,34 @@ def test_table_to_array(invoke_cli):
 def test_transpose(invoke_cli):
     stdout = invoke_cli([FIXTURES_DIR / "commodities.tsv", "-Q", "select * from transpose(data)", "-o", "tsv:-"])
     assert stdout == open(FIXTURES_DIR / "commodities-transposed.tsv").read()
+
+
+def test_fsspec_html_table_extraction(invoke_cli):
+    # Start a temporary HTTP server in a separate thread
+    port = 8763
+
+    class FixturesHandler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=str(FIXTURES_DIR), **kwargs)
+
+    handler = FixturesHandler
+    httpd = socketserver.TCPServer(("", port), handler)
+    server_thread = threading.Thread(target=httpd.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        # Wait for server to start
+        time.sleep(0.5)
+
+        # Test first table extraction
+        stdout = invoke_cli([f"http://localhost:{port}/index.html", "-o", "csv:-"])
+        assert stdout == "Name,Age\nAlice,25\nBob,30\n"
+        # Test second table extraction
+        stdout = invoke_cli([f"http://localhost:{port}/index.html?table_index=1", "-o", "csv:-"])
+        assert stdout == "Product,Price\nApple,1.99\nBanana,0.99\n"
+    finally:
+        # Clean up http server
+        httpd.shutdown()
+        httpd.server_close()
+        server_thread.join()
