@@ -159,6 +159,8 @@ def parse_source_url(url: str) -> tuple[str, Adapter]:
 
     if source_scheme in FSSPEC_SCHEMES:
         source_scheme = os.path.splitext(parsed_url.path)[1][1:]
+        if not source_scheme:
+            source_scheme = 'html'
 
     if source_scheme is None:
         raise InvalidURLSyntaxError(f'Unable to parse URL "{url}".')
@@ -184,16 +186,19 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     import fsspec
 
     logger.info("Source URL is a remote file - attempting to create local copy (via fsspec)")
-    temp_file = tempfile.NamedTemporaryFile()
     parsed_url = parse_uri(url)
-    with fsspec.open(f"{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}") as network_file:
-        temp_file.write(network_file.read())
-    temp_file.flush()
     if parsed_url.query:
         encoded_query_params = "?" + "&".join((f"{key}={value}" for key, value in parsed_url.query.items()))
     else:
         encoded_query_params = ""
-    new_url = f"{os.path.splitext(parsed_url.path)[1][1:]}://{temp_file.name}{encoded_query_params}"
+    file_scheme = os.path.splitext(parsed_url.path)[1][1:]
+    if not file_scheme:
+        file_scheme = 'html'
+    temp_file = tempfile.NamedTemporaryFile(delete=False, prefix="tableconv_fsspec_cache_", suffix=f".{file_scheme}")
+    with fsspec.open(f"{parsed_url.scheme}://{parsed_url.authority}{parsed_url.path}") as network_file:
+        temp_file.write(network_file.read())
+    temp_file.flush()
+    new_url = f"{file_scheme}://{temp_file.name}{encoded_query_params}"
     logger.info(f"Cached remote file as {new_url}")
     return new_url
 
