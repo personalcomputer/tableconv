@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import shlex
+import socket
 import socketserver
 import sqlite3
 import subprocess
@@ -327,23 +328,39 @@ def test_transpose(invoke_cli):
     assert stdout == open(FIXTURES_DIR / "commodities-transposed.tsv").read()
 
 
+def _wait_until_accepts_connection(ip, port, polling_interval_s=1.5):
+    while True:
+        poll_start = time.time()
+        try:
+            s = socket.create_connection((ip, port), timeout=polling_interval_s)
+        except (ConnectionRefusedError, ConnectionResetError, TimeoutError):
+            sleep_time = polling_interval_s - (time.time() - poll_start)
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            continue
+        s.close()
+        return
+
+
 def test_fsspec_html_table_extraction(invoke_cli):
-    # Start a temporary HTTP server in a separate thread
+    # pre-req: Start a temporary HTTP server in a separate thread
     port = 8763
 
     class FixturesHandler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(FIXTURES_DIR), **kwargs)
+            self.close_connection = True
 
-    handler = FixturesHandler
-    httpd = socketserver.TCPServer(("", port), handler)
-    server_thread = threading.Thread(target=httpd.serve_forever)
+    class TCPServer(socketserver.TCPServer):
+        allow_reuse_address = True
+
+    httpd = TCPServer(("127.0.0.1", port), FixturesHandler)
+    server_thread = threading.Thread(target=lambda: httpd.serve_forever(poll_interval=0.05))
     server_thread.daemon = True
     server_thread.start()
-
     try:
         # Wait for server to start
-        time.sleep(0.5)
+        _wait_until_accepts_connection("127.0.0.1", port, polling_interval_s=0.05)
 
         # Test first table extraction
         stdout = invoke_cli([f"http://localhost:{port}/index.html", "-o", "csv:-"])
