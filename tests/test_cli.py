@@ -144,7 +144,7 @@ def test_interactive(tmp_path):
 #     assert proc.returncode == 0
 
 
-def help_test_util(invoke_cli, use_subprocess=False):
+def cli_help_output_test_util(invoke_cli, use_subprocess=False):
     stdout = invoke_cli(["-h"], use_subprocess=use_subprocess)
     MINIMUM_SUPPORED_SCHEMES = [
         "csv ",
@@ -164,11 +164,11 @@ def help_test_util(invoke_cli, use_subprocess=False):
 
 
 def test_help(invoke_cli):
-    help_test_util(invoke_cli)
+    cli_help_output_test_util(invoke_cli)
 
 
 def test_launch_process(invoke_cli):
-    help_test_util(invoke_cli, use_subprocess=True)
+    cli_help_output_test_util(invoke_cli, use_subprocess=True)
 
 
 def test_no_arguments(invoke_cli):

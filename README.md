@@ -146,6 +146,7 @@ supported url schemes:
   asciipresto:- (dest only)
   asciipretty:- (dest only)
   asciipsql:- (dest only)
+  asciirich:- (dest only)
   asciisimple:- (dest only)
   awsathena://eu-central-1
   awsdynamodb://eu-central-1/example_table (source only)
@@ -153,7 +154,6 @@ supported url schemes:
   cmd://ls -l (source only)
   csa:-
   duckdb://example.duckdb (source only)
-  example.asciirich (dest only)
   example.csv
   example.dta
   example.feather
@@ -178,7 +178,6 @@ supported url schemes:
   example.pickledf
   example.py
   example.python
-  example.rich (dest only)
   example.tsv
   example.xls
   example.xlsb
@@ -209,6 +208,7 @@ supported url schemes:
   postgresql://127.0.0.1:5432/example_db
   pylist:-
   pythonlist:-
+  rich:- (dest only)
   rst:- (dest only)
   sh://ls -l (source only)
   smartsheet://SHEET_ID (source only)

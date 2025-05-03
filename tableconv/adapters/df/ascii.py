@@ -50,6 +50,10 @@ def render_unicodebox(ordered_fields, rows):
 @register_adapter(["asciirich", "rich"], write_only=True)
 class RichAdapter(FileAdapterMixin, Adapter):
 
+    @staticmethod
+    def get_example_url(scheme):
+        return f"{scheme}:-"
+
     @classmethod
     def render(cls, console, df, params):
         from rich.table import Table
