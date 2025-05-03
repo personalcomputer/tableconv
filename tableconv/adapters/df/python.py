@@ -36,4 +36,14 @@ class PythonAdapter(FileAdapterMixin, Adapter):
             df.set_index(df.columns[0], inplace=True)
         df.replace({np.nan: None}, inplace=True)
         output_py = repr(df.to_dict(orient=params.get("orient", "records")))
-        return black.format_str(output_py, mode=black.Mode())
+
+        black_opts = {}
+        if "line_length" in params:
+            black_opts["line_length"] = int(params["line_length"])
+        if "target_versions" in params:
+            black_opts["target_versions"] = bool(params["target_versions"])
+        if "string_normalization" in params:
+            black_opts["string_normalization"] = bool(params["string_normalization"])
+        if "magic_trailing_comma" in params:
+            black_opts["magic_trailing_comma"] = bool(params["magic_trailing_comma"])
+        return black.format_str(output_py, mode=black.Mode(**black_opts))
