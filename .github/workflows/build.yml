@@ -22,6 +22,6 @@ jobs:
         uv sync
     - name: Test
       run: |
-        make test-ci
+        make test_ci
 
 

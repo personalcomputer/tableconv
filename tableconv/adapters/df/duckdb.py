@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_adapter(["duckdb"], read_only=True)
-class DuckDBFile(Adapter):
+class DuckDBFileAdapter(Adapter):
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}://example.duckdb"

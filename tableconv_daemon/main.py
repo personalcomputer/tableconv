@@ -43,8 +43,8 @@ def handle_daemon_supervisor_request(daemon_proc, client_conn) -> None:
 
         cmd = f'{os.path.basename(sys.argv[0])} {shlex.join(json.loads(request_data)["argv"])}'
 
-        # We're sending the binary data over a line-buffered text pipe, so so we need to encode it into a text format so
-        # that any b'\n's don't get corrupted.
+        # We're sending the binary data over a newline-delimited text pipe, so so we need to encode it into a text
+        # format so that any b'\n's don't get corrupted.
         data_encoded = base64.b64encode(request_data) + EOF_SENTINEL
         max_stdin_buffer_size = os.fpathconf(0, 'PC_MAX_CANON')
         for i in range(0, len(data_encoded), max_stdin_buffer_size):
@@ -325,7 +325,7 @@ def main_wrapper():
             print("[Automatically forking daemon]", file=sys.stderr)
             print("[To kill daemon, run `unset TABLECONV_AUTO_DAEMON && tableconv --kill-daemon`]", file=sys.stderr)
             run_daemonize(log=False)
-            time.sleep(0.5)  # Give daemon time to start # hack..
+            time.sleep(0.5)  # Give daemon time to start # TODO: this is a hack..
             return client_process_request_by_daemon(argv)
 
     # Runinng as daemon client failed, so run tableconv normally: run within this process.

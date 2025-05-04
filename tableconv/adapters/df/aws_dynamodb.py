@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_adapter(["awsdynamodb"], read_only=True)
-class AWSDynamoDB(Adapter):
+class AWSDynamoDBAdapter(Adapter):
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}://eu-central-1/example_table"

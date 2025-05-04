@@ -18,9 +18,6 @@ from tableconv.uri import encode_uri, parse_uri
 logger = logging.getLogger(__name__)
 
 
-PD_VERSION = [int(i) for i in pd.__version__.split(".")]
-
-
 def resolve_pgcli_uri_alias(dsn: str) -> str | None:
     """
     Hidden feature: Use configured database uri aliases. Currently only supported for aliases configured for postgres
@@ -95,6 +92,7 @@ class RDBMSAdapter(Adapter):
 
         if query:
             try:
+                # PD_VERSION = [int(i) for i in pd.__version__.split(".")]
                 # if PD_VERSION[0] >= 2 and PD_VERSION[1] >= 2 and PD_VERSION[2] >= 2:
                 #     with engine.connect() as conn:
                 #         return pd.read_sql(sql=query, con=conn.connection)

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_adapter(["osquery"], read_only=True)
-class OSQuery(Adapter):
+class OSQueryAdapter(Adapter):
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}://processes"

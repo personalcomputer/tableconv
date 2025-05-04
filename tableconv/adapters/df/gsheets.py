@@ -49,10 +49,6 @@ def integer_to_spreadsheet_column_str(i):
     return result
 
 
-def coords_to_spreadsheet_cell_str(coord):
-    return f"{integer_to_spreadsheet_column_str(coord[1])}{coord[2]}"
-
-
 def get_sheet_properties(spreadsheet_data, sheet_name):
     for sheet in spreadsheet_data["sheets"]:
         if sheet["properties"]["title"] == sheet_name:

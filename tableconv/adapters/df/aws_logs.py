@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_adapter(["awslogs"], read_only=True)
-class AWSLogs(Adapter):
+class AWSLogsAdapter(Adapter):
     """AWS Cloudwatch Logs (Disclaimer: Only supports Logs Insights queries for now)"""
 
     @staticmethod
