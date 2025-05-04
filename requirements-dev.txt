@@ -1,9 +1,0 @@
-pytest
-mypy
-types-PyYAML
-types-python-dateutil
-types-requests
-types-tabulate
-types-boto3
-codespell
-flake8
