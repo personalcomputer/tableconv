@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import marko
 import numpy as np
@@ -93,3 +94,48 @@ class JsonDictAdapter(FileAdapterMixin, Adapter):
         records = JsonDictAdapter._traverse(data, [])
         max_depth = max([len(record) for record in records])
         return pd.DataFrame.from_records(records, columns=[f"level{i}" for i in range(max_depth)])
+
+
+@register_adapter(["toml"])
+class RemarshalAdapter(FileAdapterMixin, Adapter):
+    """
+    Super broken experimental adapter, similar to jsondict but even worse. Just a start on the concept. TODO.
+
+    The way all these "nested list" adapters should be fixed to work is they should have only two columns in the output:
+    - path
+    - value
+
+    The path needs to be a concatenated string of the keys that lead to the value.
+
+    Only if all the paths are the same length can we get away with having separate columns for each path element. I
+    think that should be seen as probably an edge-case, I can add support for it later only if really needed.
+
+    Work off the output of `pipdeptree --json-tree` to develop this, that is a very complete example of what these
+    nested list structures do. Also TOML files.
+    """
+
+    text_based = True
+
+    @classmethod
+    def load_text_data(cls, scheme: str, data: str, params: dict[str, Any]) -> pd.DataFrame:
+        from remarshal.main import decode as remarshal_decode
+
+        decoded_data = remarshal_decode(
+            input_format=scheme,
+            input_data=data.encode(),
+        )
+        return JsonDictAdapter.load_text_data(scheme, json.dumps(decoded_data), params)
+
+    @classmethod
+    def dump_text_data(cls, df: pd.DataFrame, scheme: str, params: dict[str, Any]) -> str:
+        import remarshal
+
+        return remarshal.encode(
+            output_format=scheme,
+            data=df.to_dict(**params),
+            options=remarshal.TOMLOptions(
+                # multiline_threshold=multiline_threshold,
+                # sort_keys=sort_keys,
+                stringify=True,
+            ),
+        ).decode()

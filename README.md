@@ -166,6 +166,7 @@ supported url schemes:
   example.jsonl
   example.jsonlines
   example.ldjson
+  example.msgpack
   example.ndjson
   example.numbers (source only)
   example.odf
@@ -178,6 +179,7 @@ supported url schemes:
   example.pickledf
   example.py
   example.python
+  example.toml
   example.tsv
   example.xls
   example.xlsb
