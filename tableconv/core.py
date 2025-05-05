@@ -292,7 +292,7 @@ def warn_if_location_too_large(uri: str):
 
 def get_cache_key(read_adapter_name, url, query):
     key_bits = json.dumps([read_adapter_name, url, query])
-    key = hashlib.md5(key_bits.encode()).hexdigest()
+    key = hashlib.md5(key_bits.encode(), usedforsecurity=False).hexdigest()
     logger.debug(f"Cache key: {key} ({key_bits})")
     return key
 
