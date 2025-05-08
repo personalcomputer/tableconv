@@ -1,4 +1,6 @@
+import json
 import logging
+import subprocess
 
 import pandas as pd
 
@@ -34,8 +36,20 @@ class OSQueryAdapter(Adapter):
         if table:
             query = f'SELECT * FROM "{table}"'
 
-        instance = osquery.SpawnInstance()
-        instance.open()
+        try:
+            instance = osquery.SpawnInstance()
+            instance.open()
+        except FileNotFoundError as e:
+            # macOS Homebrew package `osquery` seems to not install osqueryd, which breaks these Python bindings?
+            logger.warning(
+                f'osquery python module failed ("{e}"). Falling back to trying via osqueryi CLI. osqueryi CLI is not as'
+                " well supported: all columns will be treated as strings."
+            )
+            try:
+                result = subprocess.check_output(["osqueryi", "--json", query], text=True)
+            except FileNotFoundError as e2:
+                raise RuntimeError(f"Error running query via osqueryi: {e2}") from e
+            return pd.DataFrame.from_records(json.loads(result))
         result = instance.client.query(query)
         if result.status.code != 0:
             raise InvalidQueryError(result.status.message)

@@ -51,6 +51,7 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
     "remarshal>=1.0.0",
     "msgpack>=1.1.0",
+    "osquery>=3.1.1",
 ]
 [dependency-groups]
 dev = [
