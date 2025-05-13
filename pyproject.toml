@@ -72,8 +72,9 @@ dev = [
 ]
 [project.optional-dependencies]
 full = [
-    "pyarrow",
     "leveldb_export",
+    "pyiceberg>=0.9.1",
+    "pyarrow>=20.0.0",
 ]
 
 [project.urls]
