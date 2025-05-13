@@ -21,8 +21,6 @@ class MsgpackAdapter(FileAdapterMixin, Adapter):
     yet.
 
     TODO: See also: BSON.
-    TODO: Not related to json/bson/msgpack data model, but I also need to support protobufs, both with .proto and
-          without .proto.
     """
 
     @staticmethod

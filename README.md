@@ -155,6 +155,7 @@ supported url schemes:
   csa:-
   duckdb://example.duckdb
   example.avro
+  example.binpb (source only)
   example.csv
   example.dta
   example.feather
@@ -178,6 +179,8 @@ supported url schemes:
   example.pcap (source only)
   example.pcapng (source only)
   example.pickledf
+  example.protob (source only)
+  example.protobuf (source only)
   example.py
   example.python
   example.toml

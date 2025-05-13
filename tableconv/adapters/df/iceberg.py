@@ -19,7 +19,7 @@ class IcebergAdapter(Adapter):
         from pyiceberg.catalog import load_catalog
 
         if "catalog_uri" not in parsed_uri.query:
-            raise InvalidParamsError("catalog_uri parameter is required")
+            raise InvalidParamsError("?catalog_uri parameter is required")
         catalog_uri = parsed_uri.query["catalog_uri"]
         namespace = parsed_uri.query.get("namespace", "default")
         warehouse_path = parsed_uri.authority or parsed_uri.path
@@ -67,10 +67,10 @@ class IcebergAdapter(Adapter):
         parsed_uri = parse_uri(uri)
         table_name = parsed_uri.query.get("table_name", parsed_uri.query.get("table", None))
         if not table_name:
-            raise InvalidParamsError("table_name parameter is required")
+            raise InvalidParamsError("?table_name parameter is required")
         if_exists = parsed_uri.query.get("if_exists", "error")
         if if_exists not in ("append", "replace", "error"):
-            raise InvalidParamsError("if_exists parameter must be one of: append, replace, error")
+            raise InvalidParamsError("?if_exists parameter must be one of: append, replace, error")
         namespace = parsed_uri.query.get("namespace", "default")
         catalog = IcebergAdapter.load_catalog(parsed_uri)
         if namespace not in (i[0] for i in catalog.list_namespaces()):
