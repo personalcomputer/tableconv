@@ -7,7 +7,6 @@ from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 
-# Helper function to map pandas dtypes to Avro types
 def _pandas_dtype_to_avro_type(dtype) -> dict[str, str] | str:
     if pd.api.types.is_integer_dtype(dtype):
         return "long"
@@ -19,8 +18,7 @@ def _pandas_dtype_to_avro_type(dtype) -> dict[str, str] | str:
         return {"type": "long", "logicalType": "timestamp-micros"}
     elif pd.api.types.is_object_dtype(dtype):  # Defaulting object to string
         return "string"
-    # Add more mappings as needed, e.g., for bytes, complex objects, etc.
-    return "string"  # Fallback, consider raising an error for unhandled types
+    return "string"
 
 
 def _infer_avro_schema_from_df(

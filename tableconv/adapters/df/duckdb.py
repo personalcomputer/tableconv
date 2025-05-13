@@ -1,22 +1,24 @@
 import logging
 import os
 import re
+import uuid
 
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.exceptions import InvalidQueryError
+from tableconv.in_memory_query import flatten_arrays_for_duckdb
 from tableconv.uri import parse_uri
 
 logger = logging.getLogger(__name__)
 
 
-@register_adapter(["duckdb"], read_only=True)
+@register_adapter(["duckdb"])
 class DuckDBFileAdapter(Adapter):
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}://example.duckdb"
 
-    @staticmethod
-    def load(uri, query):
+    @classmethod
+    def load(cls, uri, query):
         import duckdb
 
         parsed_uri = parse_uri(uri)
@@ -24,10 +26,10 @@ class DuckDBFileAdapter(Adapter):
         conn = duckdb.connect(database=db_path)
 
         if not query:
-            table = parsed_uri.query["table"]
+            table_bame = parsed_uri.query.get("table", parsed_uri.query.get("table_name", "data"))
             # TODO: escape this. Or use some other duckdb->pandas api. Prepared statements won't work.
-            # df = conn.execute(f"SELECT * FROM \"{table}\"").fetchdf()
-            query = f'SELECT * FROM "{table}"'
+            # df = conn.execute(f"SELECT * FROM \"{table_bame}\"").fetchdf()
+            query = f'SELECT * FROM "{table_bame}"'
 
         try:
             df = conn.execute(query).fetchdf()
@@ -41,3 +43,17 @@ class DuckDBFileAdapter(Adapter):
             raise
 
         return df
+
+    @classmethod
+    def dump(cls, df, uri):
+        import duckdb
+
+        parsed_uri = parse_uri(uri)
+        table_name = parsed_uri.query.get("table", parsed_uri.query.get("table_name", "data"))
+        db_path = os.path.abspath(os.path.expanduser(parsed_uri.path))
+        conn = duckdb.connect(database=db_path, read_only=False)
+
+        flatten_arrays_for_duckdb(df)
+        temp_table = str(uuid.uuid4().hex)
+        conn.register(temp_table, df)
+        conn.execute(f'CREATE TABLE "{table_name}" AS SELECT * FROM {temp_table}')

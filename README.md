@@ -153,7 +153,7 @@ supported url schemes:
   awslogs://eu-central-1//aws/lambda/example-function (source only)
   cmd://ls -l (source only)
   csa:-
-  duckdb://example.duckdb (source only)
+  duckdb://example.duckdb
   example.avro
   example.csv
   example.dta
