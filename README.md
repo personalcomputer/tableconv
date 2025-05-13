@@ -154,6 +154,7 @@ supported url schemes:
   cmd://ls -l (source only)
   csa:-
   duckdb://example.duckdb (source only)
+  example.avro
   example.csv
   example.dta
   example.feather
@@ -189,6 +190,7 @@ supported url schemes:
   example.yml
   file_per_row:///tmp/example (each file is considered a (filename,value) record)
   gsheets://:new:
+  iceberg:///tmp/warehouse?catalog_uri=sqlite:////tmp/warehouse/pyiceberg_catalog.db
   jc://ls -l (source only)
   jiraformat:- (dest only)
   jsonarray:-

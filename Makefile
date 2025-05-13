@@ -46,7 +46,7 @@ _lint_autofixing_disabled: # run the linters that support autofixing, but with a
 _lint_nonautofixing: # run the linters that don't support autofixing
 	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
 	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
-	uvx vulture tableconv tests/vulture_whitelist.list
+	uvx vulture tableconv tests/vulture_whitelist.list --min-confidence 70
 	@# Regenerate vulture_whitelist.list with:
 	@# uvx vulture tableconv --make-whitelist > tests/vulture_whitelist.list
 

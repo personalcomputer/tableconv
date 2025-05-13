@@ -52,6 +52,7 @@ dependencies = [
     "remarshal>=1.0.0",
     "msgpack>=1.1.0",
     "osquery>=3.1.1",
+    "fastavro>=1.10.0",
 ]
 [dependency-groups]
 dev = [
@@ -70,6 +71,7 @@ dev = [
     "ruff",
     "ipdb",
 ]
+
 [project.optional-dependencies]
 full = [
     "leveldb_export",
