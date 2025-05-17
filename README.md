@@ -163,13 +163,13 @@ supported url schemes:
   awsathena://eu-central-1
   awsdynamodb://eu-central-1/example_table (source only)
   awslogs://eu-central-1//aws/lambda/example-function (source only)
-  cmd://ls -l (source only)
+  cmd://ls -l example (source only)
   csa:-
-  duckdb://example.duckdb
   example.avro
   example.binpb (source only)
   example.csv
   example.dta
+  example.duckdb
   example.feather
   example.fixedwidth
   example.fwf
@@ -206,7 +206,7 @@ supported url schemes:
   file_per_row:///tmp/example (each file is considered a (filename,value) record)
   gsheets://:new:
   iceberg:///tmp/warehouse?catalog_uri=sqlite:////tmp/warehouse/pyiceberg_catalog.db
-  jc://ls -l (source only)
+  jc://ls -l example (source only)
   jiraformat:- (dest only)
   jsonarray:-
   jsondict:- (source only)
@@ -229,7 +229,7 @@ supported url schemes:
   pythonlist:-
   rich:- (dest only)
   rst:- (dest only)
-  sh://ls -l (source only)
+  sh://ls -l example (source only)
   smartsheet://SHEET_ID (source only)
   sql_literal:- (dest only)
   sql_values:- (dest only)

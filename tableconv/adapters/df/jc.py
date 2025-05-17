@@ -25,7 +25,7 @@ class JC(Adapter):
 
     @staticmethod
     def get_example_url(scheme):
-        return f"{scheme}://ls -l"
+        return f"{scheme}://ls -l example"
 
     @staticmethod
     def _get_magic_parser(cmd):

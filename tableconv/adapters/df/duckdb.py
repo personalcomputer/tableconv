@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class DuckDBFileAdapter(Adapter):
     @staticmethod
     def get_example_url(scheme):
-        return f"{scheme}://example.duckdb"
+        return f"example.{scheme}"
 
     @classmethod
     def load(cls, uri, query):
