@@ -15,7 +15,13 @@ logger = logging.getLogger(__name__)
 @register_adapter(["protobuf", "protob", "binpb"], read_only=True)
 class ProtobufAdapter(Adapter):
     """
-    Very basic wrapper of https://buf.build/
+    Very basic wrapper of the https://buf.build/ "buf" CLI utility's protobuf to json translation feature.
+
+    An alternative implementation might be based on wrapping https://github.com/hq6/ProtobufJson/tree/master.
+    A 3rd implementation is https://github.com/pawitp/protobuf-decoder, for when the .proto is unavailable.
+
+    In practice to be more useful, this adapter should support decoding concatenated streams of a protobuf message
+    (without any formal "repeated" envelope).
     """
 
     @staticmethod
@@ -58,8 +64,8 @@ class ProtobufAdapter(Adapter):
         except subprocess.CalledProcessError as e:
             if e.stderr.strip() == "Failure: --from: proto: not found":
                 raise InvalidParamsError(
-                    f'Type "{proto_msg_type}" not recognized. Please remember to qualify the type with the protobuf '
-                    '*package name*, e.g. "example.Example"'
+                    f'Type "{proto_msg_type}" not recognized. Tip: You may need to qualify the type with the protobuf '
+                    'package name, e.g. "example.Example"'
                 ) from e
             raise e
 

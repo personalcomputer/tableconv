@@ -15,5 +15,4 @@ class LevelDBLogAdapter(FileAdapterMixin, Adapter):
         from leveldb_export import parse_leveldb_documents  # inlined for startup performance
 
         docs = list(parse_leveldb_documents(path))
-        # breakpoint()
         return pd.DataFrame.from_records(docs)

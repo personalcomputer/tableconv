@@ -77,6 +77,5 @@ class AvroAdapter(FileAdapterMixin, Adapter):
         schema = fastavro.parse_schema(_infer_avro_schema_from_df(df, schema_name="default"))
 
         records = df.to_dict(orient="records")
-
         with open(path, "wb") as f:
             fastavro.writer(f, schema, records)

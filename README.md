@@ -11,8 +11,6 @@ uv tool install tableconv
 
 ## Examples
 
-### Basic Conversion
-
 Convert JSON to CSV
 ```sh
 tableconv test.json -o test.csv
@@ -38,8 +36,6 @@ Convert CSV to a Markdown Table
 tableconv test.csv -o md:-
 ```
 
-### Data Transformation
-
 Dump the first 100 rows of a postgres table as JSON
 ```sh
 tableconv postgresql://192.168.0.10:5432/test_db -q 'SELECT * FROM my_table ORDER BY id LIMIT 100' -o my_table.json
@@ -61,16 +57,29 @@ Extract a report from a SQLite database into a new Google Spreadsheet
 tableconv sqlite3://my_db.db -q 'SELECT name, COUNT(*) from occurrences ORDER BY 2 DESC LIMIT 10' -o "gsheets://:new:/?name=top_occurrences_$(date +'%Y_%m_%d')"
 ```
 
-### Interactive Mode
+## Details
 
+Tableconv is a user interface prototype, not a new data transformation engine. The heavy lifting is credit primarily to **pandas**'s io module and **DuckDB**'s SQL engine. All the other disparate formats are mostly each implemented by specialized third party libraries (refer to the pyproject.toml for a complete list). Tableconv has just glued them all together behind a single common CLI interface to enable high-productivity by allowing you to learn one conversion UI once and not need to research and learn a new data model, a new query language, and a new tool suite every time you encounter an unfamiliar format and need to process it quickly.
+
+## TODO
+
+- Comprehensive online & built-in documentation of all the parameters supported by each format adapter
+- Further explore the experimental vision of computing where _all_ services are wrangled to be tables. RESTful tables as the metaphor for 100% of computer interactions.
+- Create a consistent configuration and service authentication story.
+- Fix parameters to all be made consistent in behavior/naming/etc across adapters.
+
+
+## Additional Feature Documentation
+
+### Interactive Mode
 Launch an interactive SQL shell to inspect data from a CSV file in the terminal
 ```sh
 tableconv test.csv -i
 ```
 
-### Psuedo-Tabular Data Operations
+### Arrays
 
-Arrays: Arrays can be thought of as one dimensional tables, so tableconv has strong support for array formats too. Here
+Arrays can be thought of as one dimensional tables, so tableconv has strong support for array formats too. Here
 is an example of converting a copy/pasted newline-deliminated list into a list in the Python list syntax.
 ```sh
 pbpaste | tableconv list:- -o pylist:-
@@ -86,11 +95,14 @@ Or as a full single-dimensional CSV table:
 pbpaste | tableconv list:- -o csv:-
 ```
 
-## Details
+## Influences
+- odo
+- Singer
+- ODBC/JDBC
+- osquery
+- pandas
+- duckdb
 
-As a prototype, tableconv is usable as a quick and dirty CLI ETL tool for converting data between any of the formats, or usable for performing basic bulk data transformations and joins defined in a unified language (SQL) but operating across disparate data in wildly different formats. That is the immediate value proposition of tableconv, but it was created within the mental framework of a larger vision: The tableconv vision of computing is that all software fundamentally interfaces via data tables; that all UIs and APIs can be interpreted as data frames or data tables. Instead of requiring power users to learn interface after interface and build their own bespoke tooling to extract and manipulate the data at scale in each interface, the world needs a highly interoperable operating system level client for power users to directly interact with, join, and manipulate the data with SQL (or similar) using the universal "table" abstraction provided in a consistent UI across each service. Tableconv is that tool. It is meant to have adapters written to support any/all services and data formats.
-
-However, this is just a prototype. The software is slow in all ways and memory+cpu intensive. It has no streaming support and loads all data into memory before converting it. Its most efficient adapters cannot handle tables over 10 million cells, and the least efficient cannot handle over 100000 cells. Schemas can migrate inconsistently depending upon the data available. It has experimental features that will not work reliably, such as schema management, the unorthodox URL scheme, and special array (1 dimensional table) support. All parts of the user interface are expected to be overhauled at some point. The code quality is mediocre, inconsistent, and bug-prone. Most obscure adapter options are untested. It has no story or documentation for service authentication, aside from SQL DBs. Lastly, the documentation is so weak that _no_ documentation exists documenting the standard options available for adapters adapter, nor documentation of any adapter-specific options.
 
 ## Usage
 
@@ -262,9 +274,3 @@ Out[2]:
 
 (Reference documentation pending)
 
-
-## Main Influences
-- odo
-- Singer
-- ODBC/JDBC
-- osquery
