@@ -64,7 +64,7 @@ Tableconv is a user interface prototype, not a new data transformation engine. T
 ## TODO
 
 - Comprehensive online & built-in documentation of all the parameters supported by each format adapter
-- Further explore the experimental vision of computing where _all_ services are wrangled to be tables. RESTful tables as the metaphor for 100% of computer interactions.
+- Further explore the experimental vision of computing where _all_ services are wrangled to be tables. RESTful tables as the metaphor for 100% of computer interactions. No app switching. All interactions represented as tabular data operations. You want to read your email? `tc email -Q 'where read=False order by date desc limit 10'`. You want to respond? `echo addr,body\nexample@exampl.org,Thanks for the email!' | tc csv:- -o email`
 - Create a consistent configuration and service authentication story.
 - Fix parameters to all be made consistent in behavior/naming/etc across adapters.
 

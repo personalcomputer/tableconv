@@ -89,7 +89,9 @@ class FileAdapterMixin:
         parsed_uri.path, ext = os.path.splitext(parsed_uri.path)
         if ext:
             if ext in [".zip", ".tar", ".tar.zstd", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2"]:
-                # TODO: this archiving tool is not packaged with tableconv. Find a good one..
+                # TODO: this `extract` archiving tool is not packaged with tableconv. Find a good one..
+                # The most popular seems to be `unp`, but `unp` is inconsistent in how it represents where the
+                # output directory is.
                 cmd(["extract", parsed_uri.path + ext, "--output", parsed_uri.path])
             else:
                 raise ValueError(
