@@ -56,4 +56,5 @@ class DuckDBFileAdapter(Adapter):
         flatten_arrays_for_duckdb(df)
         temp_table = str(uuid.uuid4().hex)
         conn.register(temp_table, df)
-        conn.execute(f'CREATE TABLE "{table_name}" AS SELECT * FROM {temp_table}')
+        conn.execute(f'CREATE TABLE "{table_name}" AS SELECT * FROM "{temp_table}"')
+        return db_path

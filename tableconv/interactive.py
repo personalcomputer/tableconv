@@ -18,13 +18,20 @@ multiline = False
 
 
 def os_open(url: str):
-    for opener in {"xdg-open", "open", "start", "Invoke-Item"}:
-        if shutil.which(opener):
-            opener_cmd = [opener, url]
-            logger.debug(f"Opening via `{shlex.join(opener_cmd)}`")
-            subprocess.run(opener_cmd)
-            return
-    raise RuntimeError(f"Not sure how to open files/urls on {sys.platform}")
+    opener_cmd = None
+    if url.endswith(".duckdb") and os.path.exists(url) and shutil.which("duckdb"):
+        # Override xdg-open/gio.
+        # see also: $XDG_DATA_HOME/applications/mimeapps.list
+        opener_cmd = ["duckdb", "-ui", url]
+    if not opener_cmd:
+        for opener in {"xdg-open", "open", "start", "Invoke-Item"}:
+            if shutil.which(opener):
+                opener_cmd = [opener, url]
+            break
+    if not opener_cmd:
+        raise RuntimeError(f"Not sure how to open files/urls on {sys.platform}")
+    logger.debug(f"Opening via `{shlex.join(opener_cmd)}`")
+    subprocess.run(opener_cmd)
 
 
 def handle_administrative_command(
