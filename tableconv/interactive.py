@@ -24,10 +24,10 @@ def os_open(url: str):
         # see also: $XDG_DATA_HOME/applications/mimeapps.list
         opener_cmd = ["duckdb", "-ui", url]
     if not opener_cmd:
-        for opener in {"xdg-open", "open", "start", "Invoke-Item"}:
+        for opener in ("xdg-open", "open", "start", "Invoke-Item"):
             if shutil.which(opener):
                 opener_cmd = [opener, url]
-            break
+                break
     if not opener_cmd:
         raise RuntimeError(f"Not sure how to open files/urls on {sys.platform}")
     logger.debug(f"Opening via `{shlex.join(opener_cmd)}`")
