@@ -78,7 +78,9 @@ class RDBMSAdapter(Adapter):
                         database = parsed_uri.path
                     database = database.strip("/")
                 alchemy_uri = f"{parsed_uri.scheme}://{parsed_uri.authority}/{database}"
-        if not table and "table" in parsed_uri.query:
+        if not table and "table_name" in parsed_uri.query:
+            table = parsed_uri.query["table_name"]
+        if not table and "table" in parsed_uri.query:  # alias for "table_name"
             table = parsed_uri.query["table"]
         logger.debug(f"Connecting with SQLAlchemy: {alchemy_uri}")
         engine = create_engine(alchemy_uri)
