@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import traceback
+import shutil
 
 SELF_NAME = os.path.basename(sys.argv[0])
 SOCKET_ADDR = "/tmp/tableconv-daemon.sock"
@@ -219,7 +220,13 @@ def run_daemonize(log=True):
     abort_if_daemon_already_running()
     if log:
         logger.info(f"Forking daemon using `daemonize`. Daemon logs piped to {LOGFILE_PATH} & {CRASHLOGFILE_PATH}")
-    os.system(f"daemonize -e {CRASHLOGFILE_PATH} \"$(which {sys.argv[0]})\" --daemon")
+    exe_path = shutil.which(sys.argv[0]) or sys.argv[0]
+    subprocess.run([
+        "daemonize",
+        "-e", CRASHLOGFILE_PATH,
+        exe_path,
+        "--daemon"
+    ], check=True)
 
 
 def set_up_logging():

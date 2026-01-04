@@ -324,13 +324,14 @@ class GoogleSheetsAdapter(Adapter):
 
         if "if_exists" in params:
             if_exists = params["if_exists"]
+            if if_exists not in ("append", "replace", "fail"):
+                raise InvalidParamsError("valid values for if_exists are append, replace, or fail (default)")
         elif "append" in params and params["append"].lower() != "false":
             if_exists = "append"
         elif "overwrite" in params and params["overwrite"].lower() != "false":
             if_exists = "replace"
         else:
             if_exists = "fail"
-
         if parsed_uri.path.strip("/") is not None:
             sheet_name = parsed_uri.path.strip("/")
         else:
