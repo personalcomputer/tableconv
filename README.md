@@ -170,6 +170,7 @@ supported url schemes:
   example.csv
   example.dta
   example.duckdb
+  example.dzn (dest only)
   example.feather
   example.fixedwidth
   example.fwf

@@ -6,6 +6,7 @@ from .aws_athena import *  # noqa: F401 F403
 from .aws_dynamodb import *  # noqa: F401 F403
 from .aws_logs import *  # noqa: F401 F403
 from .duckdb import *  # noqa: F401 F403
+from .dzn import *  # noqa: F401 F403
 from .gsheets import *  # noqa: F401 F403
 from .iceberg import *  # noqa: F401 F403
 from .jc import *  # noqa: F401 F403
