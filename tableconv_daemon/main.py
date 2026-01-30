@@ -14,8 +14,6 @@ SELF_NAME = os.path.basename(sys.argv[0])
 SOCKET_ADDR = "/tmp/tableconv-daemon.sock"
 PIDFILE_PATH = "/tmp/tableconv-daemon.pid"
 LOGFILE_PATH = "/tmp/tableconv-daemon.log"
-CRASHLOGFILE_PATH = "/tmp/tableconv-daemon.crash.log"
-
 
 logger = logging.getLogger(__name__)
 
@@ -81,16 +79,22 @@ def run_daemon_supervisor():
     abort_if_daemon_already_running()
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.bind(SOCKET_ADDR)
+    supervisor_pid = os.getpid()
     with open(PIDFILE_PATH, "w") as f:
-        f.write(f"{os.getpid()}\n")
+        f.write(f"{supervisor_pid}\n")
     try:
-        sock.listen(0)  # Note: daemon as-is can only handle one client at a time, backlog arg of 0 disables queing.
+        sock.listen(0)  # Note: daemon as-is can only handle one client at a time, backlog arg of 0 disables queuing.
         import pexpect
 
-        daemon_proc = pexpect.spawn(sys.argv[0], args=["!!you-are-a-daemon!!"], echo=False)
+        daemon_proc = pexpect.spawn(
+            sys.argv[0],
+            args=["!!you-are-a-daemon!!"],
+            echo=False,
+            env={'TABLECONV_MY_DAEMON_SUPERVISOR_PID': str(supervisor_pid)},
+        )
         daemon_proc.delaybeforesend = None
 
-        logger.info(f"{SELF_NAME} daemon online, listening on {SOCKET_ADDR}. Subprocess pid: {daemon_proc.pid}")
+        logger.info(f"{SELF_NAME} daemon online, listening on {SOCKET_ADDR}. Supervisor pid: {supervisor_pid}, Subprocess pid: {daemon_proc.pid}")
         while True:
             client_conn, _ = sock.accept()
             handle_daemon_supervisor_request(daemon_proc, client_conn)
@@ -120,7 +124,6 @@ def run_daemon():
             data = json.loads(base64.b64decode(data_encoded))
             os.environ.update(data['environ'])
             os.chdir(data["cwd"])
-            os.environ['TABLECONV_IS_DAEMON'] = '1'
             main_wrapper(data["argv"])
         except Exception:
             traceback.print_exc()
@@ -219,14 +222,15 @@ def kill_daemon():
 def run_daemonize(log=True):
     abort_if_daemon_already_running()
     if log:
-        logger.info(f"Forking daemon using `daemonize`. Daemon logs piped to {LOGFILE_PATH} & {CRASHLOGFILE_PATH}")
+        logger.info(f"Forking daemon using `daemonize`. Daemon logs will be sent to {LOGFILE_PATH}.")
     exe_path = shutil.which(sys.argv[0]) or sys.argv[0]
     subprocess.run([
         "daemonize",
-        "-e", CRASHLOGFILE_PATH,
+        "-e", LOGFILE_PATH,
         exe_path,
         "--daemon"
     ], check=True)
+    logger.info(f"To kill the daemon, `tableconv --kill-daemon` is provided as a convenience command.")
 
 
 def set_up_logging():
@@ -257,17 +261,24 @@ def set_up_logging():
                     "formatter": "default",
                     "stream": "ext://sys.stderr",
                 },
-                "logfile": {
-                    "class": "logging.FileHandler",
-                    "level": "DEBUG",
-                    "formatter": "default",
-                    "filename": LOGFILE_PATH,
-                    "mode": "a",
-                },
+                # Testing disabling the logging FileHandler, and using supervisor process to pipe all stderr/stdout to file.
+                # There are pros/cons of both approaches. tableconv_daemon is a weird usecase anyways, it's basically a
+                # user-facing daemon. I think I am in favor of supervisor-level logging for tableconv right
+                # now, in order to ensure that logs are kept even if there is low-quality code that logs via "print()".
+                # Also because I haven't bothered to write the proper exception capturing/reported code needed for high
+                # quality crash logging, I am relying on the python out of the box code, which prints to STDERR.
+                #
+                # "logfile": {
+                #     "class": "logging.FileHandler",
+                #     "level": "DEBUG",
+                #     "formatter": "default",
+                #     "filename": LOGFILE_PATH,
+                #     "mode": "a",
+                # },
             },
             "root": {
                 "level": "DEBUG",
-                "handlers": ["default", "logfile"],
+                "handlers": ["default"],
             },
         }
     )
@@ -317,11 +328,10 @@ def main_wrapper():
     if argv == ["!!you-are-a-daemon!!"]:
         # TODO use a alternative entry_point console_script instead of this sentinel value? I don't want to pollute the
         # end-user's PATH with another command though, this is not something an end user should ever directly run.
-        # TODO: Using alternative entry point does not require adding pollution to PATH! I can just direcctly invoke a
-        # python file relative to this python file - i.e. another python file within the tableconv _install directory_,
-        # not within PATH.
+        # TODO: Using alternative entry point does not require adding pollution to PATH!! I can just directly invoke a
+        # python file at a file path relative to this python file - i.e. another python file within the tableconv
+        # install directory, not within PATH.
         return run_daemon()
-
 
     # Try running as daemon client
     if "-i" not in argv and "--interactive" not in argv:  # If interactive mode is requested, don't use daemon.

@@ -247,8 +247,9 @@ def main(argv=None):
         help="Show debug details, including API calls and error sources.",
     )
     version_str = f"{__version__} (Python {PY_VERSION_STR}, DuckDB {DUCKDB_VERSION_STR}, Pandas {PD_VERSION_STR})"
-    if os.environ.get("TABLECONV_IS_DAEMON"):
-        version_str += " (running from daemon)"
+    daemon_pid = os.environ.get("TABLECONV_MY_DAEMON_SUPERVISOR_PID")
+    if daemon_pid:
+        version_str += f"\n(WARNING: Running from daemon (PID {daemon_pid}))"
     parser.add_argument(
         "--version",
         action="version",
