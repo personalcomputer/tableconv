@@ -12,8 +12,11 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 from tableconv.exceptions import IncapableDestinationError
 from tableconv.uri import parse_uri
 
+DEFAULT_SEPARATOR = {"csa": ",", "list": "\n", "tsa": "\t", "mdlist": "\n", "unicodelist": "\n"}
+DEFAULT_PREFIX = {"csa": "", "list": "", "tsa": "", "mdlist": "*", "unicodelist": "•"}
 
-@register_adapter(["list", "csa", "tsa", "jsonarray", "pythonlist", "pylist", "yamlsequence"])
+
+@register_adapter(["list", "csa", "tsa", "jsonarray", "pythonlist", "pylist", "mdlist", "unicodelist", "yamlsequence"])
 class TextArrayAdapter(FileAdapterMixin, Adapter):
     text_based = True
 
@@ -23,6 +26,16 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
 
     @staticmethod
     def load_text_data(scheme, data, params):
+        # Parameter parsing
+        if scheme in ("csa", "tsa", "list", "mdlist", "unicodelist"):
+            prefix = params.get("prefix", params.get("bullet", DEFAULT_PREFIX[scheme]))
+            separator = params.get("separator", params.get("sep", DEFAULT_SEPARATOR[scheme]))
+            strip_whitespace = params.get("strip_whitespace", True)
+            if separator == "\\t":
+                separator = "\t"
+            if separator == "\\n":
+                separator = "\n"
+        # Data processing
         data = data.strip()
         if scheme == "jsonarray":
             array = [(item,) for item in json.loads(data)]
@@ -31,25 +44,25 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
         elif scheme == "yamlsequence":
             data_stream = io.StringIO(data)
             array = [(item,) for item in yaml.safe_load(data_stream)]
-        elif scheme in ("csa", "tsa", "list"):
-            param_separator = params.get("separator", params.get("sep"))
-            if param_separator:
-                separator = param_separator
-                if separator == "\\t":
-                    separator = "\t"
-            else:
-                separator = {"csa": ",", "list": "\n", "tsa": "\t"}[scheme]
+        elif scheme in ("csa", "tsa", "list", "mdlist", "unicodelist"):
             if separator[-1] == "\n" and data[-1] == "\n":
                 data = data[:-1]
             array = ((item,) for item in data.split(separator))
-            if params.get("strip_whitespace", True):
+            if strip_whitespace:
                 array = ((item[0].strip(),) for item in array)
+            if prefix:
+                array = ((item[0].removeprefix(prefix).lstrip(),) for item in array)
         else:
-            raise AssertionError
+            raise AssertionError()
         return pd.DataFrame.from_records(list(array), columns=["value"])
 
     @staticmethod
     def dump_text_data(df, scheme, params):
+        # Parameter parsing
+        if scheme in ("csa", "list", "tsa", "mdlist", "unicodelist"):
+            prefix = params.get("prefix", params.get("bullet", DEFAULT_PREFIX[scheme]))
+            separator = params.get("separator", params.get("sep", DEFAULT_SEPARATOR[scheme]))
+        # Data processing
         if len(df.columns) > 1:
             raise IncapableDestinationError(
                 f"Table has multiple columns; unable to condense into an array for {scheme}"
@@ -62,24 +75,17 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
             return repr(array)
         elif scheme == "yamlsequence":
             return yaml.safe_dump(serialized_array)
-        elif scheme in ("csa", "list"):
-            param_separator = params.get("separator", params.get("sep"))
-            if param_separator:
-                separator = param_separator
-                separator_word = param_separator
-            else:
-                separator = {"csa": ",", "list": "\n"}[scheme]
-                separator_word = {
-                    ",": "comma",
-                    "\n": "new-line",
-                }[separator]
+        elif scheme in ("csa", "list", "tsa", "mdlist", "unicodelist"):
+            separator_label = f'"{repr(separator)}"'
             if any(separator in item for item in serialized_array):
                 raise IncapableDestinationError(
-                    f"Cannot write as {scheme}, one or more values contain a {separator_word}"
+                    f"Cannot write as {scheme}, one or more values contain a {separator_label}"
                 )
+            if prefix:
+                serialized_array = [prefix + " " + item for item in serialized_array]
             return separator.join(serialized_array)
         else:
-            raise AssertionError
+            raise AssertionError()
 
 
 @register_adapter(["file_per_row"])

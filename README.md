@@ -216,6 +216,7 @@ supported url schemes:
   list:-
   markdown:- (dest only)
   md:- (dest only)
+  mdlist:-
   mediawikiformat:- (dest only)
   moinmoinformat:- (dest only)
   mssql://127.0.0.1:5432/example_db
@@ -239,6 +240,7 @@ supported url schemes:
   sumologic://?from=2021-03-01T00:00:00Z&to=2021-05-03T00:00:00Z (source only)
   tex:- (dest only)
   tsa:-
+  unicodelist:-
   yamlsequence:-
 
 help & support:
