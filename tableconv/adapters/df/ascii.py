@@ -123,8 +123,6 @@ class ASCIIAdapter(FileAdapterMixin, Adapter):
     Adapter focused on outputting ascii art style table renderings, such as those found in database CLIs.
     """
 
-    text_based = True
-
     # @staticmethod
     # def _transform_df(df):
     #     def transform(obj):

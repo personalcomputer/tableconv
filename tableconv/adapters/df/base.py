@@ -10,8 +10,6 @@ class NoConfigurationOptionsAvailable(Exception):
 
 
 class Adapter:
-    text_based = False
-
     @classmethod
     def get_configuration_options_description(cls):
         raise NoConfigurationOptionsAvailable(str(cls.__name__))
@@ -56,7 +54,7 @@ def register_adapter(schemes: list[str], write_only: bool = False, read_only: bo
     """
     TODO: better decorator api proposal:
     @register_write_adapter(
-        protocol='sql_values', aliases=[], parameters={}, example_url='', text_based=True, file_based=True)
+        protocol='sql_values', aliases=[], parameters={}, example_url='', file_based=True)
     """
 
     def decorator(cls):

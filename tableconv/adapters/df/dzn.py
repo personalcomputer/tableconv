@@ -9,7 +9,6 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 
 @register_adapter(["dzn"], write_only=True)
 class MiniZincDznAdapter(FileAdapterMixin, Adapter):
-    text_based = True
 
     @staticmethod
     def get_example_url(scheme):

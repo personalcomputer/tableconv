@@ -10,7 +10,6 @@ from tableconv.exceptions import SourceParseError
 
 @register_adapter(["py", "python"])
 class PythonAdapter(FileAdapterMixin, Adapter):
-    text_based = True
 
     @staticmethod
     def load_text_data(scheme, data, params):

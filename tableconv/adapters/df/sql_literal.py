@@ -12,8 +12,6 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 class SQLLiteralAdapter(FileAdapterMixin, Adapter):
     """Currently only supports the PostgreSQL-flavored VALUES syntax"""
 
-    text_based = True
-
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}:-"

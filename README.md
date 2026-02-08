@@ -168,6 +168,10 @@ supported url schemes:
   example.avro
   example.binpb (source only)
   example.csv
+  example.csv.bz2
+  example.csv.gz
+  example.csv.xz
+  example.csv.zst
   example.dta
   example.duckdb
   example.dzn (dest only)

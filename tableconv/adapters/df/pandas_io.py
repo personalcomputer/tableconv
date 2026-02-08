@@ -17,9 +17,8 @@ from tableconv.uri import parse_uri
 logger = logging.getLogger(__name__)
 
 
-@register_adapter(["csv", "tsv"])
+@register_adapter(["csv", "tsv", "csv.gz", "csv.bz2", "csv.xz", "csv.zst"])
 class CSVAdapter(FileAdapterMixin, Adapter):
-    text_based = True
 
     @staticmethod
     def load_file(scheme, path, params):

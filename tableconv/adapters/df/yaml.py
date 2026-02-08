@@ -8,7 +8,6 @@ from tableconv.exceptions import SourceParseError
 
 @register_adapter(["yaml", "yml"])
 class YAMLAdapter(FileAdapterMixin, Adapter):
-    text_based = True
 
     @staticmethod
     def load_file(scheme, path, params):

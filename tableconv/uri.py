@@ -1,9 +1,12 @@
+import logging
 import os
 import re
 from dataclasses import dataclass
 from typing import Any
 
 from tableconv.exceptions import InvalidURLSyntaxError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -29,9 +32,18 @@ def parse_uri(uri_str: str) -> URI:
     scheme = m.group("scheme")
     authority = m.group("authority")
     if m.group("path") and not scheme and os.path.extsep in m.group("path"):
-        scheme = os.path.splitext(m.group("path"))[1][1:]
-        # logger.warning(f'Inferring input is a {scheme} from file extension. To specify explicitly, use syntax
-        # {scheme}://{path}')
+        path = m.group("path")
+        base, ext = os.path.splitext(path)
+        ext = ext[1:].lower()
+        compressed_exts = {"gz", "bz2", "xz", "zst"}
+        if ext in compressed_exts and os.path.extsep in base:
+            base_ext = os.path.splitext(base)[1][1:].lower()
+            scheme = f"{base_ext}.{ext}" if base_ext else ext
+        else:
+            scheme = ext
+        logger.debug(
+            f"Inferring input is a {scheme} from file extension. To specify explicitly, use syntax {scheme}://{path}"
+        )
         authority = None
     if not scheme:
         raise InvalidURLSyntaxError(f'Unable to parse URI "{uri_str}" scheme.')
@@ -68,6 +80,12 @@ def encode_uri(uri: URI) -> str:
     'ascii:-'
     >>> encode_uri(parse_uri("ascii://-"))
     'ascii://-'
+    >>> encode_uri(parse_uri("example.csv.gz"))
+    'csv.gz:example.csv.gz'
+    >>> encode_uri(parse_uri("example.final_draft.csv"))
+    'csv:example.final_draft.csv'
+    >>> encode_uri(parse_uri("example.final_draft.csv.gz"))
+    'csv.gz:example.final_draft.csv.gz'
     """
     result = f"{uri.scheme}:" if uri.scheme else ""
     if uri.authority:

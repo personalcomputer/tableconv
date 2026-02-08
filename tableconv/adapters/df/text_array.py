@@ -18,7 +18,6 @@ DEFAULT_PREFIX = {"csa": "", "list": "", "tsa": "", "mdlist": "*", "unicodelist"
 
 @register_adapter(["list", "csa", "tsa", "jsonarray", "pythonlist", "pylist", "mdlist", "unicodelist", "yamlsequence"])
 class TextArrayAdapter(FileAdapterMixin, Adapter):
-    text_based = True
 
     @staticmethod
     def get_example_url(scheme):

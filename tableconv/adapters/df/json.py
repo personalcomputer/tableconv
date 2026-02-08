@@ -55,7 +55,6 @@ class MsgpackAdapter(FileAdapterMixin, Adapter):
 
 @register_adapter(["json", "jsonl", "jsonlines", "ldjson", "ndjson"])
 class JSONAdapter(FileAdapterMixin, Adapter):
-    text_based = True
 
     @staticmethod
     def load_file(scheme, path, params):
@@ -65,7 +64,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
         preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
         nesting_sep = params.get("nesting_sep", ".")
         if preserve_nesting:
-            pd.read_json(
+            return pd.read_json(
                 path,
                 lines=(scheme == "jsonl"),
                 orient="records",

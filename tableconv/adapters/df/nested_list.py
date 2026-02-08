@@ -14,8 +14,6 @@ from tableconv.exceptions import SourceParseError
 class NestedListAdapter(FileAdapterMixin, Adapter):
     """This is a super strange adapter. Much more experimental. It converts structured nested lists into tables."""
 
-    text_based = True
-
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}:-"
@@ -72,8 +70,6 @@ class NestedListAdapter(FileAdapterMixin, Adapter):
 class JsonDictAdapter(FileAdapterMixin, Adapter):
     """This is a super strange adapter. Much more experimental. It converts structured nested lists into tables."""
 
-    text_based = True
-
     @staticmethod
     def get_example_url(scheme):
         return f"{scheme}:-"
@@ -113,8 +109,6 @@ class RemarshalAdapter(FileAdapterMixin, Adapter):
     Work off the output of `pipdeptree --json-tree` to develop this, that is a very complete example of what these
     nested list structures do. Also TOML files.
     """
-
-    text_based = True
 
     @classmethod
     def load_text_data(cls, scheme: str, data: str, params: dict[str, Any]) -> pd.DataFrame:
