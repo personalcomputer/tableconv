@@ -1,9 +1,9 @@
 import json
-import os
 
 import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.config_utils import get_config_filepath
 from tableconv.exceptions import InvalidQueryError
 from tableconv.uri import parse_uri
 
@@ -66,7 +66,8 @@ class SmartSheetAdapter(Adapter):
         if not permalink_id:
             raise InvalidQueryError("Unable to parse smartsheet id from URL")
 
-        smartsheet_token = json.loads(open(os.path.expanduser("~/.smartsheetcredentials.json")).read())["token"]
+        creds_path = get_config_filepath("smartsheet_creds.json")
+        smartsheet_token = json.loads(open(creds_path).read())["token"]
         smartsheet = SmartSheetClient(smartsheet_token)
 
         data = smartsheet.get_sheet(smartsheet.get_sheet_api_id(permalink_id))

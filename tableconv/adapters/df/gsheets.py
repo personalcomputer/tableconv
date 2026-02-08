@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.config_utils import get_config, get_config_filepath, set_config
 from tableconv.exceptions import (
     AppendSchemeConflictError,
     InvalidLocationReferenceError,
@@ -56,9 +57,6 @@ def get_sheet_properties(spreadsheet_data, sheet_name):
     raise KeyError(f"Sheet {sheet_name} not found")
 
 
-GSHEETS_OAUTH_SECRETS_FILE_PATH = os.path.expanduser("~/.tableconv-gsheets-client-secrets")
-
-
 @register_adapter(["gsheets"])
 class GoogleSheetsAdapter(Adapter):
     @staticmethod
@@ -75,10 +73,9 @@ class GoogleSheetsAdapter(Adapter):
     @staticmethod
     def set_configuration_options(args):
         assert set(args.keys()) == set(GoogleSheetsAdapter.get_configuration_options_description().keys())
-        with open(GSHEETS_OAUTH_SECRETS_FILE_PATH, "w") as f:
-            with open(args["secrets_file"]) as in_file:
-                f.write(in_file.read())
-        logger.info(f"Wrote configuration to {GSHEETS_OAUTH_SECRETS_FILE_PATH}")
+        with open(args["secrets_file"]) as in_file:
+            set_config("gsheets_client_secrets", in_file.read())
+        logger.info("Wrote configuration to tableconv config directory")
         GoogleSheetsAdapter._get_oauth_credentials()  # Trigger OAuth flow prompt
 
     @staticmethod
@@ -86,13 +83,15 @@ class GoogleSheetsAdapter(Adapter):
         from oauth2client import client, tools
         from oauth2client.file import Storage
 
-        creds_path = os.path.expanduser("~/.tableconv-gsheets-credentials")
-        if not os.path.exists(creds_path) and not os.path.exists(GSHEETS_OAUTH_SECRETS_FILE_PATH):
+        client_secrets = get_config("gsheets_client_secrets")
+        creds = get_config("gsheets_creds")
+        if not creds and not client_secrets:
             raise URLInaccessibleError(
                 "gsheets integration requires configuring Google Sheets API authentication credentials. "
                 "Please run `tableconv configure gsheets --help` for help."
             )
-        store = Storage(creds_path)
+
+        store = Storage(get_config_filepath("gsheets_creds"))
         credentials = store.get()
         sys.argv = [""]
         if not credentials or credentials.invalid:
@@ -100,7 +99,13 @@ class GoogleSheetsAdapter(Adapter):
                 "https://www.googleapis.com/auth/spreadsheets",
                 "https://www.googleapis.com/auth/drive",
             ]
-            flow = client.flow_from_clientsecrets(GSHEETS_OAUTH_SECRETS_FILE_PATH, SCOPES)
+            if not client_secrets:
+                raise URLInaccessibleError(
+                    "gsheets OAuth flow requires configured client secrets. "
+                    "Please run `tableconv configure gsheets --help` for help."
+                )
+            print(get_config_filepath("gsheets_client_secrets"))
+            flow = client.flow_from_clientsecrets(get_config_filepath("gsheets_client_secrets"), SCOPES)
             flow.user_agent = os.environ.get("TABLECONV_GSHEETS_OAUTH_USER_AGENT", "tableconv")
             credentials = tools.run_flow(flow, store)
         return credentials

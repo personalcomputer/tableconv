@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-import os
 import sys
 import time
 from typing import Any
@@ -10,6 +9,7 @@ import pandas as pd
 import yaml
 
 from tableconv.adapters.df.base import Adapter, register_adapter
+from tableconv.config_utils import get_config_filepath
 from tableconv.exceptions import InvalidParamsError
 from tableconv.parse_time import parse_input_time
 from tableconv.uri import parse_uri
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 SUMO_API_MAX_RESULTS_PER_API_CALL = 10000
 SUMO_API_TS_FORMAT = "%Y-%m-%dT%H:%M:%S"
 SUMO_API_RESULTS_POLLING_INTERVAL = datetime.timedelta(seconds=5)
-CREDENTIALS_FILE_PATH = os.path.expanduser("~/.sumologiccredentials.yaml")
+CREDENTIALS_FILE_PATH = get_config_filepath("sumo_logic_creds.yaml")
 SUMOLOGIC_API_RATE_LIMIT_INTERVAL_S = datetime.timedelta(milliseconds=1000 / 4).total_seconds()
 
 

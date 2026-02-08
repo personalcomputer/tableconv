@@ -7,12 +7,13 @@ import shutil
 import subprocess
 import sys
 
+from tableconv.config_utils import get_config_filepath
 from tableconv.core import IntermediateExchangeTable, load_multitable_from_url, load_url
 from tableconv.exceptions import DataError, EmptyDataError, InvalidQueryError, InvalidURLError
 
 logger = logging.getLogger(__name__)
 
-INTERACTIVE_HIST_PATH = os.path.join(os.path.expanduser("~"), ".tableconv_history")
+INTERACTIVE_HIST_PATH = get_config_filepath("history")
 
 multiline = False
 
