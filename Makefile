@@ -1,5 +1,7 @@
-.PHONY: help clean lint test test-ci test-packaging coverage docs release
-.DEFAULT_GOAL := help
+.PHONY: auto clean lint test test-ci test-packaging coverage docs release
+.DEFAULT_GOAL := auto
+
+APP_MODULE_PATH := tableconv
 
 clean:
 	rm -fr build/
@@ -24,31 +26,33 @@ clean:
 # - Vulture: Dead code detection
 # - Pytest: Automated test suite
 # - update_readme_usage: Keep the Usage section of the README up to date
-# - verify_all_files_in_py_build_are_tracked_in_git: Prevent forgetting to stage files and prevent errant files ending up in the build
+# - verify_all_files_in_py_build_are_tracked_in_git.py: Prevent forgetting to stage files and prevent errant files ending up in the build
 
 _lint_autofixing: # run the linters that support autofixing, with autofixing enabled
-	uv run black tableconv tests
-	uv run ruff check tableconv tests --fix
-	uv run isort tableconv tests
-	uv run black tableconv tests  # (rerun. ruff/isort and black sometimes conflict)
+	uv run black $(APP_MODULE_PATH) tests
+	uv run ruff check $(APP_MODULE_PATH) tests --fix
+	uv run isort $(APP_MODULE_PATH) tests
+	uv run black $(APP_MODULE_PATH) tests  # (rerun. ruff/isort and black sometimes conflict)
 	@if which update_readme_usage > /dev/null 2>&1; then \
+		uv run tableconv --kill-daemon || true; \
 		uv run update_readme_usage; \
 	fi
 
 _lint_autofixing_disabled: # run the linters that support autofixing, but with autofixing disabled
-	uv run black tableconv tests --check
-	uv run ruff check tableconv tests
-	uv run isort tableconv tests --check
+	uv run black $(APP_MODULE_PATH) tests --check
+	uv run ruff check $(APP_MODULE_PATH) tests
+	uv run isort $(APP_MODULE_PATH) tests --check
 	@if which update_readme_usage > /dev/null 2>&1; then \
+		uv run tableconv --kill-daemon || true; \
 		uv run update_readme_usage --check; \
 	fi
 
 _lint_nonautofixing: # run the linters that don't support autofixing
-	uv run codespell --check-filenames 'tests/**.py' tableconv pyproject.toml README.md Makefile docs --skip '**/_build'
-	uv run mypy --ignore-missing-imports --show-error-codes tableconv tests
-	uvx vulture tableconv tests/vulture_whitelist.list --min-confidence 70
+	uv run codespell --check-filenames 'tests/**.py' $(APP_MODULE_PATH) pyproject.toml README.md Makefile docs --skip '**/_build'
+	uv run mypy --ignore-missing-imports --show-error-codes $(APP_MODULE_PATH) tests
+	uvx vulture $(APP_MODULE_PATH) tests/vulture_whitelist.list --min-confidence 70
 	@# Regenerate vulture_whitelist.list with:
-	@# uvx vulture tableconv --make-whitelist > tests/vulture_whitelist.list
+	@# uvx vulture $(APP_MODULE_PATH) --make-whitelist > tests/vulture_whitelist.list
 
 lint: _lint_autofixing_disabled _lint_nonautofixing
 
@@ -72,15 +76,15 @@ test_packaging:
 	bash ./test_in_container.sh
 
 coverage:
-	uv run coverage run --source tableconv -m pytest
+	uv run coverage run --source $(APP_MODULE_PATH) -m pytest
 	uv run coverage report -m
 	uv run coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## Generate Sphinx HTML documentation, including API docs
-	rm -f docs/timetool.rst
+	rm -f docs/tableconv.rst
 	rm -f docs/modules.rst
-	uvx --from sphinx sphinx-apidoc -o docs/ timetool
+	uvx --from sphinx sphinx-apidoc -o docs/ $(APP_MODULE_PATH)
 	uvx --from sphinx $(MAKE) -C docs clean
 	uvx --from sphinx $(MAKE) -C docs html
 	xdg-open docs/_build/html/index.html
@@ -115,6 +119,6 @@ release: ## Build and release to PyPI
 	uv build
 	ls -l dist
 	verify_all_files_in_py_build_are_tracked_in_git.py
-	uv publish --token "$$(pcregrep -o1 'password: (pypi-.+)$$' ~/.pypirc)"
+	uv publish --token "$$(pass-get_apikey pypi)"
 	# Push the release to github too.
 	git push -u origin $$(git rev-parse --abbrev-ref HEAD)
