@@ -2,7 +2,9 @@ import json
 import logging
 import logging.config
 import os
+import select
 import shlex
+import signal
 import socket
 import subprocess
 import sys
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 EOF_SENTINEL = b"\0"
 
 
-def handle_daemon_supervisor_request(daemon_proc, client_conn) -> None:
+def handle_supervisor_daemon_request(daemon_proc, client_conn) -> None:
     import contextlib
     import base64
     import pexpect.exceptions
@@ -50,9 +52,25 @@ def handle_daemon_supervisor_request(daemon_proc, client_conn) -> None:
             daemon_proc.sendline(data_encoded[i:i+max_stdin_buffer_size])
             daemon_proc.expect('ack')
 
+        # SUPERVISOR RESPONSE LOOP
         while True:
+            # Poll client_conn to detect early disconnect
+            readable, _, _ = select.select([client_conn], [], [], 0.025)
+            if client_conn in readable:
+                # Socket is readable - check if client sent data or closed
+                peek = client_conn.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT)
+                if not peek:
+                    # Client closed connection unexpectedly
+                    debug_duration = round(1000*(time.time() - debug_start_time))
+                    logger.warning(f"Client disconnected early after {debug_duration}ms. cmd: `{cmd}`")
+                    logger.warning(
+                        "Early client disconnect indicates something has gone wrong. Daemon self-destructing."
+                    )
+                    sys.exit(1)
+                    return
+
             with contextlib.suppress(pexpect.exceptions.TIMEOUT):
-                response = daemon_proc.read_nonblocking(8192, timeout=0.05)
+                response = daemon_proc.read_nonblocking(8192, timeout=0.025)
                 if response:
                     # Replace any \r\n with \n. Weirdest thing ever.
                     # https://github.com/pexpect/pexpect/blob/master/doc/overview.rst (search for "CR/LF")
@@ -74,7 +92,7 @@ def abort_if_daemon_already_running():
         raise RuntimeError("Daemon already running?")
 
 
-def run_daemon_supervisor():
+def run_supervisor_daemon():
     logger.info("Running as daemon")
     abort_if_daemon_already_running()
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -88,23 +106,23 @@ def run_daemon_supervisor():
 
         daemon_proc = pexpect.spawn(
             sys.argv[0],
-            args=["!!you-are-a-daemon!!"],
+            args=["!!you-are-a-worker-daemon!!"],
             echo=False,
             env={'TABLECONV_MY_DAEMON_SUPERVISOR_PID': str(supervisor_pid)},
         )
         daemon_proc.delaybeforesend = None
 
-        logger.info(f"{SELF_NAME} daemon online, listening on {SOCKET_ADDR}. Supervisor pid: {supervisor_pid}, Subprocess pid: {daemon_proc.pid}")
+        logger.info(f"{SELF_NAME} daemon online, listening on {SOCKET_ADDR}. Supervisor pid: {supervisor_pid}, Worker pid: {daemon_proc.pid}")
         while True:
             client_conn, _ = sock.accept()
-            handle_daemon_supervisor_request(daemon_proc, client_conn)
+            handle_supervisor_daemon_request(daemon_proc, client_conn)
     finally:
         sock.close()
         os.unlink(SOCKET_ADDR)
         os.unlink(PIDFILE_PATH)
 
 
-def run_daemon():
+def run_worker_daemon():
     import base64
     from tableconv.main import main_wrapper
 
@@ -114,6 +132,10 @@ def run_daemon():
             while True:
                 # TODO: refactor all this text-pipe-protocol code so that the serializer code is next to the
                 # deserializer code.
+                # TODO: make supervisor to worker communication happen through some other channel than STDIN. We need
+                # to close STDIN (EOF) in order to detect/prevent bugs in tableconv code where it blocks on further
+                # input. Right now those bugs result in an infinite stall inside the daemon, with no easy way for user
+                # to debug and see what is wrong.
                 new_data = sys.stdin.readline().strip('\n').encode()
                 print('ack')
                 data_encoded += new_data
@@ -292,16 +314,16 @@ def main_wrapper():
 
     **Check tableconv.main.main to view the "real" tableconv entrypoint.**
 
-    Note: When running tableconv as a daemon, there are actally three processes runnning: the client, the daemon, and
-    the daemon supervisor.
+    Note: When running tableconv as a daemon, there are actally three processes runnning: the client, the worker daemon,
+    and the supervisor daemon.
 
-    For ease of communication, in the tableconv UI we oversimplify and refer to both the daemon supervisor and the
-    daemon beneath it simply as the "daemon", but within the code you can see that what we actually run is the
-    supervisor, which then runs the daemon. (Also: if you invoke via --daemonize, you actually get 4 processes!)
+    For ease of communication, in the tableconv UI we oversimplify and refer to both the supervisor daemon and the
+    worker daemon beneath it simply as the "daemon", but within the code you can see that what we actually run is the
+    supervisor, which then runs the worker. (Also: if you invoke via --daemonize, you actually get 4 processes!)
 
-    The reason for the seperation of the daemon supervisor and the daemon is in order to allow us to fully capture the
+    The reason for the seperation of the supervisor and the worker is in order to allow us to fully capture the
     STDIN/STDOUT/STDERR of the application and send it back over the network (while also of course still allowing the
-    daemon itself to make its own logs to STDOUT).
+    worker itself to make its own logs to STDOUT).
     """
     set_up_logging()
 
@@ -312,7 +334,7 @@ def main_wrapper():
         if len(argv) > 1:
             raise ValueError("ERROR: --daemon cannot be combined with any other options")
         try:
-            return run_daemon_supervisor()
+            return run_supervisor_daemon()
         except KeyboardInterrupt:
             logger.info("Received SIGINT. Terminated.")
             return
@@ -325,13 +347,13 @@ def main_wrapper():
         if len(argv) > 1:
             raise ValueError("ERROR: --kill-daemon cannot be combined with any other options")
         return kill_daemon()
-    if argv == ["!!you-are-a-daemon!!"]:
+    if argv == ["!!you-are-a-worker-daemon!!"]:
         # TODO use a alternative entry_point console_script instead of this sentinel value? I don't want to pollute the
         # end-user's PATH with another command though, this is not something an end user should ever directly run.
         # TODO: Using alternative entry point does not require adding pollution to PATH!! I can just directly invoke a
         # python file at a file path relative to this python file - i.e. another python file within the tableconv
         # install directory, not within PATH.
-        return run_daemon()
+        return run_worker_daemon()
 
     # Try running as daemon client
     if "-i" not in argv and "--interactive" not in argv:  # If interactive mode is requested, don't use daemon.

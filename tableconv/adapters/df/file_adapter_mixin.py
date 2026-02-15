@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from tableconv.uri import encode_uri, parse_uri
+from tableconv.exceptions import URLInaccessibleError
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,11 @@ class FileAdapterMixin:
         parsed_uri = parse_uri(uri)
         if parsed_uri.authority == "-" or parsed_uri.path == "-" or parsed_uri.path == "/dev/fd/0":
             path: str | IOBase = sys.stdin  # type: ignore[assignment]
+            if os.environ.get('TABLECONV_MY_DAEMON_SUPERVISOR_PID'):
+                raise URLInaccessibleError(
+                    "Error: STDIN does not yet work in daemon mode, sorry! Please restructure your command to buffer "
+                    "the data to a file, or alternatively `tableconv --kill-daemon`"
+                )
         else:
             path = os.path.expanduser(parsed_uri.path)
         df = cls.load_file(parsed_uri.scheme, path, parsed_uri.query)
