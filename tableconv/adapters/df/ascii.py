@@ -1,5 +1,8 @@
+import os
+
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
+from tableconv.parameter_parsing_utils import strtobool
 
 """
 Note: Some of these adapters use unicode characters too, not just ASCII. The "ascii" adapters use the word "ascii" as a
@@ -78,18 +81,28 @@ class RichAdapter(FileAdapterMixin, Adapter):
             table.add_column(field)
         for row in df.values:
             table.add_row(*[str(value) for value in row])
-        console.print(table)
+
+        if os.environ.get("TABLECONV_MY_DAEMON_SUPERVISOR_PID"):
+            console.print(table)
+        else:
+            os.environ["PAGER"] = "less -R --shift 10 --chop-long-lines --quit-if-one-screen"
+            with console.pager(styles=True):
+                console.print(table)
 
     @classmethod
     def dump_file(cls, df, scheme, path, params):
         from rich.console import Console
 
+        force_style_param = params.pop("force_style", None)
+        force_terminal = strtobool(force_style_param) if force_style_param else None
+
         if path != "/dev/fd/1":
             with open(path, "w", newline="") as f:
-                console = Console(file=f)
+                console = Console(file=f, width=9999, force_terminal=force_terminal)
                 cls.render(console, df, params)
         else:
-            console = Console()
+            console = Console(width=9999, force_terminal=force_terminal)
+            # console = Console()
             cls.render(console, df, params)
 
 
