@@ -6,6 +6,7 @@ import io
 import logging
 import os
 import re
+import ast
 
 import pandas as pd
 
@@ -28,9 +29,16 @@ class CSVAdapter(FileAdapterMixin, Adapter):
             params["skiprows"] = int(params["skiprows"])
         if "nrows" in params:
             params["nrows"] = int(params["nrows"])
+        stringify_cols = False
+        if 'header' in params:
+            params["header"] = ast.literal_eval(str(params["header"]))
+            stringify_cols = True
         if "dayfirst" in params:
             params["dayfirst"] = strtobool(params["dayfirst"])
-        return pd.read_csv(path, **params)
+        df = pd.read_csv(path, **params)
+        if stringify_cols:
+            df.columns = df.columns.astype(str)
+        return df
 
     @staticmethod
     def dump_file(df, scheme, path, params):
