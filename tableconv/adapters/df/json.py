@@ -10,49 +10,6 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 from tableconv.exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
 
 
-@register_adapter(["msgpack"])
-class MsgpackAdapter(FileAdapterMixin, Adapter):
-    """
-    I have this half-complete adapter in the same file as the JSONAdapter because they both have the same data
-    model, and 90% of the JSONAdapter code is just adapting between the dataframe datamodel and JSON/msgpack datamodel.
-    I need to work to extract/generalize that code so that all the adapters that are json-data-model compatible can
-    share it. Maybe I need to create the 2nd-ever data interchange format (after dfs) to do this, or maybe just make it
-    inherited from a jsondatamodel base class or similar, or a set of jsondatamodel conversion functions. I'm not sure
-    yet.
-
-    TODO: See also: BSON.
-    """
-
-    @staticmethod
-    def load_file(scheme, path, params):
-        import msgpack
-
-        if hasattr(path, "read"):
-            raw_bytes = path.read()
-        else:
-            raw_bytes = open(path, "rb").read()
-        raw_array = msgpack.unpackb(raw_bytes)
-        if not isinstance(raw_array, list):
-            raise SourceParseError("Input must be a JSON array")
-        preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
-        nesting_sep = params.get("nesting_sep", ".")
-        if preserve_nesting:
-            return pd.DataFrame.from_records(raw_array)
-        else:
-            return pd.json_normalize(raw_array, sep=nesting_sep)
-
-    @staticmethod
-    def dump_file(df, scheme, path, params):
-        import msgpack
-
-        assert params.get("if_exists") in {None, "replace"}
-
-        records = df.to_dict(orient=params.get("orient", "records"))
-
-        with open(path, "wb") as buf:
-            buf.write(msgpack.packb(records))
-
-
 @register_adapter(["json", "jsonl", "jsonlines", "ldjson", "ndjson"])
 class JSONAdapter(FileAdapterMixin, Adapter):
 
@@ -221,3 +178,46 @@ def unnest_df(df, nesting_sep) -> list[dict]:
             branch[leaf_key] = value
         new_records.append(new_record)
     return new_records
+
+
+@register_adapter(["msgpack"])
+class MsgpackAdapter(FileAdapterMixin, Adapter):
+    """
+    I have this half-complete adapter in the same file as the JSONAdapter because they both have the same data
+    model, and 90% of the JSONAdapter code is just adapting between the dataframe datamodel and JSON/msgpack datamodel.
+    I need to work to extract/generalize that code so that all the adapters that are json-data-model compatible can
+    share it. Maybe I need to create the 2nd-ever data interchange format (after dfs) to do this, or maybe just make it
+    inherited from a jsondatamodel base class or similar, or a set of jsondatamodel conversion functions. I'm not sure
+    yet.
+
+    TODO: See also: BSON.
+    """
+
+    @staticmethod
+    def load_file(scheme, path, params):
+        import msgpack
+
+        if hasattr(path, "read"):
+            raw_bytes = path.read()
+        else:
+            raw_bytes = open(path, "rb").read()
+        raw_array = msgpack.unpackb(raw_bytes)
+        if not isinstance(raw_array, list):
+            raise SourceParseError("Input must be a JSON array")
+        preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
+        nesting_sep = params.get("nesting_sep", ".")
+        if preserve_nesting:
+            return pd.DataFrame.from_records(raw_array)
+        else:
+            return pd.json_normalize(raw_array, sep=nesting_sep)
+
+    @staticmethod
+    def dump_file(df, scheme, path, params):
+        import msgpack
+
+        assert params.get("if_exists") in {None, "replace"}
+
+        records = df.to_dict(orient=params.get("orient", "records"))
+
+        with open(path, "wb") as buf:
+            buf.write(msgpack.packb(records))
