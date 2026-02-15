@@ -218,6 +218,7 @@ supported url schemes:
   latex:- (dest only)
   leveldblog:output-0 (source only)
   list:-
+  lnav:/var/log/example.log (source only)
   markdown:- (dest only)
   md:- (dest only)
   mdlist:-
