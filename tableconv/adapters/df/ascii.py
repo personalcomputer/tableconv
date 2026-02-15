@@ -58,7 +58,7 @@ class RichAdapter(FileAdapterMixin, Adapter):
         return f"{scheme}:-"
 
     @classmethod
-    def render(cls, console, df, params):
+    def render(cls, path, console, df, params):
         from rich.table import Table
 
         table_params = {
@@ -82,12 +82,12 @@ class RichAdapter(FileAdapterMixin, Adapter):
         for row in df.values:
             table.add_row(*[str(value) for value in row])
 
-        if os.environ.get("TABLECONV_MY_DAEMON_SUPERVISOR_PID"):
-            console.print(table)
-        else:
+        if path == "/dev/fd/1" and not os.environ.get("TABLECONV_MY_DAEMON_SUPERVISOR_PID"):
             os.environ["PAGER"] = "less -R --shift 10 --chop-long-lines --quit-if-one-screen"
             with console.pager(styles=True):
                 console.print(table)
+        else:
+            console.print(table)
 
     @classmethod
     def dump_file(cls, df, scheme, path, params):
@@ -99,11 +99,11 @@ class RichAdapter(FileAdapterMixin, Adapter):
         if path != "/dev/fd/1":
             with open(path, "w", newline="") as f:
                 console = Console(file=f, width=9999, force_terminal=force_terminal)
-                cls.render(console, df, params)
+                cls.render(path, console, df, params)
         else:
             console = Console(width=9999, force_terminal=force_terminal)
             # console = Console()
-            cls.render(console, df, params)
+            cls.render(path, console, df, params)
 
 
 @register_adapter(
