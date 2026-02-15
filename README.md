@@ -234,6 +234,7 @@ supported url schemes:
   pylist:-
   pythonlist:-
   rich:- (dest only)
+  row_per_file:///tmp/example (each file is considered a (filename,value) record)
   rst:- (dest only)
   sh://ls -l example (source only)
   smartsheet://SHEET_ID (source only)

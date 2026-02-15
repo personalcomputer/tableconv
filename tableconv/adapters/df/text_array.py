@@ -87,7 +87,7 @@ class TextArrayAdapter(FileAdapterMixin, Adapter):
             raise AssertionError()
 
 
-@register_adapter(["file_per_row"])
+@register_adapter(["file_per_row", "row_per_file"])
 class FilePerRowOutputAdapter(Adapter):
     """
     Very experimental adapter. Definitely not proper. I'm struggling to figure out a good product design / story for
@@ -111,7 +111,7 @@ class FilePerRowOutputAdapter(Adapter):
             raise ValueError(f"Unable to load {path}, no files in {path}")
         data = []
         for filename in os.listdir(path):
-            with open(filename) as f:
+            with open(os.path.join(path, filename)) as f:
                 value = f.read()
             data.append({"filename": filename, "value": value})
         df = pd.DataFrame.from_records(data)
@@ -121,31 +121,49 @@ class FilePerRowOutputAdapter(Adapter):
     def dump(cls, df, uri: str):
         parsed_uri = parse_uri(uri)
         if set(df.columns) != set(["filename", "value"]):
-            raise IncapableDestinationError('Table must have only two columns: "filename" and "value"')
+            raise IncapableDestinationError('Table must have only two columns: "filename" and "value".')
+
         path = parsed_uri.path
         if parsed_uri.authority:
             if path:
                 path = os.path.join(parsed_uri.authority, path)
             else:
                 path = parsed_uri.authority
+
+        if_exists = parsed_uri.query.get("if_exists", "fail")
+        if if_exists not in ("fail", "replace", "append"):
+            raise ValueError(f'if_exists must be "fail", "replace", or "append", got "{if_exists}"')
+
         if os.path.exists(path):
             if not os.path.isdir(path):
                 raise IncapableDestinationError(
-                    f'Destination must be an empty folder. "{os.path.abspath(path)}" is a pre-existing file.'
+                    f'Destination must be a folder. "{os.path.abspath(path)}" is a pre-existing file.'
                 )
-            if os.listdir(path):
+            if if_exists == "fail" and os.listdir(path):
                 raise IncapableDestinationError(
-                    f'Destination folder must be empty. "{os.path.abspath(path)}" is not empty.'
+                    f'Destination folder must be empty (when if_exists=fail). "{os.path.abspath(path)}" is not empty.'
                 )
+            if if_exists == "replace":
+                for existing_file in os.listdir(path):
+                    os.remove(os.path.join(path, existing_file))
+
         os.makedirs(path, exist_ok=True)
         data = df.to_dict(orient="records")
-        for filename in (record["filename"] for record in data):
-            filename = str(filename)
-            if re.search(r'[<>:"|?*\\/]', filename):
-                raise IncapableDestinationError(
-                    "Filenames must not contain special characters, please slugify them using SQL. Example errant "
-                    f'filename: "{filename}"'
-                )
         for record in data:
-            with open(os.path.join(path, str(record["filename"])), "w") as f:
+            filename = str(record["filename"])
+            match = re.search(r"[\0/]|^\.\.?$", filename)
+            if match:
+                raise IncapableDestinationError(
+                    "At least one filename contains forbidden characters, please slugify them using SQL. Example errant"
+                    f' filename: "{filename}". (Violating part: "{match.group(0)}")'
+                )
+            if filename == "":
+                raise IncapableDestinationError(
+                    "One or more of the specified filenames is empty, please provide non-empty filenames."
+                )
+
+        mode = "a" if if_exists == "append" else "w"
+        for record in data:
+            filename = str(record["filename"])
+            with open(os.path.join(path, filename), mode) as f:
                 f.write(record["value"])

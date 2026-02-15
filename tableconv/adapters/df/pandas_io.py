@@ -1,12 +1,12 @@
 """File for all Adapters that are just minimal wrappers of pandas supported io formats"""
 
+import ast
 import collections
 import csv
 import io
 import logging
 import os
 import re
-import ast
 
 import pandas as pd
 
@@ -30,7 +30,7 @@ class CSVAdapter(FileAdapterMixin, Adapter):
         if "nrows" in params:
             params["nrows"] = int(params["nrows"])
         stringify_cols = False
-        if 'header' in params:
+        if "header" in params:
             params["header"] = ast.literal_eval(str(params["header"]))
             stringify_cols = True
         if "dayfirst" in params:
