@@ -22,6 +22,7 @@ from .pcap import *  # noqa: F401 F403
 from .protobuf import *  # noqa: F401 F403
 from .python import *  # noqa: F401 F403
 from .rdbms import *  # noqa: F401 F403
+from .redis import *  # noqa: F401 F403
 from .smart_sheet import *  # noqa: F401 F403
 from .sql_literal import *  # noqa: F401 F403
 from .sumo_logic import *  # noqa: F401 F403

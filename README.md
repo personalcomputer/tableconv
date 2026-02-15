@@ -234,6 +234,7 @@ supported url schemes:
   postgresql://127.0.0.1:5432/example_db
   pylist:-
   pythonlist:-
+  redis://127.0.0.1:6379?db=0
   rich:- (dest only)
   row_per_file:///tmp/example (each file is considered a (filename,value) record)
   rst:- (dest only)

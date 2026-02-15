@@ -134,6 +134,15 @@ wheels = [
 ]
 
 [[package]]
+name = "async-timeout"
+version = "5.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a5/ae/136395dfbfe00dfc94da3f3e136d0b13f394cba8f4841120e34226265780/async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3", size = 9274, upload-time = "2024-11-06T16:41:39.6Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/ba/e2081de779ca30d473f21f5b30e0e737c438205440784c7dfc81efc2b029/async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c", size = 6233, upload-time = "2024-11-06T16:41:37.9Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2149,6 +2158,18 @@ wheels = [
 ]
 
 [[package]]
+name = "redis"
+version = "7.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "async-timeout", marker = "python_full_version < '3.11.3'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f7/80/2971931d27651affa88a44c0ad7b8c4a19dc29c998abb20b23868d319b59/redis-7.1.1.tar.gz", hash = "sha256:a2814b2bda15b39dad11391cc48edac4697214a8a5a4bd10abe936ab4892eb43", size = 4800064, upload-time = "2026-02-09T18:39:40.292Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/55/1de1d812ba1481fa4b37fb03b4eec0fcb71b6a0d44c04ea3482eb017600f/redis-7.1.1-py3-none-any.whl", hash = "sha256:f77817f16071c2950492c67d40b771fa493eb3fccc630a424a10976dbb794b7a", size = 356057, upload-time = "2026-02-09T18:39:38.602Z" },
+]
+
+[[package]]
 name = "remarshal"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2438,6 +2459,7 @@ full = [
     { name = "leveldb-export" },
     { name = "pyarrow" },
     { name = "pyiceberg" },
+    { name = "redis" },
 ]
 
 [package.dev-dependencies]
@@ -2490,6 +2512,7 @@ requires-dist = [
     { name = "pymysql", specifier = "~=1.1.1" },
     { name = "python-dateutil", specifier = "~=2.9.0.post0" },
     { name = "pyyaml", specifier = "~=6.0.2" },
+    { name = "redis", marker = "extra == 'full'", specifier = ">=7.1.1" },
     { name = "remarshal", specifier = ">=1.0.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sqlalchemy", specifier = "~=2.0.38" },
