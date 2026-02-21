@@ -94,14 +94,15 @@ class RichAdapter(FileAdapterMixin, Adapter):
         from rich.console import Console
 
         force_style_param = params.pop("force_style", None)
+        width = 9999 if strtobool(params.pop("wide", "true")) else None
         force_terminal = strtobool(force_style_param) if force_style_param else None
 
         if path != "/dev/fd/1":
             with open(path, "w", newline="") as f:
-                console = Console(file=f, width=9999, force_terminal=force_terminal)
+                console = Console(file=f, width=width, force_terminal=force_terminal)
                 cls.render(path, console, df, params)
         else:
-            console = Console(width=9999, force_terminal=force_terminal)
+            console = Console(width=width, force_terminal=force_terminal)
             # console = Console()
             cls.render(path, console, df, params)
 

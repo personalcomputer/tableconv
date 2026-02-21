@@ -20,6 +20,11 @@ logger = logging.getLogger(__name__)
 
 @register_adapter(["csv", "tsv", "csv.gz", "csv.bz2", "csv.xz", "csv.zst"])
 class CSVAdapter(FileAdapterMixin, Adapter):
+    """
+    TODO: param documentation...
+
+    encoding_errors=ignore, encoding_errors=replace, encoding_errors=backslashreplace
+    """
 
     @staticmethod
     def load_file(scheme, path, params):

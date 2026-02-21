@@ -103,6 +103,7 @@ def handle_administrative_command(
 
 
 def create_empty_file(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, "wb").close()  # noqa: SIM115
 
 
