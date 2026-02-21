@@ -56,8 +56,8 @@ def render_unicodebox(ordered_fields, rows):
 
 class _TtyPager:
     """
-    A pager that uses /dev/ttyp for user input, instead of STDIN. This allows piping data into tableconv while style
-    showing theoutput via pager.
+    A pager that uses /dev/tty for user input, instead of STDIN. This allows piping data into tableconv while still
+    showing the output via pager.
     """
 
     def __init__(self):
