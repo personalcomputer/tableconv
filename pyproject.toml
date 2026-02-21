@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tableconv"
-version = "1.10000.20260215"
+version = "1.10001.20260221"
 description = "CLI data plumbing tool"
 readme = "README.md"
 authors = [
