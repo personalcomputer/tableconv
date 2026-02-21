@@ -206,6 +206,7 @@ supported url schemes:
   example.xlsb
   example.xlsm
   example.xlsx
+  example.xml (source only)
   example.yaml
   example.yml
   file_per_row:///tmp/example (each file is considered a (filename,value) record)

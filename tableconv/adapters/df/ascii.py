@@ -1,4 +1,8 @@
 import os
+import shlex
+import subprocess
+import sys
+import tempfile
 
 from tableconv.adapters.df.base import Adapter, register_adapter
 from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
@@ -50,6 +54,43 @@ def render_unicodebox(ordered_fields, rows):
     return "\n".join(output_lines)
 
 
+class _TtyPager:
+    """
+    A pager that uses /dev/ttyp for user input, instead of STDIN. This allows piping data into tableconv while style
+    showing theoutput via pager.
+    """
+
+    def __init__(self):
+        pager_cmd = os.environ["PAGER"]
+        self.cmd = shlex.split(pager_cmd)
+
+    def show(self, content):
+        try:
+            tty_in = open("/dev/tty")
+            tty_out = open("/dev/tty", "w")
+        except OSError:
+            sys.stdout.write(content)
+            return
+
+        with tty_in, tty_out:
+            with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as f:
+                f.write(content)
+                temp_path = f.name
+            try:
+                subprocess.run(
+                    self.cmd + [temp_path],
+                    stdin=tty_in,
+                    stdout=tty_out,
+                    stderr=tty_out,
+                    check=False,
+                )
+            finally:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+
+
 @register_adapter(["asciirich", "rich"], write_only=True)
 class RichAdapter(FileAdapterMixin, Adapter):
 
@@ -84,7 +125,8 @@ class RichAdapter(FileAdapterMixin, Adapter):
 
         if path == "/dev/fd/1" and not os.environ.get("TABLECONV_MY_DAEMON_SUPERVISOR_PID"):
             os.environ["PAGER"] = "less -R --shift 10 --chop-long-lines --quit-if-one-screen"
-            with console.pager(styles=True):
+            pager = _TtyPager() if not sys.stdin.isatty() and sys.stdout.isatty() else None
+            with console.pager(styles=True, pager=pager):
                 console.print(table)
         else:
             console.print(table)

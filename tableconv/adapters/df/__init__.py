@@ -27,6 +27,7 @@ from .smart_sheet import *  # noqa: F401 F403
 from .sql_literal import *  # noqa: F401 F403
 from .sumo_logic import *  # noqa: F401 F403
 from .text_array import *  # noqa: F401 F403
+from .xml import *  # noqa: F401 F403
 from .yaml import *  # noqa: F401 F403
 
 # TODO: Register adapters in a cleaner way (dynamic adapter loading?). Just get rid of the `import *` pattern!
