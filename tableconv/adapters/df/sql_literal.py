@@ -35,9 +35,9 @@ class SQLLiteralAdapter(FileAdapterMixin, Adapter):
         if isinstance(value, datetime.datetime):
             if value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None:
                 iso = value.isoformat(sep=" ")
-                return f"TIMESTAMPTZ '{iso.replace("'", "''")}'"
+                return "TIMESTAMPTZ '" + iso.replace("'", "''") + "'"
             iso = value.replace(tzinfo=None).isoformat(sep=" ")
-            return f"TIMESTAMP '{iso.replace("'", "''")}'"
+            return "TIMESTAMP '" + iso.replace("'", "''") + "'"
         if isinstance(value, datetime.date):
             return f"DATE '{value.isoformat()}'"
         if isinstance(value, datetime.time):
@@ -55,7 +55,7 @@ class SQLLiteralAdapter(FileAdapterMixin, Adapter):
             s = json.dumps(value, separators=(",", ":"))
             s = s.replace("'", "''")
             return f"'{s}'"
-        return f"'{str(value).replace("'", "''")}'"
+        return "'" + str(value).replace("'", "''") + "'"
 
     @staticmethod
     def dump_text_data(df, scheme, params):
