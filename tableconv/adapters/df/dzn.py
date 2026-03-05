@@ -35,7 +35,8 @@ class MiniZincDznAdapter(FileAdapterMixin, Adapter):
         if isinstance(value, str):
             s = value.replace('"', '\\"')
             return f'"{s}"'
-        return f'"{str(value).replace('"', '\\"')}"'
+        escaped = str(value).replace('"', '\\"')
+        return f'"{escaped}"'
 
     @staticmethod
     def dump_text_data(df, scheme, params):
