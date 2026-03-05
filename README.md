@@ -114,13 +114,13 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -q, -Q, --query SOURCE_QUERY
+  -q SOURCE_QUERY, -Q SOURCE_QUERY, --query SOURCE_QUERY
                         Query to run on the source. Even for non-SQL datasources (e.g. csv or
                         json), SQL querying is still supported, try `SELECT * FROM data`.
-  -F, --filter INTERMEDIATE_FILTER_SQL
+  -F INTERMEDIATE_FILTER_SQL, --filter INTERMEDIATE_FILTER_SQL
                         Filter (i.e. transform) the input data using a SQL query operating on the
                         dataset in memory using DuckDB SQL.
-  -o, --dest, --out, --output DEST_URL
+  -o DEST_URL, --dest DEST_URL, --out DEST_URL, --output DEST_URL
                         Specify the data destination URL. If this destination already exists, be
                         aware that the default behavior is to overwrite.
   -i, --interactive     Enter interactive REPL query mode.
@@ -133,7 +133,7 @@ options:
   --quiet               Only display errors.
   --print, --print-dest
                         Print resulting URL/path to stdout, for chaining with other commands.
-  --schema, --coerce-schema SCHEMA_COERCION
+  --schema SCHEMA_COERCION, --coerce-schema SCHEMA_COERCION
                         Coerce source schema according to a schema definition. (WARNING:
                         experimental feature)
   --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
