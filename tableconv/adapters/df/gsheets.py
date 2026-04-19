@@ -462,6 +462,7 @@ class GoogleSheetsAdapter(Adapter):
                             new_col_names_ordered = existing_columns
                             df = df[new_col_names_ordered]
 
+                    columns = len(df.columns)
                     GoogleSheetsAdapter._reshape_sheet(
                         googlesheets,
                         spreadsheet_id,
