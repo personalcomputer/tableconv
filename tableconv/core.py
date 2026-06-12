@@ -152,7 +152,7 @@ class IntermediateExchangeTable:
 FSSPEC_SCHEMES = {"https", "http", "ftp", "s3", "gcs", "sftp", "scp", "abfs"}
 
 
-def parse_source_url(url: str) -> tuple[str, Adapter]:
+def parse_source_url(url: str) -> tuple[str, type[Adapter]]:
     """Returns source_scheme, read_adapter"""
     parsed_url = parse_uri(url)
     source_scheme = parsed_url.scheme

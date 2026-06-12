@@ -45,9 +45,18 @@ class Adapter:
         raise NotImplementedError
 
 
-adapters: dict[str, Adapter] = {}
-read_adapters: dict[str, Adapter] = {}
-write_adapters: dict[str, Adapter] = {}
+adapters: dict[str, type[Adapter]] = {}
+read_adapters: dict[str, type[Adapter]] = {}
+write_adapters: dict[str, type[Adapter]] = {}
+
+
+def _ensure_scheme_is_available(scheme: str, cls: type[Adapter]) -> None:
+    registered_adapter = adapters.get(scheme)
+    if registered_adapter and registered_adapter is not cls:
+        raise RuntimeError(
+            f'Scheme "{scheme}" is already registered to {registered_adapter.__name__}; '
+            f"cannot also register {cls.__name__}."
+        )
 
 
 def register_adapter(schemes: list[str], write_only: bool = False, read_only: bool = False):
@@ -61,6 +70,7 @@ def register_adapter(schemes: list[str], write_only: bool = False, read_only: bo
         global read_adapters
         global write_adapters
         for scheme in schemes:
+            _ensure_scheme_is_available(scheme, cls)
             adapters[scheme] = cls
             if not write_only:
                 read_adapters[scheme] = cls

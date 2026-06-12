@@ -10,6 +10,7 @@ import socket
 import socketserver
 import sqlite3
 import subprocess
+import textwrap
 import threading
 import time
 
@@ -20,6 +21,8 @@ from tests.fixtures.example_raw import (
     EXAMPLE_CSV_RAW,
     EXAMPLE_JSON_RAW,
     EXAMPLE_LIST_RAW,
+    EXAMPLE_MD_RAW,
+    EXAMPLE_RECORDS,
     EXAMPLE_TSV_RAW,
 )
 
@@ -32,6 +35,61 @@ def test_csv_to_tsv(invoke_cli):
 def test_tsv_to_csv(invoke_cli):
     stdout = invoke_cli(["tsv:-", "-o", "csv:-"], stdin=EXAMPLE_TSV_RAW)
     assert stdout == EXAMPLE_CSV_RAW + "\n"
+
+
+def test_markdown_to_csv(invoke_cli):
+    stdout = invoke_cli(["md:-", "-o", "csv:-"], stdin=EXAMPLE_MD_RAW)
+    assert stdout == EXAMPLE_CSV_RAW + "\n"
+
+
+def test_csv_to_markdown(invoke_cli):
+    stdout = invoke_cli(["csv:-", "-o", "md:-"], stdin=EXAMPLE_CSV_RAW)
+    assert stdout == (
+        "| id   | name   | date   |\n"
+        "|------|--------|--------|\n"
+        "| 1    | George | 2023   |\n"
+        "| 2    | Steven | 1950   |\n"
+        "| 3    | Rachel | 1995   |"
+    )
+
+
+def test_markdown_file_inferred_scheme(invoke_cli):
+    stdout = invoke_cli([FIXTURES_DIR / "example.md", "-o", "json:-"])
+    assert json.loads(stdout) == EXAMPLE_RECORDS
+
+
+def test_markdown_table_index_and_escaped_pipes(invoke_cli):
+    markdown = textwrap.dedent(
+        r"""
+        | ignored |
+        | --- |
+        | yes |
+
+        Some prose between tables.
+
+        | id | note |
+        | ---: | --- |
+        | 1 | Alpha \| Beta |
+        | 2 | `Gamma | Delta` |
+    """
+    ).strip()
+    stdout = invoke_cli(["markdown:-?table_index=1", "-o", "json:-"], stdin=markdown)
+    assert json.loads(stdout) == [
+        {"id": 1, "note": "Alpha | Beta"},
+        {"id": 2, "note": "`Gamma | Delta`"},
+    ]
+
+
+def test_invalid_markdown_table(invoke_cli):
+    _, stderr = invoke_cli(
+        ["md:-", "-o", "csv:-"],
+        stdin="not a table",
+        assert_nonzero_exit_code=True,
+        capture_stderr=True,
+    )
+    assert "traceback" not in stderr.lower()
+    assert "error" in stderr.lower()
+    assert "markdown table" in stderr.lower()
 
 
 def test_tsv_to_csv_files(tmp_path, invoke_cli):

@@ -36,6 +36,11 @@ Convert CSV to a Markdown Table
 tableconv test.csv -o md:-
 ```
 
+Convert a Markdown Table (from the copy/paste buffer) to CSV
+```sh
+pbpaste | tableconv md:- -o csv:- 
+```
+
 Dump the first 100 rows of a postgres table as JSON
 ```sh
 tableconv postgresql://192.168.0.10:5432/test_db -q 'SELECT * FROM my_table ORDER BY id LIMIT 100' -o my_table.json
@@ -114,13 +119,13 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -q SOURCE_QUERY, -Q SOURCE_QUERY, --query SOURCE_QUERY
+  -q, -Q, --query SOURCE_QUERY
                         Query to run on the source. Even for non-SQL datasources (e.g. csv or
                         json), SQL querying is still supported, try `SELECT * FROM data`.
-  -F INTERMEDIATE_FILTER_SQL, --filter INTERMEDIATE_FILTER_SQL
+  -F, --filter INTERMEDIATE_FILTER_SQL
                         Filter (i.e. transform) the input data using a SQL query operating on the
                         dataset in memory using DuckDB SQL.
-  -o DEST_URL, --dest DEST_URL, --out DEST_URL, --output DEST_URL
+  -o, --dest, --out, --output DEST_URL
                         Specify the data destination URL. If this destination already exists, be
                         aware that the default behavior is to overwrite.
   -i, --interactive     Enter interactive REPL query mode.
@@ -133,7 +138,7 @@ options:
   --quiet               Only display errors.
   --print, --print-dest
                         Print resulting URL/path to stdout, for chaining with other commands.
-  --schema SCHEMA_COERCION, --coerce-schema SCHEMA_COERCION
+  --schema, --coerce-schema SCHEMA_COERCION
                         Coerce source schema according to a schema definition. (WARNING:
                         experimental feature)
   --restrict-schema     Exclude all columns not included in the SCHEMA_COERCION definition.
@@ -185,6 +190,8 @@ supported url schemes:
   example.jsonl
   example.jsonlines
   example.ldjson
+  example.markdown
+  example.md
   example.msgpack
   example.ndjson
   example.numbers (source only)
@@ -220,8 +227,6 @@ supported url schemes:
   leveldblog:output-0 (source only)
   list:-
   lnav:/var/log/example.log (source only)
-  markdown:- (dest only)
-  md:- (dest only)
   mdlist:-
   mediawikiformat:- (dest only)
   moinmoinformat:- (dest only)

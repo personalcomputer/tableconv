@@ -16,6 +16,15 @@ EXAMPLE_TSV_RAW = textwrap.dedent(
     3\tRachel\t1995
 """
 ).strip()
+EXAMPLE_MD_RAW = textwrap.dedent(
+    """
+    | id | name | date |
+    | ---: | :--- | ---: |
+    | 1 | George | 2023 |
+    | 2 | Steven | 1950 |
+    | 3 | Rachel | 1995 |
+"""
+).strip()
 EXAMPLE_JSON_RAW = textwrap.dedent(
     """
     [
