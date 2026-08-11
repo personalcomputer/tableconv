@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from tableconv.exceptions import InvalidQueryError
+from tableconv.flattening import log_flattened_columns
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,7 @@ def flatten_arrays_for_duckdb(df: pd.DataFrame) -> None:
             if df[col_name].apply(lambda x: isinstance(x, list)).any():
                 df[col_name] = df[col_name].astype(str)
                 flattened.add(col_name)
-    if flattened:
-        flattened_display = ", ".join([str(column) for column in flattened])
-        logger.warning(f"Flattened some columns into strings for in-memory query: {flattened_display}")
+    log_flattened_columns(flattened, "in-memory query")
 
 
 def pre_process(dfs, query) -> tuple:

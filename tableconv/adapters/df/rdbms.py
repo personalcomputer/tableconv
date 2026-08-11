@@ -1,8 +1,11 @@
 import configparser
 import copy
+import json
 import logging
 import os
+from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from tableconv.adapters.df.base import Adapter, register_adapter
@@ -13,6 +16,7 @@ from tableconv.exceptions import (
     InvalidURLError,
     TableAlreadyExistsError,
 )
+from tableconv.flattening import log_flattened_columns
 from tableconv.uri import encode_uri, parse_uri
 
 logger = logging.getLogger(__name__)
@@ -28,6 +32,56 @@ def resolve_pgcli_uri_alias(dsn: str) -> str | None:
     if "alias_dsn" in config and dsn in config["alias_dsn"]:
         return config["alias_dsn"][dsn]
     return None
+
+
+NESTED_TYPES = (list, dict, set, tuple, np.ndarray)
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return [_jsonable(item) for item in value.tolist()]
+    if isinstance(value, (list, tuple, set)):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, np.generic):
+        return value.item()
+    if value is None or value is pd.NA or (isinstance(value, float) and pd.isna(value)):
+        return None
+    return value
+
+
+def _prepare_nested_columns(df: pd.DataFrame, dialect: str) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """
+    SQL databases cannot bind python list/dict values directly. Serialize them as JSON: natively typed (JSONB) for
+    PostgreSQL, as JSON-encoded TEXT for everything else.
+    """
+    nested_columns = [
+        col
+        for col in df.columns
+        if df[col].dtype == object and df[col].map(lambda value: isinstance(value, NESTED_TYPES)).any()
+    ]
+    if not nested_columns:
+        return df, {}
+    df = df.copy()
+    dtype: dict[str, Any] = {}
+    if dialect == "postgresql":
+        from sqlalchemy.dialects.postgresql import JSONB
+
+        for col in nested_columns:
+            df[col] = df[col].map(lambda value: _jsonable(value) if isinstance(value, NESTED_TYPES) else value)
+            dtype[col] = JSONB
+    else:
+        for col in nested_columns:
+            df[col] = df[col].map(
+                lambda value: (
+                    json.dumps(_jsonable(value), separators=(",", ":"))
+                    if isinstance(value, NESTED_TYPES)
+                    else value
+                )
+            )
+        log_flattened_columns(nested_columns, "SQL insert")
+    return df, dtype
 
 
 @register_adapter(["postgres", "postgis", "postgresql", "sqlite", "sqlite3", "mysql", "mssql", "oracle"])
@@ -142,8 +196,9 @@ class RDBMSAdapter(Adapter):
             if_exists = "replace"
         else:
             if_exists = "fail"
+        df, dtype = _prepare_nested_columns(df, engine.dialect.name)
         try:
-            df.to_sql(table, engine, index=False, if_exists=if_exists)
+            df.to_sql(table, engine, index=False, if_exists=if_exists, dtype=dtype or None)
         except ValueError as exc:
             if if_exists == "fail" and exc.args[0] == f"Table '{table}' already exists.":
                 raise TableAlreadyExistsError(*exc.args) from exc

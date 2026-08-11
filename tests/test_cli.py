@@ -317,6 +317,13 @@ def test_sqlite_file_roundtrip(tmp_path, invoke_cli):
     assert stdout == EXAMPLE_CSV_RAW + "\n"
 
 
+def test_sqlite_nested_values_stored_as_json(tmp_path, invoke_cli):
+    raw = json.dumps([{"name": "a", "include": []}, {"name": "b", "include": ["x", "y"]}])
+    invoke_cli(["json:-", "-o", f"{tmp_path}/db.sqlite3?table=test"], stdin=raw)
+    stdout = invoke_cli([f"{tmp_path}/db.sqlite3?table=test", "-o", "json:-"])
+    assert json.loads(stdout) == [{"name": "a", "include": "[]"}, {"name": "b", "include": '["x","y"]'}]
+
+
 def test_sqlite_roundtrip(tmp_path, invoke_cli):
     invoke_cli(["csv:-", "-o", f"sqlite://{tmp_path}/db.db?table=test"], stdin=EXAMPLE_CSV_RAW)
     stdout = invoke_cli([f"sqlite://{tmp_path}//db.db?table=test", "-o", "csv:-"])
