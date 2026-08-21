@@ -170,8 +170,6 @@ class FileAdapterMixin:
                     # Ignore broken pipe error when outputting to stdout
                     return
                 raise
-        # if path == "/dev/fd/1" and sys.stdout.isatty() and cls.text_based:
-        #   TODO: pipe through a color-highlighter maybe, like either `bat` or python rich library?
         if data and data[-1] != "\n" and path == "/dev/fd/1" and sys.stdout.isatty():
             # TODO: this print should happen for literally every file, stdout or otherwise.
             # however, right now that is causing some sort of corruption in testcases where the \n gets printed at the
