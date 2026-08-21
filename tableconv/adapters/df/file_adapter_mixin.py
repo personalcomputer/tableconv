@@ -1,10 +1,10 @@
 import copy
 import logging
 import os
-import shlex
 import shutil
-import subprocess
 import sys
+import tarfile
+import zipfile
 from io import IOBase
 from typing import Any
 
@@ -14,6 +14,104 @@ from tableconv.exceptions import URLInaccessibleError
 from tableconv.uri import encode_uri, parse_uri
 
 logger = logging.getLogger(__name__)
+
+# Compound extensions listed longest-first so ".tar.gz" matches before ".gz" etc.
+_ARCHIVE_EXTS: tuple[str, ...] = (
+    ".tar.zstd",
+    ".tar.gz",
+    ".tar.bz2",
+    ".tgz",
+    ".tbz2",
+    ".tar",
+    ".zip",
+)
+_TAR_WRITE_MODES: dict[str, str] = {
+    ".tar": "w:",
+    ".tar.gz": "w:gz",
+    ".tgz": "w:gz",
+    ".tar.bz2": "w:bz2",
+    ".tbz2": "w:bz2",
+}
+
+
+def _archive_ext(path: str) -> str | None:
+    lower = path.lower()
+    for ext in _ARCHIVE_EXTS:
+        if lower.endswith(ext):
+            return ext
+    return None
+
+
+def _iter_files(root: str):
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            abs_path = os.path.join(dirpath, name)
+            yield abs_path, os.path.relpath(abs_path, root)
+
+
+def _extract_archive(archive_path: str, dest_dir: str) -> None:
+    ext = _archive_ext(archive_path)
+    if ext == ".zip":
+        with zipfile.ZipFile(archive_path) as zf:
+            zf.extractall(dest_dir)
+    elif ext == ".tar.zstd":
+        _extract_tar_zstd(archive_path, dest_dir)
+    elif ext is not None:
+        # "r:*" auto-detects gz/bz2/xz compression for .tar and the .tgz/.tbz2 variants.
+        with tarfile.open(archive_path, "r:*") as tf:
+            tf.extractall(dest_dir, filter="data")
+    else:
+        raise ValueError(
+            f"Unsupported archive format: {archive_path}. Multitable archive I/O only supports: "
+            f"{', '.join(_ARCHIVE_EXTS)}."
+        )
+
+
+def _pack_archive(src_dir: str, out_path: str, ext: str) -> None:
+    if ext == ".zip":
+        with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for abs_path, arcname in _iter_files(src_dir):
+                zf.write(abs_path, arcname)
+    elif ext == ".tar.zstd":
+        _pack_tar_zstd(src_dir, out_path)
+    else:
+        with tarfile.open(out_path, _TAR_WRITE_MODES[ext]) as tf:  # type: ignore[call-overload]
+            for abs_path, arcname in _iter_files(src_dir):
+                tf.add(abs_path, arcname)
+
+
+def _extract_tar_zstd(archive_path: str, dest_dir: str) -> None:
+    try:
+        import zstandard
+    except ImportError as exc:
+        raise RuntimeError(
+            "Reading .tar.zstd archives requires the 'zstandard' package.\n"
+            " - `uv run --with zstandard tableconv ...`\n"
+            " - or `uv add zstandard`"
+        ) from exc
+    dctx = zstandard.ZstdDecompressor()
+    with open(archive_path, "rb") as fh:
+        with dctx.stream_reader(fh) as reader:
+            # "r|" streams from a non-seekable fileobj, which zstandard's reader is.
+            with tarfile.open(fileobj=reader, mode="r|") as tf:
+                tf.extractall(dest_dir, filter="data")
+
+
+def _pack_tar_zstd(src_dir: str, out_path: str) -> None:
+    try:
+        import zstandard
+    except ImportError as exc:
+        raise RuntimeError(
+            "Writing .tar.zstd archives requires the 'zstandard' package.\n"
+            " - `uv run --with zstandard tableconv ...`\n"
+            " - or `uv add zstandard`"
+        ) from exc
+    cctx = zstandard.ZstdCompressor()
+    with open(out_path, "wb") as fh:
+        with cctx.stream_writer(fh) as writer:
+            with tarfile.open(fileobj=writer, mode="w|") as tf:
+                for abs_path, arcname in _iter_files(src_dir):
+                    tf.add(abs_path, arcname)
 
 
 class FileAdapterMixin:
@@ -92,18 +190,17 @@ class FileAdapterMixin:
     def load_multitable(cls, uri):
         """Experimental feature. Undocumented. Low Quality."""
         parsed_uri = parse_uri(uri)
-        parsed_uri.path, ext = os.path.splitext(parsed_uri.path)
-        if ext:
-            if ext in [".zip", ".tar", ".tar.zstd", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2"]:
-                # TODO: this `extract` archiving tool is not packaged with tableconv. Find a good one..
-                # The most popular seems to be `unp`, but `unp` is inconsistent in how it represents where the
-                # output directory is.
-                cmd(["extract", parsed_uri.path + ext, "--output", parsed_uri.path])
-            else:
-                raise ValueError(
-                    f"Unsupported format: {ext}. Multitable file output only supports folders or common "
-                    "archive formats."
-                )
+        ext = _archive_ext(parsed_uri.path)
+        if ext is not None:
+            archive_path = parsed_uri.path
+            parsed_uri.path = parsed_uri.path[: -len(ext)]
+            _extract_archive(archive_path, parsed_uri.path)
+        elif os.path.splitext(parsed_uri.path)[1]:
+            raise ValueError(
+                f"Unsupported format: {os.path.splitext(parsed_uri.path)[1]}. "
+                "Multitable file output only supports folders or common archive formats "
+                f"({', '.join(_ARCHIVE_EXTS)})."
+            )
 
         for file in os.listdir(parsed_uri.path):
             table_name = os.path.splitext(file)[0]
@@ -118,16 +215,15 @@ class FileAdapterMixin:
         """Experimental feature. Undocumented. Low Quality."""
         parsed_uri = parse_uri(uri)
 
-        archive_format = None
-        parsed_uri.path, ext = os.path.splitext(parsed_uri.path)
-        if ext:
-            if ext in [".zip", ".tar", ".tar.zstd", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2"]:
-                archive_format = ext.strip(".")
-            else:
-                raise ValueError(
-                    f"Unsupported format: {ext}. Multitable file output only supports folders or common "
-                    "archive formats."
-                )
+        ext = _archive_ext(parsed_uri.path)
+        if ext is not None:
+            parsed_uri.path = parsed_uri.path[: -len(ext)]
+        elif os.path.splitext(parsed_uri.path)[1]:
+            raise ValueError(
+                f"Unsupported format: {os.path.splitext(parsed_uri.path)[1]}. "
+                "Multitable file output only supports folders or common archive formats "
+                f"({', '.join(_ARCHIVE_EXTS)})."
+            )
 
         os.makedirs(parsed_uri.path, exist_ok=False)
         try:
@@ -137,15 +233,9 @@ class FileAdapterMixin:
                 logger.info(f"Dumping table {encode_uri(table_uri_parsed)}")
                 cls.dump(df, encode_uri(table_uri_parsed))
 
-            if archive_format:
-                # TODO: this archiving tool is not packaged with tableconv. Find a good one..
-                cmd(["package.py", archive_format, parsed_uri.path, "--output", parsed_uri.path + ext])
+            if ext is not None:
+                _pack_archive(parsed_uri.path, parsed_uri.path + ext, ext)
         finally:
-            if archive_format or not os.listdir(parsed_uri.path):
-                logging.debug(f"Removing temp directory {parsed_uri.path}")
+            if ext is not None or not os.listdir(parsed_uri.path):
+                logger.debug(f"Removing temp directory {parsed_uri.path}")
                 shutil.rmtree(parsed_uri.path)
-
-
-def cmd(args, **kwargs):
-    logging.info(f"Running command: {shlex.join(args)}")
-    return subprocess.run(args, check=True, **kwargs)
