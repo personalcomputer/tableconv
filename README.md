@@ -172,6 +172,7 @@ supported url schemes:
   csa:-
   example.avro
   example.binpb (source only)
+  example.bson
   example.csv
   example.csv.bz2
   example.csv.gz

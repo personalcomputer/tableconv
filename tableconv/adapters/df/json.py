@@ -10,11 +10,12 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 from tableconv.exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
 
 
-def raw_array_to_df(raw_array, source_label, params):
-    """Convert a list of JSON-object records (the shared JSON data model used by the json/jsonl/msgpack/har adapters)
+def raw_array_to_df(raw_array, source_label, params, format_label="JSON"):
+    """Convert a list of object records (the shared JSON data model used by the json/jsonl/msgpack/har/yaml adapters)
     into a DataFrame, applying element validation and optional flattening via pandas.json_normalize.
 
-    `source_label` is used only to produce helpful error messages (e.g. "json", "jsonl", "har").
+    `source_label` is the scheme name used in error messages (e.g. "json", "yaml", "har").
+    `format_label` is the type vocabulary used in error messages (e.g. "JSON", "YAML").
     """
     for i, item in enumerate(raw_array):
         if not isinstance(item, dict):
@@ -27,8 +28,8 @@ def raw_array_to_df(raw_array, source_label, params):
             else:
                 json_type = str(type(item))
             raise SourceParseError(
-                f"Every element of the input {source_label} must be a JSON object. "
-                f"(element {i + 1} in input was a JSON {json_type})"
+                f"Every element of the input {source_label} must be a {format_label} object. "
+                f"(element {i + 1} in input was a {format_label} {json_type})"
             )
     preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
     nesting_sep = params.get("nesting_sep", ".")
@@ -197,13 +198,7 @@ def unnest_df(df, nesting_sep) -> list[dict]:
 
 @register_adapter(["msgpack"])
 class MsgpackAdapter(FileAdapterMixin, Adapter):
-    """
-    I have this half-complete adapter in the same file as the JSONAdapter because they both have the same data
-    model, and 90% of the JSONAdapter code is just adapting between the dataframe datamodel and JSON/msgpack datamodel.
-    I need to work to extract/generalize that code so that all the adapters that are json-data-model compatible can
-    share it. Maybe I need to create the 2nd-ever data interchange format (after dfs) to do this, or maybe just make it
-    inherited from a jsondatamodel base class or similar, or a set of jsondatamodel conversion functions. I'm not sure
-    yet.
+    """Msgpack shares the JSON data model; load delegates to raw_array_to_df() for validation/normalization.
 
     TODO: See also: BSON.
     """
@@ -219,12 +214,7 @@ class MsgpackAdapter(FileAdapterMixin, Adapter):
         raw_array = msgpack.unpackb(raw_bytes)
         if not isinstance(raw_array, list):
             raise SourceParseError("Input must be a JSON array")
-        preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
-        nesting_sep = params.get("nesting_sep", ".")
-        if preserve_nesting:
-            return pd.DataFrame.from_records(raw_array)
-        else:
-            return pd.json_normalize(raw_array, sep=nesting_sep)
+        return raw_array_to_df(raw_array, scheme, params)
 
     @staticmethod
     def dump_file(df, scheme, path, params):
@@ -236,3 +226,38 @@ class MsgpackAdapter(FileAdapterMixin, Adapter):
 
         with open(path, "wb") as buf:
             buf.write(msgpack.packb(records))
+
+
+@register_adapter(["bson"])
+class BsonAdapter(FileAdapterMixin, Adapter):
+    """BSON shares the JSON data model; load delegates to raw_array_to_df() for validation/normalization.
+
+    A BSON file is a sequence of concatenated BSON documents (the convention used by mongodump). On load, all documents
+    are decoded into a list and normalized; on dump, each record is encoded as one BSON document and concatenated.
+    """
+
+    @staticmethod
+    def load_file(scheme, path, params):
+        import bson
+
+        if hasattr(path, "read"):
+            raw_bytes = path.read()
+        else:
+            raw_bytes = open(path, "rb").read()
+        raw_array = bson.decode_all(raw_bytes)
+        return raw_array_to_df(raw_array, scheme, params)
+
+    @staticmethod
+    def dump_file(df, scheme, path, params):
+        import bson
+
+        assert params.get("if_exists") in {None, "replace"}
+
+        records = df.to_dict(orient=params.get("orient", "records"))
+        with open(path, "wb") as buf:
+            if isinstance(records, list):
+                for record in records:
+                    buf.write(bson.encode(record))
+            else:
+                # Non-records orient yields a single dict; encode it as one document.
+                buf.write(bson.encode(records))
