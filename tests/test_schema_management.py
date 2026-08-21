@@ -14,20 +14,24 @@ def jsmin(data: str) -> str:
 def test_coerce_control(invoke_cli):
     """Test no coercion (control test)"""
     cmd = ["json:-", "-o", "json:-"]
-    assert invoke_cli(cmd, COERCION_TESTS_JSON_RAW) == COERCION_TESTS_JSON_RAW
+    assert invoke_cli(cmd, COERCION_TESTS_JSON_RAW) == COERCION_TESTS_JSON_RAW + "\n"
 
 
 def test_coerce_strings(invoke_cli):
     cmd = ["json:-", "--coerce-schema", "{id: str, name: str}", "-o", "json:-"]
-    assert invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW) == jsmin(
-        json.dumps(
-            [
-                {"id": "1.0", "name": "Anatoly"},
-                {"id": "2 ", "name": "Bobby"},
-                {"id": None, "name": "Alice"},
-                {"id": "", "name": "Sofia"},
-            ]
+    assert (
+        invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW)
+        == jsmin(
+            json.dumps(
+                [
+                    {"id": "1.0", "name": "Anatoly"},
+                    {"id": "2 ", "name": "Bobby"},
+                    {"id": None, "name": "Alice"},
+                    {"id": "", "name": "Sofia"},
+                ]
+            )
         )
+        + "\n"
     )
 
 
@@ -42,15 +46,19 @@ def test_coerce_integers(invoke_cli):
     Details at https://github.com/personalcomputer/tableconv/blob/f9f9f3c/tableconv/core.py#L209
     """
     cmd = ["json:-", "--coerce-schema", "{id: int, name: str}", "-o", "json:-"]
-    assert invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW) == jsmin(
-        json.dumps(
-            [
-                {"id": 1.0, "name": "Anatoly"},
-                {"id": 2.0, "name": "Bobby"},
-                {"id": None, "name": "Alice"},
-                {"id": None, "name": "Sofia"},
-            ]
+    assert (
+        invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW)
+        == jsmin(
+            json.dumps(
+                [
+                    {"id": 1.0, "name": "Anatoly"},
+                    {"id": 2.0, "name": "Bobby"},
+                    {"id": None, "name": "Alice"},
+                    {"id": None, "name": "Sofia"},
+                ]
+            )
         )
+        + "\n"
     )
 
 
@@ -69,15 +77,19 @@ def test_coerce_integers_invalid(invoke_cli):
 
 def test_coerce_floats(invoke_cli):
     cmd = ["json:-", "--coerce-schema", "{id: float, name: str}", "-o", "json:-"]
-    assert invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW) == jsmin(
-        json.dumps(
-            [
-                {"id": 1.0, "name": "Anatoly"},
-                {"id": 2.0, "name": "Bobby"},
-                {"id": None, "name": "Alice"},
-                {"id": None, "name": "Sofia"},
-            ]
+    assert (
+        invoke_cli(cmd, stdin=COERCION_TESTS_JSON_RAW)
+        == jsmin(
+            json.dumps(
+                [
+                    {"id": 1.0, "name": "Anatoly"},
+                    {"id": 2.0, "name": "Bobby"},
+                    {"id": None, "name": "Alice"},
+                    {"id": None, "name": "Sofia"},
+                ]
+            )
         )
+        + "\n"
     )
 
 

@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from typing import Any
 
 import pandas as pd
@@ -132,6 +131,7 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                     records = json.load(buf) + records
                 buf.truncate(0)
                 json.dump(records, buf, default=json_encoder_default, indent=indent)
+                buf.write("\n")
         else:
             if orient in ["split", "index", "columns"]:
                 # Index required. Use first column as index.
@@ -147,14 +147,17 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                         buf.truncate(0)
                         buf.seek(0)
                         json.dump(records, buf, default=json_encoder_default, indent=indent)
+                        buf.write("\n")
                 else:
                     with open(path, "a") as buf:
                         df.to_json(buf, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
             else:
-                df.to_json(path, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
-
-        if scheme == "json" and path == "/dev/fd/1" and sys.stdout.isatty():
-            print()
+                # `df.to_json` never emits a trailing newline (for `json`; `jsonl`/`lines=True` self-terminates with
+                # `\n`), so own the handle and append one inline.
+                with open(path, "w", newline="") as buf:
+                    df.to_json(buf, lines=(scheme == "jsonl"), date_format="iso", indent=indent, orient=orient)
+                    if scheme == "json":
+                        buf.write("\n")
 
 
 def json_encoder_default(obj):

@@ -49,7 +49,7 @@ def test_csv_to_markdown(invoke_cli):
         "|------|--------|--------|\n"
         "| 1    | George | 2023   |\n"
         "| 2    | Steven | 1950   |\n"
-        "| 3    | Rachel | 1995   |"
+        "| 3    | Rachel | 1995   |\n"
     )
 
 
@@ -365,11 +365,11 @@ def test_array_formats(invoke_cli):
     stdout = invoke_cli(["list:-", "-o", "jsonarray:-"], stdin=EXAMPLE_LIST_RAW)
     assert json.loads(stdout) == ["a", "b", "c"]
     stdout = invoke_cli(["list:-", "-o", "csa:-"], stdin=EXAMPLE_LIST_RAW)
-    assert stdout == "a,b,c"
+    assert stdout == "a,b,c\n"
     stdout = invoke_cli(["list:-", "-o", "pylist:-"], stdin=EXAMPLE_LIST_RAW)
     assert ast.literal_eval(stdout) == ["a", "b", "c"]
     stdout = invoke_cli(["jsonarray:-", "-o", "list:-"], stdin='["a","b","c"]')
-    assert stdout == "a\nb\nc"
+    assert stdout == "a\nb\nc\n"
 
 
 def test_array_to_table(invoke_cli):
@@ -385,7 +385,7 @@ def test_array_to_table(invoke_cli):
 def test_table_to_array(invoke_cli):
     """Test table (csv) to to array (csa) conversion"""
     stdout = invoke_cli(["csv:-", "-q", "SELECT name from data", "-o", "csa:-"], stdin=EXAMPLE_CSV_RAW)
-    assert stdout == "George,Steven,Rachel"
+    assert stdout == "George,Steven,Rachel\n"
 
 
 def test_transpose(invoke_cli):

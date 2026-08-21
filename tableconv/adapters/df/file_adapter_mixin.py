@@ -165,16 +165,18 @@ class FileAdapterMixin:
         with open(path, "w", newline="") as f:
             try:
                 f.write(data)
+                # Every textual output ends with exactly one trailing newline. The `\n` must be written through
+                # the SAME file object `f` that wrote `data` (not via a separate `sys.stdout` handle): when stdout is
+                # a seekable file (e.g. pytest `capfd`), a separate handle's offset would still be 0 and the `\n`
+                # would overwrite the first byte of `data`. The guard keeps it single for formats that already
+                # self-terminate with `\n` (python/yaml/jsonl/csv).
+                if data and data[-1] != "\n":
+                    f.write("\n")
             except BrokenPipeError:
                 if path == "/dev/fd/1":
                     # Ignore broken pipe error when outputting to stdout
                     return
                 raise
-        if data and data[-1] != "\n" and path == "/dev/fd/1" and sys.stdout.isatty():
-            # TODO: this print should happen for literally every file, stdout or otherwise.
-            # however, right now that is causing some sort of corruption in testcases where the \n gets printed at the
-            # start of the buffer. Need to fix that first.
-            print()
 
     @classmethod
     def load_text_data(cls, scheme: str, data: str, params: dict[str, Any]) -> pd.DataFrame:

@@ -142,8 +142,8 @@ class HTMLAdapter(FileAdapterMixin, Adapter):
         return df
 
     @staticmethod
-    def dump_file(df, scheme, path, params):
-        df.to_html(path, **params)
+    def dump_text_data(df, scheme, params):
+        return df.to_html(**params)
 
 
 @register_adapter(["xls", "xlsx", "xlsm", "xlsb", "odf", "ods", "odt"])
