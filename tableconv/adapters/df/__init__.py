@@ -28,6 +28,7 @@ from .smart_sheet import *  # noqa: F401 F403
 from .sql_literal import *  # noqa: F401 F403
 from .sumo_logic import *  # noqa: F401 F403
 from .text_array import *  # noqa: F401 F403
+from .thin_wrappers import *  # noqa: F401 F403
 from .xml import *  # noqa: F401 F403
 from .yaml import *  # noqa: F401 F403
 

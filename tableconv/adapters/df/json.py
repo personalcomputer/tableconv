@@ -10,6 +10,58 @@ from tableconv.adapters.df.file_adapter_mixin import FileAdapterMixin
 from tableconv.exceptions import InvalidParamsError, SourceParseError, TableAlreadyExistsError
 
 
+def raw_array_to_df(raw_array, source_label, params):
+    """Convert a list of JSON-object records (the shared JSON data model used by the json/jsonl/msgpack/har adapters)
+    into a DataFrame, applying element validation and optional flattening via pandas.json_normalize.
+
+    `source_label` is used only to produce helpful error messages (e.g. "json", "jsonl", "har").
+    """
+    for i, item in enumerate(raw_array):
+        if not isinstance(item, dict):
+            if isinstance(item, (int, float)):
+                json_type = "number"
+            elif isinstance(item, str):
+                json_type = "string"
+            elif isinstance(item, list):
+                json_type = "array"
+            else:
+                json_type = str(type(item))
+            raise SourceParseError(
+                f"Every element of the input {source_label} must be a JSON object. "
+                f"(element {i + 1} in input was a JSON {json_type})"
+            )
+    preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
+    nesting_sep = params.get("nesting_sep", ".")
+    if preserve_nesting:
+        return pd.DataFrame.from_records(raw_array)
+    return pd.json_normalize(raw_array, sep=nesting_sep)
+
+
+def resolve_if_exists(params):
+    if "if_exists" in params:
+        if_exists = params["if_exists"]
+        if if_exists == "error":
+            if_exists = "fail"
+        assert if_exists in {"fail", "append", "replace"}
+    elif "append" in params and params["append"].lower() != "false":
+        if_exists = "append"
+    elif "overwrite" in params and params["overwrite"].lower() != "false":
+        if_exists = "replace"
+    else:
+        if_exists = "fail"
+    return if_exists
+
+
+def resolve_indent(params):
+    if "indent" in params:
+        return int(params["indent"])
+    return None
+
+
+def resolve_orient(params):
+    return params.get("format_mode", params.get("orient", params.get("mode", "records")))
+
+
 @register_adapter(["json", "jsonl", "jsonlines", "ldjson", "ndjson"])
 class JSONAdapter(FileAdapterMixin, Adapter):
 
@@ -17,19 +69,10 @@ class JSONAdapter(FileAdapterMixin, Adapter):
     def load_file(scheme, path, params):
         if scheme in ("jsonlines", "ldjson", "ndjson"):
             scheme = "jsonl"
-
-        preserve_nesting = params.get("preserve_nesting", "false").lower() == "true"
-        nesting_sep = params.get("nesting_sep", ".")
-        if preserve_nesting:
-            return pd.read_json(
-                path,
-                lines=(scheme == "jsonl"),
-                orient="records",
-            )
-        # TODO: All the below code is just a custom json parser wrapper alternative to pd.read_json(), in order to let
-        # us flatten it (b/c preserve_nesting=False). But it doesn't make sense to me that this re-implementation is
-        # needed, shouldn't pandas have a way to use read_json combined with json_normalize? Both are from pandas..
-        # I am probably missing a flag or something somewhere in pandas.
+        # NOTE: The below is a custom json parser wrapper, alternative to pd.read_json(), in order to let us flatten
+        # (b.c. preserve_nesting=False) via json_normalize. It's not obvious why pandas doesn't offer a combined
+        # read_json + json_normalize path; possibly a missing flag. The shared raw_array_to_df() helper centralizes
+        # the array->DataFrame conversion for all json-data-model adapters (json/jsonl/msgpack/har/...).
         if hasattr(path, "read"):
             raw_json = path.read()
         else:
@@ -50,45 +93,17 @@ class JSONAdapter(FileAdapterMixin, Adapter):
                     raise exc
         else:
             raise AssertionError
-        for i, item in enumerate(raw_array):
-            if not isinstance(item, dict):
-                if isinstance(item, (int, float)):
-                    json_type = "number"
-                elif isinstance(item, str):
-                    json_type = "string"
-                elif isinstance(item, list):
-                    json_type = "array"
-                else:
-                    json_type = str(type(item))
-                raise SourceParseError(
-                    f"Every element of the input {scheme} must be a JSON object. "
-                    f"(element {i + 1} in input was a JSON {json_type})"
-                )
-        return pd.json_normalize(raw_array, sep=nesting_sep)
+        return raw_array_to_df(raw_array, scheme, params)
 
     @staticmethod
     def dump_file(df, scheme, path, params):
         if scheme in ("jsonlines", "ldjson", "ndjson"):
             scheme = "jsonl"
 
-        if "if_exists" in params:
-            if_exists = params["if_exists"]
-            if if_exists == "error":
-                if_exists = "fail"
-            assert if_exists in {"fail", "append", "replace"}
-        elif "append" in params and params["append"].lower() != "false":
-            if_exists = "append"
-        elif "overwrite" in params and params["overwrite"].lower() != "false":
-            if_exists = "replace"
-        else:
-            if_exists = "fail"
-
-        if "indent" in params:
-            indent = int(params["indent"])
-        else:
-            indent = None
+        if_exists = resolve_if_exists(params)
+        indent = resolve_indent(params)
         unnest = params.get("unnest", "false").lower() == "true"
-        orient = params.get("format_mode", params.get("orient", params.get("mode", "records")))
+        orient = resolve_orient(params)
         # `orient` Options are
         #    'split': dict like {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
         #    'records': list like [{column -> value}, ... , {column -> value}]

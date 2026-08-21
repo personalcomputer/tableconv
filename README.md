@@ -184,6 +184,7 @@ supported url schemes:
   example.fixedwidth
   example.fwf
   example.h5
+  example.har (source only)
   example.hdf5
   example.html
   example.json
