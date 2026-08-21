@@ -75,9 +75,7 @@ def _prepare_nested_columns(df: pd.DataFrame, dialect: str) -> tuple[pd.DataFram
         for col in nested_columns:
             df[col] = df[col].map(
                 lambda value: (
-                    json.dumps(_jsonable(value), separators=(",", ":"))
-                    if isinstance(value, NESTED_TYPES)
-                    else value
+                    json.dumps(_jsonable(value), separators=(",", ":")) if isinstance(value, NESTED_TYPES) else value
                 )
             )
         log_flattened_columns(nested_columns, "SQL insert")
