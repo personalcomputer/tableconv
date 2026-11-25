@@ -188,7 +188,7 @@ def process_and_rewrite_remote_source_url(url: str) -> str:
     logger.info("Source URL is a remote file - attempting to create local copy (via fsspec)")
     parsed_url = parse_uri(url)
     if parsed_url.query:
-        encoded_query_params = "?" + "&".join((f"{key}={value}" for key, value in parsed_url.query.items()))
+        encoded_query_params = "?" + urllib.parse.urlencode(parsed_url.query, quote_via=urllib.parse.quote)
     else:
         encoded_query_params = ""
     file_scheme = os.path.splitext(parsed_url.path)[1][1:]

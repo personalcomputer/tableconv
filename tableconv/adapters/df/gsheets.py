@@ -384,11 +384,13 @@ class GoogleSheetsAdapter(Adapter):
                 sheet = get_sheet_properties(spreadsheet_data, sheet_name=sheet_name)
                 sheet_id = sheet["sheetId"]
                 if if_exists == "replace":
+                    # Clear old values first: values().update skips empty/None cells, which would leave stale data.
+                    googlesheets.spreadsheets().values().clear(
+                        spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'", body={}
+                    ).execute()
                     GoogleSheetsAdapter._reshape_sheet(
                         googlesheets, spreadsheet_id, sheet_id, columns=columns, rows=rows
                     )
-                    # delete it..
-                    # raise NotImplementedError("Sheet if_exists=replace not implemented yet")
                 elif if_exists == "append":
                     reformat = False
                     existing_rows_count = sheet["gridProperties"]["rowCount"] - 1

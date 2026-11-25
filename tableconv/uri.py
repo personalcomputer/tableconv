@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import urllib.parse
 from dataclasses import dataclass
 from typing import Any
 
@@ -48,8 +49,8 @@ def parse_uri(uri_str: str) -> URI:
     if not scheme:
         raise InvalidURLSyntaxError(f'Unable to parse URI "{uri_str}" scheme.')
     scheme = scheme.lower()
-    query_dict_items = (kv.split("=") for kv in m.group("query").split("&")) if m.group("query") else []
-    query = {k.lower(): v for k, v in query_dict_items}
+    query_dict_items = (kv.split("=", 1) for kv in m.group("query").split("&")) if m.group("query") else []
+    query = {urllib.parse.unquote(k).lower(): urllib.parse.unquote(v) for k, v in query_dict_items}
     return URI(
         scheme=scheme,
         query=query,
